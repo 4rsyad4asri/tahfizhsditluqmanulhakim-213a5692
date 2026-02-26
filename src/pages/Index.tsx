@@ -1,35 +1,53 @@
 import { useState, useMemo } from "react";
 import Header from "@/components/Header";
 import ClassCard from "@/components/ClassCard";
-import { generateMockData } from "@/data/mockData";
-import { Users, BookOpen, Award, TrendingUp } from "lucide-react";
-
-const mockData = generateMockData();
+import { useClasses } from "@/hooks/useClasses";
+import { Users, BookOpen, Award, TrendingUp, Loader2 } from "lucide-react";
 
 const Dashboard = () => {
   const [selectedGrade, setSelectedGrade] = useState<number | null>(null);
+  const { data: classes, isLoading, error } = useClasses();
 
   const filteredClasses = useMemo(() => {
-    if (selectedGrade === null) return mockData;
-    return mockData.filter(c => c.grade === selectedGrade);
-  }, [selectedGrade]);
+    if (!classes) return [];
+    if (selectedGrade === null) return classes;
+    return classes.filter(c => c.grade === selectedGrade);
+  }, [classes, selectedGrade]);
 
-  const totalStudents = mockData.reduce((sum, c) => sum + c.students.length, 0);
-  const avgProgress = Math.round(
-    mockData.reduce((sum, c) => sum + c.students.reduce((s, st) => s + st.progressHafalan, 0), 0) /
-    totalStudents
-  );
-  const totalLulus = mockData.reduce(
-    (sum, c) => sum + c.students.filter(s => s.statusSertifikasi === 'Lulus').length,
-    0
-  );
+  const totalStudents = classes?.reduce((sum, c) => sum + c.studentCount, 0) || 0;
+  const avgProgress = totalStudents > 0
+    ? Math.round((classes?.reduce((sum, c) => sum + c.avgProgress * c.studentCount, 0) || 0) / totalStudents)
+    : 0;
+  const totalLulus = classes?.reduce((sum, c) => sum + c.lulusCount, 0) || 0;
 
   const stats = [
     { icon: Users, label: "Total Siswa", value: totalStudents, color: "text-primary" },
     { icon: BookOpen, label: "Rata-rata Hafalan", value: `${avgProgress}%`, color: "text-secondary" },
     { icon: Award, label: "Lulus Sertifikasi", value: totalLulus, color: "text-accent" },
-    { icon: TrendingUp, label: "Total Kelas", value: mockData.length, color: "text-info" },
+    { icon: TrendingUp, label: "Total Kelas", value: classes?.length || 0, color: "text-info" },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="flex items-center justify-center py-20 text-destructive">
+          Gagal memuat data: {(error as Error).message}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -88,7 +106,7 @@ const Dashboard = () => {
         {/* Class Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {filteredClasses.map((classInfo) => (
-            <ClassCard key={classInfo.name} classInfo={classInfo} />
+            <ClassCard key={classInfo.id} classInfo={classInfo} />
           ))}
         </div>
       </main>

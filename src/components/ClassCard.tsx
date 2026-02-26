@@ -1,25 +1,19 @@
 import { BookOpen, Users, Award } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import type { ClassInfo } from "@/data/mockData";
+import type { ClassWithStats } from "@/hooks/useClasses";
 
 interface ClassCardProps {
-  classInfo: ClassInfo;
+  classInfo: ClassWithStats;
 }
 
 const ClassCard = ({ classInfo }: ClassCardProps) => {
   const navigate = useNavigate();
-  const totalStudents = classInfo.students.length;
-  const avgProgress = Math.round(
-    classInfo.students.reduce((sum, s) => sum + s.progressHafalan, 0) / totalStudents
-  );
-  const lulusCount = classInfo.students.filter(s => s.statusSertifikasi === 'Lulus').length;
 
   return (
     <div
       className="group relative bg-card rounded-lg border border-border p-5 transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 cursor-pointer animate-fade-in"
       onClick={() => navigate(`/kelas/${classInfo.grade}${classInfo.section}`)}
     >
-      {/* Top accent */}
       <div className="absolute top-0 left-0 right-0 h-1 rounded-t-lg gradient-islamic" />
 
       <div className="flex items-center justify-between mb-4">
@@ -32,7 +26,7 @@ const ClassCard = ({ classInfo }: ClassCardProps) => {
       <div className="space-y-3">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Users className="w-4 h-4 text-primary" />
-          <span>{totalStudents} Siswa</span>
+          <span>{classInfo.studentCount} Siswa</span>
         </div>
 
         <div className="space-y-1">
@@ -41,19 +35,19 @@ const ClassCard = ({ classInfo }: ClassCardProps) => {
               <BookOpen className="w-4 h-4 text-secondary" />
               <span>Progress Hafalan</span>
             </div>
-            <span className="font-semibold text-foreground">{avgProgress}%</span>
+            <span className="font-semibold text-foreground">{classInfo.avgProgress}%</span>
           </div>
           <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
             <div
               className="h-full rounded-full gradient-islamic transition-all duration-500"
-              style={{ width: `${avgProgress}%` }}
+              style={{ width: `${classInfo.avgProgress}%` }}
             />
           </div>
         </div>
 
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Award className="w-4 h-4 text-accent" />
-          <span>{lulusCount} Siswa Lulus Sertifikasi</span>
+          <span>{classInfo.lulusCount} Siswa Lulus Sertifikasi</span>
         </div>
       </div>
 

@@ -1,27 +1,23 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
-import { generateMockData, calculateNilaiSetoran, calculateNilaiUjian, SURAH_LIST } from "@/data/mockData";
-import type { Student, Setoran, Koreksi, Ujian } from "@/data/mockData";
-import { ArrowLeft, Plus, FileText, Award, BookOpen, PenLine } from "lucide-react";
+import { calculateNilaiSetoran, calculateNilaiUjian, SURAH_LIST } from "@/data/mockData";
+import type { Koreksi } from "@/data/mockData";
+import { useStudentDetail, useAddSetoran, useAddUjian, useUpdateCatatan } from "@/hooks/useStudentDetail";
+import { ArrowLeft, Plus, FileText, Award, BookOpen, PenLine, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-const mockData = generateMockData();
+import { toast } from "sonner";
 
 const StudentDetail = () => {
   const { studentId } = useParams<{ studentId: string }>();
   const navigate = useNavigate();
+  const { data, isLoading, error } = useStudentDetail(studentId);
+  const addSetoran = useAddSetoran();
+  const addUjian = useAddUjian();
+  const updateCatatan = useUpdateCatatan();
 
-  const studentData = useMemo(() => {
-    for (const c of mockData) {
-      const s = c.students.find(st => st.id === studentId);
-      if (s) return { student: s, className: c.name, classGrade: c.grade, classSection: c.section };
-    }
-    return null;
-  }, [studentId]);
-
-  const [student, setStudent] = useState<Student | null>(studentData?.student || null);
-  const [catatan, setCatatan] = useState(student?.catatanPenguji || "");
+  const [catatan, setCatatan] = useState("");
+  const [catatanInitialized, setCatatanInitialized] = useState(false);
 
   // Setoran form state
   const [showSetoranForm, setShowSetoranForm] = useState(false);
@@ -39,47 +35,76 @@ const StudentDetail = () => {
   const [ujianMode, setUjianMode] = useState<'Tahsin' | 'Tahfizh'>('Tahsin');
   const [ujianAspek, setUjianAspek] = useState<Record<string, number>>({});
 
-  if (!student || !studentData) {
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !data) {
     return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">Siswa tidak ditemukan</div>;
   }
 
+  const { student, classInfo, setoran, ujian } = data;
+
+  // Initialize catatan once
+  if (!catatanInitialized && student) {
+    setCatatan(student.catatan_penguji || "");
+    setCatatanInitialized(true);
+  }
+
   const handleAddSetoran = () => {
-    const nilai = calculateNilaiSetoran(setoranForm.koreksi);
-    const newSetoran: Setoran = {
-      id: `setoran-${Date.now()}`,
+    if (!studentId) return;
+    addSetoran.mutate({
+      student_id: studentId,
       tanggal: setoranForm.tanggal,
       juz: setoranForm.juz,
       surah: setoranForm.surah,
-      ayatMulai: setoranForm.ayatMulai,
-      ayatAkhir: setoranForm.ayatAkhir,
-      nilai,
-      koreksi: { ...setoranForm.koreksi },
-    };
-    setStudent({ ...student, setoran: [...student.setoran, newSetoran] });
-    setShowSetoranForm(false);
+      ayat_mulai: setoranForm.ayatMulai,
+      ayat_akhir: setoranForm.ayatAkhir,
+      kesalahan_makhraj: setoranForm.koreksi.kesalahanMakhraj,
+      kesalahan_tajwid: setoranForm.koreksi.kesalahanTajwid,
+      kesalahan_mad: setoranForm.koreksi.kesalahanMad,
+      kelancaran: setoranForm.koreksi.kelancaran,
+    }, {
+      onSuccess: () => {
+        toast.success("Setoran berhasil disimpan!");
+        setShowSetoranForm(false);
+      },
+      onError: (err) => toast.error("Gagal menyimpan: " + (err as Error).message),
+    });
   };
 
   const tahsinAspek = ['Makharijul Huruf', 'Tajwid', 'Kelancaran', 'Adab Membaca'];
   const tahfizhAspek = ['Kelancaran Hafalan', 'Ketepatan Ayat', 'Tajwid', 'Kekuatan Ingatan'];
 
   const handleUjianSubmit = () => {
-    const { nilaiAkhir, status, grade } = calculateNilaiUjian(ujianAspek);
-    const newUjian: Ujian = {
-      id: `ujian-${Date.now()}`,
-      tanggal: new Date().toISOString().split("T")[0],
+    if (!studentId) return;
+    addUjian.mutate({
+      student_id: studentId,
       mode: ujianMode,
-      nilaiAspek: { ...ujianAspek },
-      nilaiAkhir,
-      status,
-      grade,
-    };
-    setStudent({
-      ...student,
-      ujian: [...student.ujian, newUjian],
-      statusSertifikasi: status,
+      nilai_aspek: ujianAspek,
+    }, {
+      onSuccess: () => {
+        toast.success("Hasil ujian berhasil disimpan!");
+        setShowUjianForm(false);
+        setUjianAspek({});
+      },
+      onError: (err) => toast.error("Gagal menyimpan: " + (err as Error).message),
     });
-    setShowUjianForm(false);
-    setUjianAspek({});
+  };
+
+  const handleSaveCatatan = () => {
+    if (!studentId) return;
+    updateCatatan.mutate({ student_id: studentId, catatan }, {
+      onSuccess: () => toast.success("Catatan berhasil disimpan!"),
+      onError: (err) => toast.error("Gagal menyimpan: " + (err as Error).message),
+    });
   };
 
   const nilaiPreview = Object.keys(ujianAspek).length > 0 ? calculateNilaiUjian(ujianAspek) : null;
@@ -89,11 +114,11 @@ const StudentDetail = () => {
       <Header />
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <button
-          onClick={() => navigate(`/kelas/${studentData.classGrade}${studentData.classSection}`)}
+          onClick={() => classInfo ? navigate(`/kelas/${classInfo.grade}${classInfo.section}`) : navigate("/")}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Kembali ke {studentData.className}
+          Kembali ke {classInfo?.name || "Dashboard"}
         </button>
 
         {/* Student Info Card */}
@@ -101,7 +126,7 @@ const StudentDetail = () => {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h2 className="text-2xl font-bold text-foreground">{student.name}</h2>
-              <p className="text-sm text-muted-foreground">{studentData.className} · Target Juz {student.targetJuz}</p>
+              <p className="text-sm text-muted-foreground">{classInfo?.name} · Target Juz {student.target_juz}</p>
               <div className="flex flex-wrap gap-2 mt-2">
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                   student.level === 'Tahfizh' ? 'bg-primary/10 text-primary' :
@@ -111,11 +136,11 @@ const StudentDetail = () => {
                   {student.level}
                 </span>
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  student.statusSertifikasi === 'Lulus' ? 'bg-success/10 text-success' :
-                  student.statusSertifikasi === 'Tidak Lulus' ? 'bg-destructive/10 text-destructive' :
+                  student.status_sertifikasi === 'Lulus' ? 'bg-success/10 text-success' :
+                  student.status_sertifikasi === 'Tidak Lulus' ? 'bg-destructive/10 text-destructive' :
                   'bg-muted text-muted-foreground'
                 }`}>
-                  {student.statusSertifikasi === 'Lulus' ? '✅' : student.statusSertifikasi === 'Tidak Lulus' ? '❌' : '⏳'} {student.statusSertifikasi}
+                  {student.status_sertifikasi === 'Lulus' ? '✅' : student.status_sertifikasi === 'Tidak Lulus' ? '❌' : '⏳'} {student.status_sertifikasi}
                 </span>
               </div>
             </div>
@@ -124,11 +149,11 @@ const StudentDetail = () => {
                 <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
                   <circle cx="40" cy="40" r="34" fill="none" stroke="hsl(var(--muted))" strokeWidth="6" />
                   <circle cx="40" cy="40" r="34" fill="none" stroke="hsl(var(--primary))" strokeWidth="6"
-                    strokeDasharray={`${student.progressHafalan * 2.136} 213.6`}
+                    strokeDasharray={`${student.progress_hafalan * 2.136} 213.6`}
                     strokeLinecap="round" />
                 </svg>
                 <span className="absolute inset-0 flex items-center justify-center text-lg font-bold text-foreground">
-                  {student.progressHafalan}%
+                  {student.progress_hafalan}%
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-1">Progress</p>
@@ -247,8 +272,9 @@ const StudentDetail = () => {
                     Batal
                   </button>
                   <button onClick={handleAddSetoran}
-                    className="px-4 py-2 rounded-md text-sm font-medium gradient-islamic text-primary-foreground hover:opacity-90 transition-opacity">
-                    Simpan Setoran
+                    disabled={addSetoran.isPending}
+                    className="px-4 py-2 rounded-md text-sm font-medium gradient-islamic text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50">
+                    {addSetoran.isPending ? "Menyimpan..." : "Simpan Setoran"}
                   </button>
                 </div>
               </div>
@@ -256,11 +282,11 @@ const StudentDetail = () => {
 
             {/* Setoran List */}
             <div className="space-y-3">
-              {student.setoran.map((s) => (
+              {setoran.map((s: any) => (
                 <div key={s.id} className="bg-card rounded-lg border border-border p-4 shadow-card">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
                     <div>
-                      <p className="font-medium text-foreground">{s.surah} (Ayat {s.ayatMulai}-{s.ayatAkhir})</p>
+                      <p className="font-medium text-foreground">{s.surah} (Ayat {s.ayat_mulai}-{s.ayat_akhir})</p>
                       <p className="text-xs text-muted-foreground">Juz {s.juz} · {s.tanggal}</p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -273,14 +299,14 @@ const StudentDetail = () => {
                     </div>
                   </div>
                   <div className="mt-2 grid grid-cols-4 gap-2 text-xs text-muted-foreground">
-                    <span>Makhraj: {s.koreksi.kesalahanMakhraj}</span>
-                    <span>Tajwid: {s.koreksi.kesalahanTajwid}</span>
-                    <span>Mad: {s.koreksi.kesalahanMad}</span>
-                    <span>Lancar: {s.koreksi.kelancaran}/10</span>
+                    <span>Makhraj: {s.kesalahan_makhraj}</span>
+                    <span>Tajwid: {s.kesalahan_tajwid}</span>
+                    <span>Mad: {s.kesalahan_mad}</span>
+                    <span>Lancar: {s.kelancaran}/10</span>
                   </div>
                 </div>
               ))}
-              {student.setoran.length === 0 && (
+              {setoran.length === 0 && (
                 <p className="text-center text-muted-foreground py-8">Belum ada setoran</p>
               )}
             </div>
@@ -303,7 +329,6 @@ const StudentDetail = () => {
               <div className="bg-card rounded-lg border border-border p-5 shadow-card animate-scale-in space-y-4">
                 <h4 className="font-semibold text-foreground">Form Ujian Sertifikasi</h4>
 
-                {/* Mode selector */}
                 <div className="flex gap-2">
                   <button
                     onClick={() => { setUjianMode('Tahsin'); setUjianAspek({}); }}
@@ -323,7 +348,6 @@ const StudentDetail = () => {
                   </button>
                 </div>
 
-                {/* Aspek penilaian */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {(ujianMode === 'Tahsin' ? tahsinAspek : tahfizhAspek).map(aspek => (
                     <div key={aspek}>
@@ -337,7 +361,6 @@ const StudentDetail = () => {
                   ))}
                 </div>
 
-                {/* Preview nilai */}
                 {nilaiPreview && (
                   <div className={`p-4 rounded-md ${nilaiPreview.status === 'Lulus' ? 'bg-success/10' : 'bg-destructive/10'}`}>
                     <div className="flex items-center justify-between">
@@ -363,9 +386,9 @@ const StudentDetail = () => {
                     Batal
                   </button>
                   <button onClick={handleUjianSubmit}
-                    disabled={Object.keys(ujianAspek).length < 4}
+                    disabled={Object.keys(ujianAspek).length < 4 || addUjian.isPending}
                     className="px-4 py-2 rounded-md text-sm font-medium gradient-islamic text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50">
-                    Simpan Hasil Ujian
+                    {addUjian.isPending ? "Menyimpan..." : "Simpan Hasil Ujian"}
                   </button>
                 </div>
               </div>
@@ -373,7 +396,7 @@ const StudentDetail = () => {
 
             {/* Ujian History */}
             <div className="space-y-3">
-              {student.ujian.map((u) => (
+              {ujian.map((u: any) => (
                 <div key={u.id} className={`bg-card rounded-lg border p-4 shadow-card ${u.status === 'Lulus' ? 'border-success/30' : 'border-destructive/30'}`}>
                   <div className="flex items-center justify-between mb-3">
                     <div>
@@ -381,14 +404,14 @@ const StudentDetail = () => {
                       <p className="text-xs text-muted-foreground">{u.tanggal}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-foreground">{u.nilaiAkhir}</p>
+                      <p className="text-2xl font-bold text-foreground">{u.nilai_akhir}</p>
                       <p className={`text-xs font-medium ${u.status === 'Lulus' ? 'text-success' : 'text-destructive'}`}>
                         Grade {u.grade} · {u.status === 'Lulus' ? '✅ Lulus' : '❌ Tidak Lulus'}
                       </p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {Object.entries(u.nilaiAspek).map(([key, val]) => (
+                    {Object.entries(u.nilai_aspek as Record<string, number>).map(([key, val]) => (
                       <div key={key} className="text-center p-2 rounded-md bg-muted">
                         <p className="text-xs text-muted-foreground">{key}</p>
                         <p className="font-bold text-foreground">{val}</p>
@@ -397,7 +420,7 @@ const StudentDetail = () => {
                   </div>
                 </div>
               ))}
-              {student.ujian.length === 0 && (
+              {ujian.length === 0 && (
                 <p className="text-center text-muted-foreground py-8">Belum ada ujian</p>
               )}
             </div>
@@ -413,10 +436,11 @@ const StudentDetail = () => {
               className="w-full min-h-[200px] px-4 py-3 rounded-lg border border-input bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y"
             />
             <button
-              onClick={() => setStudent({ ...student, catatanPenguji: catatan })}
-              className="px-4 py-2 rounded-md text-sm font-medium gradient-islamic text-primary-foreground hover:opacity-90 transition-opacity"
+              onClick={handleSaveCatatan}
+              disabled={updateCatatan.isPending}
+              className="px-4 py-2 rounded-md text-sm font-medium gradient-islamic text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              Simpan Catatan
+              {updateCatatan.isPending ? "Menyimpan..." : "Simpan Catatan"}
             </button>
           </TabsContent>
         </Tabs>

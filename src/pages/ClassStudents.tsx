@@ -1,30 +1,45 @@
-import { useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
-import { generateMockData } from "@/data/mockData";
-import { ArrowLeft, Search } from "lucide-react";
+import { useClassStudents } from "@/hooks/useClassStudents";
+import { ArrowLeft, Search, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-
-const mockData = generateMockData();
 
 const ClassStudents = () => {
   const { classId } = useParams<{ classId: string }>();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
 
-  const classInfo = useMemo(() => {
-    if (!classId) return null;
-    const grade = parseInt(classId.charAt(0));
-    const section = classId.charAt(1);
-    return mockData.find(c => c.grade === grade && c.section === section) || null;
-  }, [classId]);
+  const grade = classId ? parseInt(classId.charAt(0)) : 0;
+  const section = classId ? classId.charAt(1) : "";
 
-  if (!classInfo) {
-    return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">Kelas tidak ditemukan</div>;
+  const { data, isLoading, error } = useClassStudents(grade, section);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
   }
 
-  const filteredStudents = classInfo.students.filter(s =>
+  if (error || !data) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="flex items-center justify-center py-20 text-destructive">
+          Kelas tidak ditemukan
+        </div>
+      </div>
+    );
+  }
+
+  const { classInfo, students } = data;
+
+  const filteredStudents = students.filter(s =>
     s.name.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -65,7 +80,7 @@ const ClassStudents = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
             <h2 className="text-2xl font-bold text-foreground">{classInfo.name}</h2>
-            <p className="text-sm text-muted-foreground">{classInfo.students.length} siswa terdaftar</p>
+            <p className="text-sm text-muted-foreground">{students.length} siswa terdaftar</p>
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -93,20 +108,20 @@ const ClassStudents = () => {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Target Juz</span>
-                  <span className="font-medium text-foreground">Juz {student.targetJuz}</span>
+                  <span className="font-medium text-foreground">Juz {student.target_juz}</span>
                 </div>
                 <div className="flex justify-between items-center text-muted-foreground">
                   <span>Progress</span>
                   <div className="flex items-center gap-2">
                     <div className="w-20 h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div className="h-full rounded-full gradient-islamic" style={{ width: `${student.progressHafalan}%` }} />
+                      <div className="h-full rounded-full gradient-islamic" style={{ width: `${student.progress_hafalan}%` }} />
                     </div>
-                    <span className="font-medium text-foreground">{student.progressHafalan}%</span>
+                    <span className="font-medium text-foreground">{student.progress_hafalan}%</span>
                   </div>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Status</span>
-                  {statusBadge(student.statusSertifikasi)}
+                  {statusBadge(student.status_sertifikasi)}
                 </div>
               </div>
               <button
@@ -140,17 +155,17 @@ const ClassStudents = () => {
                     className={`border-b border-border/50 hover:bg-muted/30 transition-colors ${idx % 2 === 0 ? '' : 'bg-muted/10'}`}
                   >
                     <td className="px-4 py-3 font-medium text-foreground">{student.name}</td>
-                    <td className="px-4 py-3 text-muted-foreground">Juz {student.targetJuz}</td>
+                    <td className="px-4 py-3 text-muted-foreground">Juz {student.target_juz}</td>
                     <td className="px-4 py-3">{levelBadge(student.level)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className="w-24 h-1.5 rounded-full bg-muted overflow-hidden">
-                          <div className="h-full rounded-full gradient-islamic" style={{ width: `${student.progressHafalan}%` }} />
+                          <div className="h-full rounded-full gradient-islamic" style={{ width: `${student.progress_hafalan}%` }} />
                         </div>
-                        <span className="text-sm font-medium text-foreground">{student.progressHafalan}%</span>
+                        <span className="text-sm font-medium text-foreground">{student.progress_hafalan}%</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3">{statusBadge(student.statusSertifikasi)}</td>
+                    <td className="px-4 py-3">{statusBadge(student.status_sertifikasi)}</td>
                     <td className="px-4 py-3 text-right">
                       <button
                         onClick={() => navigate(`/siswa/${student.id}`)}

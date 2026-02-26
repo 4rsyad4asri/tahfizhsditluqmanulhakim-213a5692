@@ -14,7 +14,180 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      classes: {
+        Row: {
+          created_at: string
+          grade: number
+          id: string
+          name: string
+          section: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          grade: number
+          id?: string
+          name: string
+          section: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          grade?: number
+          id?: string
+          name?: string
+          section?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      setoran: {
+        Row: {
+          ayat_akhir: number
+          ayat_mulai: number
+          created_at: string
+          id: string
+          juz: number
+          kelancaran: number
+          kesalahan_mad: number
+          kesalahan_makhraj: number
+          kesalahan_tajwid: number
+          nilai: number
+          student_id: string
+          surah: string
+          tanggal: string
+        }
+        Insert: {
+          ayat_akhir: number
+          ayat_mulai: number
+          created_at?: string
+          id?: string
+          juz: number
+          kelancaran?: number
+          kesalahan_mad?: number
+          kesalahan_makhraj?: number
+          kesalahan_tajwid?: number
+          nilai?: number
+          student_id: string
+          surah: string
+          tanggal?: string
+        }
+        Update: {
+          ayat_akhir?: number
+          ayat_mulai?: number
+          created_at?: string
+          id?: string
+          juz?: number
+          kelancaran?: number
+          kesalahan_mad?: number
+          kesalahan_makhraj?: number
+          kesalahan_tajwid?: number
+          nilai?: number
+          student_id?: string
+          surah?: string
+          tanggal?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "setoran_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      students: {
+        Row: {
+          catatan_penguji: string | null
+          class_id: string
+          created_at: string
+          id: string
+          level: Database["public"]["Enums"]["student_level"]
+          name: string
+          progress_hafalan: number
+          status_sertifikasi: Database["public"]["Enums"]["certification_status"]
+          target_juz: number
+          updated_at: string
+        }
+        Insert: {
+          catatan_penguji?: string | null
+          class_id: string
+          created_at?: string
+          id?: string
+          level?: Database["public"]["Enums"]["student_level"]
+          name: string
+          progress_hafalan?: number
+          status_sertifikasi?: Database["public"]["Enums"]["certification_status"]
+          target_juz?: number
+          updated_at?: string
+        }
+        Update: {
+          catatan_penguji?: string | null
+          class_id?: string
+          created_at?: string
+          id?: string
+          level?: Database["public"]["Enums"]["student_level"]
+          name?: string
+          progress_hafalan?: number
+          status_sertifikasi?: Database["public"]["Enums"]["certification_status"]
+          target_juz?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "students_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ujian: {
+        Row: {
+          created_at: string
+          grade: string
+          id: string
+          mode: Database["public"]["Enums"]["exam_mode"]
+          nilai_akhir: number
+          nilai_aspek: Json
+          status: Database["public"]["Enums"]["exam_status"]
+          student_id: string
+          tanggal: string
+        }
+        Insert: {
+          created_at?: string
+          grade?: string
+          id?: string
+          mode: Database["public"]["Enums"]["exam_mode"]
+          nilai_akhir?: number
+          nilai_aspek?: Json
+          status?: Database["public"]["Enums"]["exam_status"]
+          student_id: string
+          tanggal?: string
+        }
+        Update: {
+          created_at?: string
+          grade?: string
+          id?: string
+          mode?: Database["public"]["Enums"]["exam_mode"]
+          nilai_akhir?: number
+          nilai_aspek?: Json
+          status?: Database["public"]["Enums"]["exam_status"]
+          student_id?: string
+          tanggal?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ujian_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +196,10 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      certification_status: "Belum Ujian" | "Lulus" | "Tidak Lulus"
+      exam_mode: "Tahsin" | "Tahfizh"
+      exam_status: "Lulus" | "Tidak Lulus"
+      student_level: "Tahsin Dasar" | "Tahsin Lanjutan" | "Tahfizh"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +326,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      certification_status: ["Belum Ujian", "Lulus", "Tidak Lulus"],
+      exam_mode: ["Tahsin", "Tahfizh"],
+      exam_status: ["Lulus", "Tidak Lulus"],
+      student_level: ["Tahsin Dasar", "Tahsin Lanjutan", "Tahfizh"],
+    },
   },
 } as const

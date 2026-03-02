@@ -129,12 +129,12 @@ export function useAddTahfizhUjian() {
         surahEntries: data.entries,
         catatanGuru: data.catatan_guru,
         predikat: data.predikat,
-      };
+      } as unknown as Record<string, unknown>;
 
       const { error: ujianError } = await supabase.from("ujian").insert({
         student_id: data.student_id,
         mode: 'Tahfizh' as const,
-        nilai_aspek,
+        nilai_aspek: nilai_aspek as any,
         nilai_akhir: data.nilaiAkhir,
         status: data.status,
         grade: data.grade,

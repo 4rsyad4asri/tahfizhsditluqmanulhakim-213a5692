@@ -100,7 +100,6 @@ export function useAddUjian() {
       });
       if (ujianError) throw ujianError;
 
-      // Update student status
       const { error: studentError } = await supabase
         .from("students")
         .update({ status_sertifikasi: status })
@@ -110,6 +109,48 @@ export function useAddUjian() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["student-detail", variables.student_id] });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
+    },
+  });
+}
+
+export function useAddTahfizhUjian() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      student_id: string;
+      entries: TahfizhSurahEntry[];
+      catatan_guru: string;
+      nilaiAkhir: number;
+      status: 'Lulus' | 'Tidak Lulus';
+      grade: string;
+      predikat: string;
+    }) => {
+      const nilai_aspek = {
+        surahEntries: data.entries,
+        catatanGuru: data.catatan_guru,
+        predikat: data.predikat,
+      };
+
+      const { error: ujianError } = await supabase.from("ujian").insert({
+        student_id: data.student_id,
+        mode: 'Tahfizh' as const,
+        nilai_aspek,
+        nilai_akhir: data.nilaiAkhir,
+        status: data.status,
+        grade: data.grade,
+      });
+      if (ujianError) throw ujianError;
+
+      const { error: studentError } = await supabase
+        .from("students")
+        .update({ status_sertifikasi: data.status })
+        .eq("id", data.student_id);
+      if (studentError) throw studentError;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["student-detail", variables.student_id] });
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
+      queryClient.invalidateQueries({ queryKey: ["rekap-sertifikat"] });
     },
   });
 }

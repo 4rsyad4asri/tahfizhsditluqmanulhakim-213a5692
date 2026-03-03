@@ -3,10 +3,11 @@ import Header from "@/components/Header";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { Loader2, Download, Filter, CheckCircle2, XCircle, Edit2 } from "lucide-react";
+import { Loader2, Download, Filter, CheckCircle2, XCircle, Edit2, FileText } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
+import { generateCertificatePDF } from "@/utils/generateCertificatePDF";
 
 interface RekapItem {
   id: string;
@@ -353,27 +354,38 @@ const RekapSertifikat = () => {
                         <td className="px-4 py-3 text-xs font-mono text-muted-foreground">{item.nomorSertifikat}</td>
                         {isAdmin && (
                           <td className="px-4 py-3 text-center">
-                            <button
-                              onClick={() => {
-                                const newStatus = item.status === "Lulus" ? "Tidak Lulus" : "Lulus";
-                                if (confirm(`Ubah status ${item.studentName} menjadi "${newStatus}"?`)) {
-                                  toggleStatusMutation.mutate({
-                                    ujianId: item.id,
-                                    studentId: item.studentId,
-                                    newStatus,
-                                  });
-                                }
-                              }}
-                              disabled={toggleStatusMutation.isPending}
-                              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-50 ${
-                                item.status === "Lulus"
-                                  ? "bg-destructive/10 text-destructive hover:bg-destructive/20"
-                                  : "bg-success/10 text-success hover:bg-success/20"
-                              }`}
-                            >
-                              <Edit2 className="w-3 h-3" />
-                              {item.status === "Lulus" ? "Batalkan" : "Luluskan"}
-                            </button>
+                            <div className="flex items-center justify-center gap-1">
+                              {item.status === "Lulus" && (
+                                <button
+                                  onClick={() => generateCertificatePDF(item)}
+                                  className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                  title="Cetak Sertifikat"
+                                >
+                                  <FileText className="w-3 h-3" />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => {
+                                  const newStatus = item.status === "Lulus" ? "Tidak Lulus" : "Lulus";
+                                  if (confirm(`Ubah status ${item.studentName} menjadi "${newStatus}"?`)) {
+                                    toggleStatusMutation.mutate({
+                                      ujianId: item.id,
+                                      studentId: item.studentId,
+                                      newStatus,
+                                    });
+                                  }
+                                }}
+                                disabled={toggleStatusMutation.isPending}
+                                className={`inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-50 ${
+                                  item.status === "Lulus"
+                                    ? "bg-destructive/10 text-destructive hover:bg-destructive/20"
+                                    : "bg-success/10 text-success hover:bg-success/20"
+                                }`}
+                              >
+                                <Edit2 className="w-3 h-3" />
+                                {item.status === "Lulus" ? "Batalkan" : "Luluskan"}
+                              </button>
+                            </div>
                           </td>
                         )}
                       </tr>

@@ -7,6 +7,7 @@ import { Loader2, Download, Filter, CheckCircle2, XCircle, Edit2, FileText } fro
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
+import { generateCertificatePDF } from "@/utils/generateCertificatePDF";
 
 interface RekapItem {
   id: string;

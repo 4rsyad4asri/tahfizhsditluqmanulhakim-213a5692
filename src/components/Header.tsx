@@ -53,7 +53,7 @@ const Header = () => {
               }>
 
               <Settings className="w-4 h-4 bg-zinc-50 text-slate-950" />
-              <span className="hidden sm:inline bg-card text-gray-950">Kelola Siswa</span>
+              <span className="hidden sm:inline text-gray-950 bg-[#f0f5fa]">Kelola Siswa</span>
             </button>
 
             {isAdmin &&

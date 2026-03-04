@@ -470,22 +470,22 @@ const StudentDetail = () => {
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-xs font-medium text-muted-foreground mb-1">Surah</label>
-                              <select value={entry.surah}
-                                onChange={e => updateTahfizhEntry(index, 'surah', e.target.value)}
-                                className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                                {SURAH_LIST.map(s => (
-                                  <option key={s.name} value={s.name}>{s.name}</option>
-                                ))}
-                              </select>
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-muted-foreground mb-1">Juz</label>
+                              <label className="block text-xs font-medium text-muted-foreground mb-1">Juz yang Diujikan</label>
                               <select value={entry.juz}
                                 onChange={e => updateTahfizhEntry(index, 'juz', parseInt(e.target.value))}
                                 className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
                                 {Array.from({ length: 30 }, (_, i) => i + 1).map(j => (
-                                  <option key={j} value={j}>Juz {j}</option>
+                                  <option key={j} value={j}>📖 Juz {j}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-muted-foreground mb-1">Surah</label>
+                              <select value={entry.surah}
+                                onChange={e => updateTahfizhEntry(index, 'surah', e.target.value)}
+                                className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                                {getSurahsForJuz(entry.juz).map(s => (
+                                  <option key={`${s.name}-${s.ayatRange || 'full'}`} value={s.name}>{getSurahLabel(s)}</option>
                                 ))}
                               </select>
                             </div>

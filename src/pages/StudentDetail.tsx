@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import { calculateNilaiSetoran, calculateNilaiUjian, calculateNilaiTahfizh, calculateNilaiSurah, SURAH_LIST } from "@/data/mockData";
 import type { Koreksi, TahfizhSurahEntry } from "@/data/mockData";
 import { useStudentDetail, useAddSetoran, useAddUjian, useAddTahfizhUjian, useUpdateCatatan } from "@/hooks/useStudentDetail";
+import { JUZ_SURAH_MAP, getSurahsForJuz, getSurahLabel } from "@/data/quranData";
 import { ArrowLeft, Plus, FileText, Award, BookOpen, PenLine, Loader2, Trash2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";

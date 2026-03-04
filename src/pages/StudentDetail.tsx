@@ -155,6 +155,13 @@ const StudentDetail = () => {
   const updateTahfizhEntry = (index: number, field: keyof TahfizhSurahEntry, value: any) => {
     const updated = [...tahfizhEntries];
     updated[index] = { ...updated[index], [field]: value };
+    // When juz changes, reset surah to first surah of that juz
+    if (field === 'juz') {
+      const surahs = getSurahsForJuz(value as number);
+      if (surahs.length > 0) {
+        updated[index].surah = surahs[0].name;
+      }
+    }
     setTahfizhEntries(updated);
   };
 

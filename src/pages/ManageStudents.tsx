@@ -98,7 +98,7 @@ const ManageStudents = () => {
       toast.success("Siswa berhasil ditambahkan!");
       resetForm();
     },
-    onError: (err) => toast.error("Gagal: " + (err as Error).message)
+    onError: (err) => toast.error(getSafeErrorMessage(err))
   });
 
   // Update student

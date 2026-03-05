@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { UserPlus, Trash2, Loader2, Shield, Users, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { getSafeErrorMessage } from "@/utils/errorMessages";
 import {
   Dialog,
   DialogContent,
@@ -76,7 +77,7 @@ export default function ManageUsers() {
       setRole("penguji");
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
     } catch (err: any) {
-      toast.error("Gagal: " + err.message);
+      toast.error(getSafeErrorMessage(err));
     } finally {
       setSubmitting(false);
     }

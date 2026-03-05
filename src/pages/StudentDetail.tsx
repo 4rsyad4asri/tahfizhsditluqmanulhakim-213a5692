@@ -8,6 +8,7 @@ import { JUZ_SURAH_MAP, getSurahsForJuz, getSurahLabel } from "@/data/quranData"
 import { ArrowLeft, Plus, FileText, Award, BookOpen, PenLine, Loader2, Trash2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { getSafeErrorMessage } from "@/utils/errorMessages";
 
 const KELANCARAN_OPTIONS = [
   { value: 100, label: "Sangat Lancar (100)" },
@@ -91,7 +92,7 @@ const StudentDetail = () => {
         toast.success("Setoran berhasil disimpan!");
         setShowSetoranForm(false);
       },
-      onError: (err) => toast.error("Gagal menyimpan: " + (err as Error).message),
+      onError: (err) => toast.error(getSafeErrorMessage(err)),
     });
   };
 
@@ -109,7 +110,7 @@ const StudentDetail = () => {
         setShowUjianForm(false);
         setUjianAspek({});
       },
-      onError: (err) => toast.error("Gagal menyimpan: " + (err as Error).message),
+      onError: (err) => toast.error(getSafeErrorMessage(err)),
     });
   };
 
@@ -128,7 +129,7 @@ const StudentDetail = () => {
         setTahfizhEntries([{ surah: getSurahsForJuz(30)[0]?.name || "An-Naba", juz: 30, lahn_jali: 0, lahn_khofi: 0, kelancaran: 100 }]);
         setCatatanGuru("");
       },
-      onError: (err) => toast.error("Gagal menyimpan: " + (err as Error).message),
+      onError: (err) => toast.error(getSafeErrorMessage(err)),
     });
   };
 
@@ -136,7 +137,7 @@ const StudentDetail = () => {
     if (!studentId) return;
     updateCatatan.mutate({ student_id: studentId, catatan }, {
       onSuccess: () => toast.success("Catatan berhasil disimpan!"),
-      onError: (err) => toast.error("Gagal menyimpan: " + (err as Error).message),
+      onError: (err) => toast.error(getSafeErrorMessage(err)),
     });
   };
 

@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import { Plus, Pencil, Trash2, Search, Loader2, UserPlus, Users, ChevronDown, FileSpreadsheet } from "lucide-react";
 import ImportStudentsDialog from "@/components/ImportStudentsDialog";
 import { toast } from "sonner";
+import { getSafeErrorMessage } from "@/utils/errorMessages";
 import {
   Dialog,
   DialogContent,
@@ -97,7 +98,7 @@ const ManageStudents = () => {
       toast.success("Siswa berhasil ditambahkan!");
       resetForm();
     },
-    onError: (err) => toast.error("Gagal: " + (err as Error).message)
+    onError: (err) => toast.error(getSafeErrorMessage(err))
   });
 
   // Update student
@@ -122,7 +123,7 @@ const ManageStudents = () => {
       toast.success("Data siswa berhasil diperbarui!");
       resetForm();
     },
-    onError: (err) => toast.error("Gagal: " + (err as Error).message)
+    onError: (err) => toast.error(getSafeErrorMessage(err))
   });
 
   // Delete student
@@ -137,7 +138,7 @@ const ManageStudents = () => {
       toast.success("Siswa berhasil dihapus!");
       setDeleteConfirm(null);
     },
-    onError: (err) => toast.error("Gagal: " + (err as Error).message)
+    onError: (err) => toast.error(getSafeErrorMessage(err))
   });
 
   const resetForm = () => {

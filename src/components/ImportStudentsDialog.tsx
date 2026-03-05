@@ -3,6 +3,7 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Download, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { getSafeErrorMessage } from "@/utils/errorMessages";
 import {
   Dialog,
   DialogContent,
@@ -127,7 +128,7 @@ const ImportStudentsDialog = ({ open, onOpenChange }: ImportStudentsDialogProps)
       toast.success(`${count} siswa berhasil diimport!`);
       setStep("done");
     },
-    onError: (err) => toast.error("Gagal import: " + (err as Error).message),
+    onError: (err) => toast.error(getSafeErrorMessage(err)),
   });
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {

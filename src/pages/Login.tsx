@@ -28,7 +28,7 @@ export default function Login() {
     const { error } = await signIn(email, password);
     setSubmitting(false);
     if (error) {
-      toast.error("Login gagal: " + error.message);
+      toast.error("Email atau password salah");
     } else {
       toast.success("Berhasil login!");
       navigate("/", { replace: true });

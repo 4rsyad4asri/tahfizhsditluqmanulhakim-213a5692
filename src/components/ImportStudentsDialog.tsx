@@ -128,7 +128,7 @@ const ImportStudentsDialog = ({ open, onOpenChange }: ImportStudentsDialogProps)
       toast.success(`${count} siswa berhasil diimport!`);
       setStep("done");
     },
-    onError: (err) => toast.error("Gagal import: " + (err as Error).message),
+    onError: (err) => toast.error(getSafeErrorMessage(err)),
   });
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {

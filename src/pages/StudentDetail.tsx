@@ -137,7 +137,7 @@ const StudentDetail = () => {
     if (!studentId) return;
     updateCatatan.mutate({ student_id: studentId, catatan }, {
       onSuccess: () => toast.success("Catatan berhasil disimpan!"),
-      onError: (err) => toast.error("Gagal menyimpan: " + (err as Error).message),
+      onError: (err) => toast.error(getSafeErrorMessage(err)),
     });
   };
 

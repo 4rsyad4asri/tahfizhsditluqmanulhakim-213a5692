@@ -138,7 +138,7 @@ const ManageStudents = () => {
       toast.success("Siswa berhasil dihapus!");
       setDeleteConfirm(null);
     },
-    onError: (err) => toast.error("Gagal: " + (err as Error).message)
+    onError: (err) => toast.error(getSafeErrorMessage(err))
   });
 
   const resetForm = () => {

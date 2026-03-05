@@ -77,7 +77,7 @@ export default function ManageUsers() {
       setRole("penguji");
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
     } catch (err: any) {
-      toast.error("Gagal: " + err.message);
+      toast.error(getSafeErrorMessage(err));
     } finally {
       setSubmitting(false);
     }

@@ -129,7 +129,7 @@ const StudentDetail = () => {
         setTahfizhEntries([{ surah: getSurahsForJuz(30)[0]?.name || "An-Naba", juz: 30, lahn_jali: 0, lahn_khofi: 0, kelancaran: 100 }]);
         setCatatanGuru("");
       },
-      onError: (err) => toast.error("Gagal menyimpan: " + (err as Error).message),
+      onError: (err) => toast.error(getSafeErrorMessage(err)),
     });
   };
 

@@ -16,6 +16,8 @@ const ClassStudents = () => {
   const section = classId ? classId.charAt(1) : "";
 
   const { data, isLoading, error } = useClassStudents(grade, section);
+  const classId_db = data?.classInfo?.id;
+  const { data: assignedPenguji = [] } = useClassPenguji(classId_db);
 
   if (isLoading) {
     return (
@@ -40,7 +42,6 @@ const ClassStudents = () => {
   }
 
   const { classInfo, students } = data;
-  const { data: assignedPenguji = [] } = useClassPenguji(classInfo.id);
 
   const filteredStudents = students.filter(s =>
     s.name.toLowerCase().includes(search.toLowerCase())

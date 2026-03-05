@@ -92,7 +92,7 @@ const StudentDetail = () => {
         toast.success("Setoran berhasil disimpan!");
         setShowSetoranForm(false);
       },
-      onError: (err) => toast.error("Gagal menyimpan: " + (err as Error).message),
+      onError: (err) => toast.error(getSafeErrorMessage(err)),
     });
   };
 

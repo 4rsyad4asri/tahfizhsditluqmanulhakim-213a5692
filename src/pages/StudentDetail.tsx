@@ -8,6 +8,7 @@ import { JUZ_SURAH_MAP, getSurahsForJuz, getSurahLabel } from "@/data/quranData"
 import { ArrowLeft, Plus, FileText, Award, BookOpen, PenLine, Loader2, Trash2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { getSafeErrorMessage } from "@/utils/errorMessages";
 
 const KELANCARAN_OPTIONS = [
   { value: 100, label: "Sangat Lancar (100)" },

@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      class_penguji: {
+        Row: {
+          class_id: string
+          created_at: string
+          id: string
+          penguji_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          id?: string
+          penguji_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          id?: string
+          penguji_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_penguji_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_penguji_penguji_id_fkey"
+            columns: ["penguji_id"]
+            isOneToOne: false
+            referencedRelation: "penguji"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classes: {
         Row: {
           created_at: string
@@ -38,6 +74,24 @@ export type Database = {
           name?: string
           section?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      penguji: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
         }
         Relationships: []
       }

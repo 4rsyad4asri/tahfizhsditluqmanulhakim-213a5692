@@ -70,7 +70,7 @@ const Header = () => {
               </button>
             }
 
-            {user &&
+            {user ? (
             <div className="flex items-center gap-2">
                 <span className="hidden md:inline text-xs opacity-70">
                   {profile?.full_name || user.email}
@@ -79,11 +79,17 @@ const Header = () => {
                 onClick={handleLogout}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-primary-foreground/10 hover:bg-primary-foreground/20 backdrop-blur-sm transition-all"
                 title="Logout">
-
                   <LogOut className="w-4 h-4 text-red-500" />
                 </button>
               </div>
-            }
+            ) : (
+              <button
+                onClick={() => navigate("/login")}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-primary-foreground/10 hover:bg-primary-foreground/20 backdrop-blur-sm transition-all text-slate-950 text-xs"
+              >
+                Login
+              </button>
+            )}
 
             <div className="hidden md:flex items-center gap-2 opacity-60">
               <Star className="w-4 h-4 text-neutral-950" />

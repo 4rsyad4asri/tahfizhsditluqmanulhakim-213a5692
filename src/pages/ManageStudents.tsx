@@ -38,6 +38,8 @@ const emptyForm: StudentForm = {
 };
 
 const ManageStudents = () => {
+  const { user } = useAuthContext();
+  const isLoggedIn = !!user;
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [selectedClass, setSelectedClass] = useState<string>("all");

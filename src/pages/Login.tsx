@@ -43,7 +43,8 @@ export default function Login() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-islamic text-primary-foreground mb-4">
             <BookOpen className="w-8 h-8" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Monitoring Hafalan</h1>
+          <h1 className="text-2xl font-bold text-foreground text-center">Sistem ​Laporan Ujian Tahfizh      
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">Masuk ke sistem</p>
         </div>
 
@@ -51,13 +52,12 @@ export default function Login() {
         <form onSubmit={handleSubmit} className="bg-card rounded-xl border border-border shadow-card p-6 space-y-4">
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="email@contoh.com"
-              className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              autoComplete="email" />
+            <input type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="email@contoh.com"
+            className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            autoComplete="email" />
 
           </div>
 

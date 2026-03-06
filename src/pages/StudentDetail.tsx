@@ -378,6 +378,7 @@ const StudentDetail = () => {
           <TabsContent value="ujian" className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-foreground">Ujian Sertifikasi</h3>
+              {isLoggedIn && (
               <button
                 onClick={() => { setShowUjianForm(!showUjianForm); setUjianAspek({}); }}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium gradient-islamic text-primary-foreground hover:opacity-90 transition-opacity"
@@ -385,6 +386,7 @@ const StudentDetail = () => {
                 <Plus className="w-3.5 h-3.5" />
                 Mulai Ujian
               </button>
+              )}
             </div>
 
             {showUjianForm && (

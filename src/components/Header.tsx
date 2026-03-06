@@ -25,7 +25,7 @@ const Header = () => {
             </div>
             <div>
               <h1 className="md:text-2xl font-bold tracking-tight text-slate-950 text-sm">
-                  ​Sistem Laporan Ujian Tahfizh           
+                  ​Sistem Laporan Ujian Tahfizh SDIT Luqmanul Hakim              
               </h1>
               <p className="opacity-80 text-gray-800 text-xs">
                  Web Developer : Miftahul Arsyad Asri, S.H    

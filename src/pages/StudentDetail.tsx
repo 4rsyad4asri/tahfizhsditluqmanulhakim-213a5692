@@ -69,6 +69,8 @@ const StudentDetail = () => {
   }
 
   const { student, classInfo, setoran, ujian } = data;
+  const { user } = useAuthContext();
+  const isLoggedIn = !!user;
 
   if (!catatanInitialized && student) {
     setCatatan(student.catatan_penguji || "");

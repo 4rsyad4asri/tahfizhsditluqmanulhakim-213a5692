@@ -324,8 +324,9 @@ const ManageStudents = () => {
             </DialogContent>
           </Dialog>
           </div>
+          )}
 
-          <ImportStudentsDialog open={importOpen} onOpenChange={setImportOpen} />
+          {isLoggedIn && <ImportStudentsDialog open={importOpen} onOpenChange={setImportOpen} />}
         </div>
 
         {/* Filters */}

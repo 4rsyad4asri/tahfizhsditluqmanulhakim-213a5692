@@ -25,9 +25,9 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/kelas/:classId" element={<ProtectedRoute><ClassStudents /></ProtectedRoute>} />
-            <Route path="/siswa/:studentId" element={<ProtectedRoute><StudentDetail /></ProtectedRoute>} />
+            <Route path="/" element={<Index />} />
+            <Route path="/kelas/:classId" element={<ClassStudents />} />
+            <Route path="/siswa/:studentId" element={<StudentDetail />} />
             <Route path="/kelola-siswa" element={<ProtectedRoute><ManageStudents /></ProtectedRoute>} />
             <Route path="/kelola-user" element={<ProtectedRoute requiredRole="admin"><ManageUsers /></ProtectedRoute>} />
             <Route path="/rekap-sertifikat" element={<ProtectedRoute><RekapSertifikat /></ProtectedRoute>} />

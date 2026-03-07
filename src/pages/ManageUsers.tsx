@@ -54,8 +54,8 @@ export default function ManageUsers() {
       toast.error("Semua field wajib diisi");
       return;
     }
-    if (password.length < 6) {
-      toast.error("Password minimal 6 karakter");
+    if (password.length < 8) {
+      toast.error("Password minimal 8 karakter");
       return;
     }
 

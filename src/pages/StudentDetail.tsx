@@ -24,7 +24,7 @@ const StudentDetail = () => {
   const navigate = useNavigate();
   const { data, isLoading, error } = useStudentDetail(studentId);
   const addSetoran = useAddSetoran();
-  const addUjian = useAddUjian();
+  
   const addTahfizhUjian = useAddTahfizhUjian();
   const updateCatatan = useUpdateCatatan();
 

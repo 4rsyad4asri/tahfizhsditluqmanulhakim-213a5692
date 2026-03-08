@@ -2,7 +2,10 @@ import { useState, useMemo } from "react";
 import Header from "@/components/Header";
 import ClassCard from "@/components/ClassCard";
 import { useClasses } from "@/hooks/useClasses";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Users, BookOpen, Award, TrendingUp, Loader2 } from "lucide-react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 
 const Dashboard = () => {
   const [selectedGrade, setSelectedGrade] = useState<number | null>(null);

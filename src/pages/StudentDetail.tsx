@@ -40,6 +40,9 @@ const StudentDetail = () => {
     ayatMulai: 1,
     ayatAkhir: 7,
     koreksi: { kesalahanMakhraj: 0, kesalahanTajwid: 0, kesalahanMad: 0, kelancaran: 8 } as Koreksi,
+    lupaAyat: 0,
+    terhentiTerbata: 0,
+    catatanGuru: "",
   });
 
   // Ujian form state

@@ -226,6 +226,12 @@ const ManageStudents = () => {
           {isLoggedIn && (
           <div className="flex flex-wrap gap-2">
             <button
+              onClick={() => setDeleteAllConfirm(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-destructive/10 hover:bg-destructive/20 transition-colors border border-destructive/20 text-destructive">
+              <Trash2 className="w-4 h-4" />
+              Hapus Semua
+            </button>
+            <button
               onClick={() => setImportOpen(true)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-accent/10 hover:bg-accent/20 transition-colors border border-accent/20 text-amber-700">
 

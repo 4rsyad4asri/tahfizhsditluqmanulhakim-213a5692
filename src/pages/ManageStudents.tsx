@@ -3,7 +3,8 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
-import { Plus, Pencil, Trash2, Search, Loader2, UserPlus, Users, ChevronDown, FileSpreadsheet, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Loader2, UserPlus, Users, ChevronDown, FileSpreadsheet, AlertTriangle, Download } from "lucide-react";
+import * as XLSX from "xlsx";
 import ImportStudentsDialog from "@/components/ImportStudentsDialog";
 import { toast } from "sonner";
 import { getSafeErrorMessage } from "@/utils/errorMessages";
@@ -206,6 +207,32 @@ const ManageStudents = () => {
   s.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handleExport = () => {
+    const dataToExport = filteredStudents.map((s: any) => ({
+      "Nama": s.name,
+      "Kelas": s.classes?.name || "",
+      "Target Juz": s.target_juz,
+      "Level": s.level,
+      "Progress (%)": s.progress_hafalan,
+      "Status Sertifikasi": s.status_sertifikasi,
+    }));
+
+    if (dataToExport.length === 0) {
+      toast.error("Tidak ada data untuk diexport");
+      return;
+    }
+
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    ws["!cols"] = [{ wch: 25 }, { wch: 12 }, { wch: 12 }, { wch: 18 }, { wch: 12 }, { wch: 15 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Data Siswa");
+    const className = selectedClass !== "all"
+      ? `_${(classes || []).find(c => c.id === selectedClass)?.name || "kelas"}`
+      : "";
+    XLSX.writeFile(wb, `data_siswa${className}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast.success(`${dataToExport.length} data siswa berhasil diexport!`);
+  };
+
   const isPending = addMutation.isPending || updateMutation.isPending;
 
   return (
@@ -230,6 +257,13 @@ const ManageStudents = () => {
               className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-destructive/10 hover:bg-destructive/20 transition-colors border border-destructive/20 text-destructive">
               <Trash2 className="w-4 h-4" />
               Hapus Semua
+            </button>
+            <button
+              onClick={handleExport}
+              disabled={filteredStudents.length === 0}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-primary/10 hover:bg-primary/20 transition-colors border border-primary/20 text-primary disabled:opacity-50">
+              <Download className="w-4 h-4" />
+              Export Excel
             </button>
             <button
               onClick={() => setImportOpen(true)}

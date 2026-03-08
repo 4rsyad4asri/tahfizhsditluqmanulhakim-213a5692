@@ -11,7 +11,7 @@ import StudentDetail from "./pages/StudentDetail";
 import ManageStudents from "./pages/ManageStudents";
 import ManageUsers from "./pages/ManageUsers";
 import RekapSertifikat from "./pages/RekapSertifikat";
-import AlumniLulus from "./pages/AlumniLulus";
+
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
@@ -32,7 +32,7 @@ const App = () => (
             <Route path="/kelola-siswa" element={<ProtectedRoute><ManageStudents /></ProtectedRoute>} />
             <Route path="/kelola-user" element={<ProtectedRoute requiredRole="admin"><ManageUsers /></ProtectedRoute>} />
             <Route path="/rekap-sertifikat" element={<ProtectedRoute><RekapSertifikat /></ProtectedRoute>} />
-            <Route path="/alumni-lulus" element={<AlumniLulus />} />
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

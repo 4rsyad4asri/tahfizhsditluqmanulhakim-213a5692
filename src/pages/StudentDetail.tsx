@@ -522,7 +522,6 @@ const StudentDetail = () => {
                       </button>
                     </div>
                   </>
-                )}
               </div>
             )}
 

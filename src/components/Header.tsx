@@ -1,4 +1,4 @@
-import { BookOpen, Star, Moon, Settings, Shield, LogOut, Award } from "lucide-react";
+import { BookOpen, Star, Moon, Settings, Shield, LogOut, Award, Search } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
 
@@ -33,6 +33,16 @@ const Header = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate("/cari-siswa")}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+              location.pathname === "/cari-siswa" ?
+              "bg-primary-foreground/20 backdrop-blur-sm" :
+              "bg-primary-foreground/10 hover:bg-primary-foreground/20 backdrop-blur-sm"}`
+              }>
+              <Search className="w-4 h-4 text-slate-950" />
+              <span className="hidden sm:inline text-gray-950 text-xs text-center">Cari Siswa</span>
+            </button>
             <button
               onClick={() => navigate("/rekap-sertifikat")}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${

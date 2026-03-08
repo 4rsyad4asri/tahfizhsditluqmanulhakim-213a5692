@@ -535,6 +535,36 @@ const ManageStudents = () => {
             </div>
           </DialogContent>
         </Dialog>
+        {/* Delete All Confirmation Dialog */}
+        <Dialog open={deleteAllConfirm} onOpenChange={setDeleteAllConfirm}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="w-5 h-5" />
+                Hapus Semua Siswa?
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              {selectedClass !== "all"
+                ? "Semua data siswa di kelas yang dipilih beserta setoran dan ujian akan dihapus permanen."
+                : "SEMUA data siswa beserta seluruh setoran dan ujian akan dihapus permanen dari sistem."}
+            </p>
+            <p className="text-xs font-semibold text-destructive">Tindakan ini tidak bisa dibatalkan!</p>
+            <div className="flex gap-2 justify-end pt-2">
+              <button
+                onClick={() => setDeleteAllConfirm(false)}
+                className="px-4 py-2 rounded-md text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80 transition-colors">
+                Batal
+              </button>
+              <button
+                onClick={() => deleteAllMutation.mutate()}
+                disabled={deleteAllMutation.isPending}
+                className="px-4 py-2 rounded-md text-sm font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors disabled:opacity-50">
+                {deleteAllMutation.isPending ? "Menghapus..." : "Ya, Hapus Semua"}
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>);
 

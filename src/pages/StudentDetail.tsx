@@ -378,7 +378,7 @@ const StudentDetail = () => {
               <h3 className="font-semibold text-foreground">Ujian Sertifikasi</h3>
               {isLoggedIn && (
               <button
-                onClick={() => { setShowUjianForm(!showUjianForm); setUjianAspek({}); }}
+                onClick={() => setShowUjianForm(!showUjianForm)}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium gradient-islamic text-primary-foreground hover:opacity-90 transition-opacity"
               >
                 <Plus className="w-3.5 h-3.5" />

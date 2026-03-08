@@ -392,7 +392,6 @@ const StudentDetail = () => {
                 <h4 className="font-semibold text-foreground">Form Ujian Sertifikasi</h4>
 
                 {/* TAHFIZH FORM */}
-                {ujianMode === 'Tahfizh' && (
                   <>
                     <div className="space-y-4">
                       {tahfizhEntries.map((entry, index) => (

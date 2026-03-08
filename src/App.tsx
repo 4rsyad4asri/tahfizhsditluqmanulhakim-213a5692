@@ -11,6 +11,7 @@ import StudentDetail from "./pages/StudentDetail";
 import ManageStudents from "./pages/ManageStudents";
 import ManageUsers from "./pages/ManageUsers";
 import RekapSertifikat from "./pages/RekapSertifikat";
+import SearchStudents from "./pages/SearchStudents";
 
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";

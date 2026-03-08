@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
-import { calculateNilaiSetoran, calculateNilaiUjian, calculateNilaiTahfizh, calculateNilaiSurah } from "@/data/mockData";
+import { calculateNilaiSetoran, calculateNilaiTahfizh, calculateNilaiSurah } from "@/data/mockData";
 import type { Koreksi, TahfizhSurahEntry } from "@/data/mockData";
-import { useStudentDetail, useAddSetoran, useAddUjian, useAddTahfizhUjian, useUpdateCatatan } from "@/hooks/useStudentDetail";
+import { useStudentDetail, useAddSetoran, useAddTahfizhUjian, useUpdateCatatan } from "@/hooks/useStudentDetail";
 import { JUZ_SURAH_MAP, getSurahsForJuz, getSurahLabel } from "@/data/quranData";
 import { ArrowLeft, Plus, FileText, Award, BookOpen, PenLine, Loader2, Trash2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,7 +24,7 @@ const StudentDetail = () => {
   const navigate = useNavigate();
   const { data, isLoading, error } = useStudentDetail(studentId);
   const addSetoran = useAddSetoran();
-  const addUjian = useAddUjian();
+  
   const addTahfizhUjian = useAddTahfizhUjian();
   const updateCatatan = useUpdateCatatan();
 
@@ -44,8 +44,6 @@ const StudentDetail = () => {
 
   // Ujian form state
   const [showUjianForm, setShowUjianForm] = useState(false);
-  const [ujianMode, setUjianMode] = useState<'Tahsin' | 'Tahfizh'>('Tahsin');
-  const [ujianAspek, setUjianAspek] = useState<Record<string, number>>({});
 
   // Tahfizh form state
   const [tahfizhEntries, setTahfizhEntries] = useState<TahfizhSurahEntry[]>([
@@ -99,23 +97,6 @@ const StudentDetail = () => {
     });
   };
 
-  const tahsinAspek = ['Makharijul Huruf', 'Tajwid', 'Kelancaran', 'Adab Membaca'];
-
-  const handleUjianSubmit = () => {
-    if (!studentId) return;
-    addUjian.mutate({
-      student_id: studentId,
-      mode: 'Tahsin',
-      nilai_aspek: ujianAspek,
-    }, {
-      onSuccess: () => {
-        toast.success("Hasil ujian berhasil disimpan!");
-        setShowUjianForm(false);
-        setUjianAspek({});
-      },
-      onError: (err) => toast.error(getSafeErrorMessage(err)),
-    });
-  };
 
   const handleTahfizhSubmit = () => {
     if (!studentId) return;
@@ -144,8 +125,7 @@ const StudentDetail = () => {
     });
   };
 
-  const nilaiPreview = ujianMode === 'Tahsin' && Object.keys(ujianAspek).length > 0 ? calculateNilaiUjian(ujianAspek) : null;
-  const tahfizhPreview = ujianMode === 'Tahfizh' && tahfizhEntries.length > 0 ? calculateNilaiTahfizh(tahfizhEntries) : null;
+  const tahfizhPreview = tahfizhEntries.length > 0 ? calculateNilaiTahfizh(tahfizhEntries) : null;
 
   const addTahfizhEntry = () => {
     setTahfizhEntries([...tahfizhEntries, { surah: getSurahsForJuz(30)[0]?.name || "An-Naba", juz: 30, lahn_jali: 0, lahn_khofi: 0, kelancaran: 100 }]);
@@ -398,7 +378,7 @@ const StudentDetail = () => {
               <h3 className="font-semibold text-foreground">Ujian Sertifikasi</h3>
               {isLoggedIn && (
               <button
-                onClick={() => { setShowUjianForm(!showUjianForm); setUjianAspek({}); }}
+                onClick={() => setShowUjianForm(!showUjianForm)}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium gradient-islamic text-primary-foreground hover:opacity-90 transition-opacity"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -411,76 +391,7 @@ const StudentDetail = () => {
               <div className="bg-card rounded-lg border border-border p-5 shadow-card animate-scale-in space-y-4">
                 <h4 className="font-semibold text-foreground">Form Ujian Sertifikasi</h4>
 
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => { setUjianMode('Tahsin'); setUjianAspek({}); }}
-                    className={`flex-1 py-2.5 rounded-md text-sm font-medium transition-all ${
-                      ujianMode === 'Tahsin' ? 'gradient-islamic text-primary-foreground' : 'bg-muted text-muted-foreground'
-                    }`}
-                  >
-                    🟢 Ujian Tahsin
-                  </button>
-                  <button
-                    onClick={() => { setUjianMode('Tahfizh'); setUjianAspek({}); }}
-                    className={`flex-1 py-2.5 rounded-md text-sm font-medium transition-all ${
-                      ujianMode === 'Tahfizh' ? 'gradient-islamic text-primary-foreground' : 'bg-muted text-muted-foreground'
-                    }`}
-                  >
-                    🔵 Ujian Tahfizh
-                  </button>
-                </div>
-
-                {/* TAHSIN FORM */}
-                {ujianMode === 'Tahsin' && (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {tahsinAspek.map(aspek => (
-                        <div key={aspek}>
-                          <label className="block text-xs font-medium text-muted-foreground mb-1">{aspek}</label>
-                          <input type="number" min={0} max={100}
-                            value={ujianAspek[aspek] || ''}
-                            placeholder="0-100"
-                            onChange={e => setUjianAspek({ ...ujianAspek, [aspek]: parseInt(e.target.value) || 0 })}
-                            className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-                        </div>
-                      ))}
-                    </div>
-
-                    {nilaiPreview && (
-                      <div className={`p-4 rounded-md ${nilaiPreview.status === 'Lulus' ? 'bg-success/10' : 'bg-destructive/10'}`}>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-foreground">Nilai Akhir</p>
-                            <p className="text-3xl font-bold text-foreground">{nilaiPreview.nilaiAkhir}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className={`text-2xl font-bold ${nilaiPreview.status === 'Lulus' ? 'text-success' : 'text-destructive'}`}>
-                              Grade {nilaiPreview.grade}
-                            </p>
-                            <p className="text-sm font-medium">
-                              {nilaiPreview.status === 'Lulus' ? '✅ LULUS' : '❌ TIDAK LULUS'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex gap-2 justify-end">
-                      <button onClick={() => setShowUjianForm(false)}
-                        className="px-4 py-2 rounded-md text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80 transition-colors">
-                        Batal
-                      </button>
-                      <button onClick={handleUjianSubmit}
-                        disabled={Object.keys(ujianAspek).length < 4 || addUjian.isPending}
-                        className="px-4 py-2 rounded-md text-sm font-medium gradient-islamic text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50">
-                        {addUjian.isPending ? "Menyimpan..." : "Simpan Hasil Ujian"}
-                      </button>
-                    </div>
-                  </>
-                )}
-
                 {/* TAHFIZH FORM */}
-                {ujianMode === 'Tahfizh' && (
                   <>
                     <div className="space-y-4">
                       {tahfizhEntries.map((entry, index) => (
@@ -611,7 +522,6 @@ const StudentDetail = () => {
                       </button>
                     </div>
                   </>
-                )}
               </div>
             )}
 

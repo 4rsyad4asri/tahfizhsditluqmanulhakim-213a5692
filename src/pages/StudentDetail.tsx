@@ -36,7 +36,7 @@ const StudentDetail = () => {
   const [setoranForm, setSetoranForm] = useState({
     tanggal: new Date().toISOString().split("T")[0],
     juz: 30,
-    surah: "Al-Fatihah",
+    surah: getSurahsForJuz(30)[0]?.name || "An-Naba",
     ayatMulai: 1,
     ayatAkhir: 7,
     koreksi: { kesalahanMakhraj: 0, kesalahanTajwid: 0, kesalahanMad: 0, kelancaran: 8 } as Koreksi,

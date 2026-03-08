@@ -34,6 +34,16 @@ const Header = () => {
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => navigate("/alumni-lulus")}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+              location.pathname === "/alumni-lulus" ?
+              "bg-primary-foreground/20 backdrop-blur-sm" :
+              "bg-primary-foreground/10 hover:bg-primary-foreground/20 backdrop-blur-sm"}`
+              }>
+              <Star className="w-4 h-4 text-slate-950" />
+              <span className="hidden sm:inline text-gray-950 text-xs text-center">Alumni Lulus</span>
+            </button>
+            <button
               onClick={() => navigate("/rekap-sertifikat")}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
               location.pathname === "/rekap-sertifikat" ?

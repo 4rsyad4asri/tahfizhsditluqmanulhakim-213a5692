@@ -2,11 +2,41 @@ import { useState, useMemo } from "react";
 import Header from "@/components/Header";
 import ClassCard from "@/components/ClassCard";
 import { useClasses } from "@/hooks/useClasses";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Users, BookOpen, Award, TrendingUp, Loader2 } from "lucide-react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
+
+const LEVEL_COLORS = [
+  "hsl(var(--primary))",
+  "hsl(var(--success))",
+  "hsl(var(--warning))",
+];
 
 const Dashboard = () => {
   const [selectedGrade, setSelectedGrade] = useState<number | null>(null);
   const { data: classes, isLoading, error } = useClasses();
+
+  // Fetch student level distribution
+  const { data: levelData } = useQuery({
+    queryKey: ["student-level-distribution"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("students")
+        .select("level");
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      (data || []).forEach((s) => {
+        counts[s.level] = (counts[s.level] || 0) + 1;
+      });
+      const total = data?.length || 1;
+      return Object.entries(counts).map(([name, value]) => ({
+        name,
+        value,
+        pct: Math.round((value / total) * 100),
+      }));
+    },
+  });
 
   const filteredClasses = useMemo(() => {
     if (!classes) return [];
@@ -97,6 +127,53 @@ const Dashboard = () => {
             </button>
           ))}
         </div>
+
+        {/* Level Distribution Chart */}
+        {levelData && levelData.length > 0 && (
+          <div className="bg-card rounded-lg border border-border p-6 shadow-card mb-6">
+            <h3 className="font-semibold text-foreground mb-4">📊 Distribusi Level Siswa</h3>
+            <div className="flex flex-col md:flex-row items-center gap-6">
+              <div className="w-full md:w-1/2" style={{ height: 250 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={levelData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={90}
+                      innerRadius={45}
+                      paddingAngle={3}
+                      label={({ name, pct }) => `${name} (${pct}%)`}
+                      labelLine={false}
+                    >
+                      {levelData.map((_, i) => (
+                        <Cell key={i} fill={LEVEL_COLORS[i % LEVEL_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }}
+                      formatter={(value: number, name: string) => [`${value} siswa`, name]}
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="grid grid-cols-1 gap-3 w-full md:w-1/2">
+                {levelData.map((item, i) => (
+                  <div key={item.name} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                    <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: LEVEL_COLORS[i % LEVEL_COLORS.length] }} />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-foreground">{item.name}</p>
+                      <p className="text-xs text-muted-foreground">{item.value} siswa ({item.pct}%)</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Bismillah */}
         <div className="text-center mb-6">

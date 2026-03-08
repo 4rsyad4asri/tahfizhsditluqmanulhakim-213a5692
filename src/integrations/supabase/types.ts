@@ -120,6 +120,7 @@ export type Database = {
         Row: {
           ayat_akhir: number
           ayat_mulai: number
+          catatan_guru: string | null
           created_at: string
           id: string
           juz: number
@@ -127,14 +128,17 @@ export type Database = {
           kesalahan_mad: number
           kesalahan_makhraj: number
           kesalahan_tajwid: number
+          lupa_ayat: number
           nilai: number
           student_id: string
           surah: string
           tanggal: string
+          terhenti_terbata: number
         }
         Insert: {
           ayat_akhir: number
           ayat_mulai: number
+          catatan_guru?: string | null
           created_at?: string
           id?: string
           juz: number
@@ -142,14 +146,17 @@ export type Database = {
           kesalahan_mad?: number
           kesalahan_makhraj?: number
           kesalahan_tajwid?: number
+          lupa_ayat?: number
           nilai?: number
           student_id: string
           surah: string
           tanggal?: string
+          terhenti_terbata?: number
         }
         Update: {
           ayat_akhir?: number
           ayat_mulai?: number
+          catatan_guru?: string | null
           created_at?: string
           id?: string
           juz?: number
@@ -157,10 +164,12 @@ export type Database = {
           kesalahan_mad?: number
           kesalahan_makhraj?: number
           kesalahan_tajwid?: number
+          lupa_ayat?: number
           nilai?: number
           student_id?: string
           surah?: string
           tanggal?: string
+          terhenti_terbata?: number
         }
         Relationships: [
           {

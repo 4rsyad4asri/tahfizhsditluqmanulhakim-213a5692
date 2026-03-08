@@ -257,29 +257,47 @@ const StudentDetail = () => {
                   Form Input Setoran Hafalan
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
+                  <div className="md:col-span-2">
                     <label className="block text-xs font-medium text-muted-foreground mb-1">Tanggal</label>
                     <input type="date" value={setoranForm.tanggal}
                       onChange={e => setSetoranForm({ ...setoranForm, tanggal: e.target.value })}
                       className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1">Juz</label>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">Juz yang Diujikan</label>
                     <select value={setoranForm.juz}
-                      onChange={e => setSetoranForm({ ...setoranForm, juz: parseInt(e.target.value) })}
+                      onChange={e => {
+                        const newJuz = parseInt(e.target.value);
+                        const surahs = getSurahsForJuz(newJuz);
+                        setSetoranForm({
+                          ...setoranForm,
+                          juz: newJuz,
+                          surah: surahs[0]?.name || "",
+                          ayatMulai: 1,
+                          ayatAkhir: surahs[0]?.ayatCount || 1,
+                        });
+                      }}
                       className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
                       {Array.from({ length: 30 }, (_, i) => i + 1).map(j => (
-                        <option key={j} value={j}>Juz {j}</option>
+                        <option key={j} value={j}>📖 Juz {j}</option>
                       ))}
                     </select>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-muted-foreground mb-1">Surah</label>
                     <select value={setoranForm.surah}
-                      onChange={e => setSetoranForm({ ...setoranForm, surah: e.target.value })}
+                      onChange={e => {
+                        const selectedSurah = getSurahsForJuz(setoranForm.juz).find(s => s.name === e.target.value);
+                        setSetoranForm({
+                          ...setoranForm,
+                          surah: e.target.value,
+                          ayatMulai: 1,
+                          ayatAkhir: selectedSurah?.ayatCount || 1,
+                        });
+                      }}
                       className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                      {SURAH_LIST.map(s => (
-                        <option key={s.name} value={s.name}>{s.name}</option>
+                      {getSurahsForJuz(setoranForm.juz).map(s => (
+                        <option key={`${s.name}-${s.ayatRange || 'full'}`} value={s.name}>{getSurahLabel(s)}</option>
                       ))}
                     </select>
                   </div>

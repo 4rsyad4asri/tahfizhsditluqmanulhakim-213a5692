@@ -418,12 +418,17 @@ const StudentDetail = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="mt-2 grid grid-cols-4 gap-2 text-xs text-muted-foreground">
+                  <div className="mt-2 grid grid-cols-3 md:grid-cols-6 gap-2 text-xs text-muted-foreground">
                     <span>Makhraj: {s.kesalahan_makhraj}</span>
                     <span>Tajwid: {s.kesalahan_tajwid}</span>
                     <span>Mad: {s.kesalahan_mad}</span>
+                    <span>Lupa: {s.lupa_ayat || 0}</span>
+                    <span>Terhenti: {s.terhenti_terbata || 0}</span>
                     <span>Lancar: {s.kelancaran}/10</span>
                   </div>
+                  {s.catatan_guru && (
+                    <p className="mt-1.5 text-xs text-muted-foreground italic">💬 {s.catatan_guru}</p>
+                  )}
                 </div>
               ))}
               {setoran.length === 0 && (

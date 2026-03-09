@@ -170,7 +170,7 @@ export interface TahfizhSurahEntry {
 }
 
 export function calculateNilaiSurah(entry: TahfizhSurahEntry): number {
-  const nilaiKoreksi = 100 - (entry.lahn_jali * 2) - (entry.lahn_khofi * 0.5);
+  const nilaiKoreksi = 100 - (entry.lahn_jali * 2) - (entry.lahn_khofi * 1);
   const nilaiAkhir = (Math.max(0, nilaiKoreksi) + entry.kelancaran) / 2;
   return Math.round(Math.max(0, Math.min(100, nilaiAkhir)));
 }

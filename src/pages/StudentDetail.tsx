@@ -515,7 +515,7 @@ const StudentDetail = () => {
                               <input type="number" min={0} max={50} value={entry.lahn_khofi}
                                 onChange={e => updateTahfizhEntry(index, 'lahn_khofi', parseInt(e.target.value) || 0)}
                                 className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-                              <p className="text-[10px] text-muted-foreground mt-1">Skor: 100 - ({entry.lahn_khofi} × 0.5) = <span className="font-bold text-foreground">{Math.max(0, 100 - entry.lahn_khofi * 0.5)}</span></p>
+                              <p className="text-[10px] text-muted-foreground mt-1">Skor: 100 - ({entry.lahn_khofi} × 1) = <span className="font-bold text-foreground">{Math.max(0, 100 - entry.lahn_khofi * 1)}</span></p>
                             </div>
                           </div>
 
@@ -533,7 +533,7 @@ const StudentDetail = () => {
 
                           {/* Nilai Surat */}
                           <div className="p-3 rounded-md bg-muted text-center">
-                            <p className="text-xs text-muted-foreground">Nilai Surat: (({Math.max(0, 100 - entry.lahn_jali * 2 - entry.lahn_khofi * 0.5)}) + {entry.kelancaran}) / 2</p>
+                            <p className="text-xs text-muted-foreground">Nilai Surat: (({Math.max(0, 100 - entry.lahn_jali * 2 - entry.lahn_khofi * 1)}) + {entry.kelancaran}) / 2</p>
                             <p className="text-2xl font-bold text-primary">{calculateNilaiSurah(entry)}</p>
                           </div>
                         </div>

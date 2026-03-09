@@ -533,7 +533,7 @@ const StudentDetail = () => {
 
                           {/* Nilai Surat */}
                           <div className="p-3 rounded-md bg-muted text-center">
-                            <p className="text-xs text-muted-foreground">Nilai Surat: (({Math.max(0, 100 - entry.lahn_jali * 2 - entry.lahn_khofi * 0.5)}) + {entry.kelancaran}) / 2</p>
+                            <p className="text-xs text-muted-foreground">Nilai Surat: (({Math.max(0, 100 - entry.lahn_jali * 2 - entry.lahn_khofi * 1)}) + {entry.kelancaran}) / 2</p>
                             <p className="text-2xl font-bold text-primary">{calculateNilaiSurah(entry)}</p>
                           </div>
                         </div>

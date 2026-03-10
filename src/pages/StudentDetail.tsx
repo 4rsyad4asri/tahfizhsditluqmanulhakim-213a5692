@@ -6,7 +6,8 @@ import { calculateNilaiSetoran, calculateNilaiTahfizh, calculateNilaiSurah } fro
 import type { Koreksi, TahfizhSurahEntry } from "@/data/mockData";
 import { useStudentDetail, useAddSetoran, useAddTahfizhUjian, useUpdateCatatan } from "@/hooks/useStudentDetail";
 import { JUZ_SURAH_MAP, getSurahsForJuz, getSurahLabel } from "@/data/quranData";
-import { ArrowLeft, Plus, FileText, Award, BookOpen, PenLine, Loader2, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, FileText, Award, BookOpen, PenLine, Loader2, Trash2, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { getSafeErrorMessage } from "@/utils/errorMessages";
@@ -348,12 +349,24 @@ const StudentDetail = () => {
                   <p className="text-[11px] text-muted-foreground mb-3">Catat jumlah kesalahan yang ditemukan selama setoran hafalan</p>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {[
-                      { key: 'kesalahanMakhraj', label: 'Kesalahan Makhraj', desc: 'Salah pengucapan huruf / makhraj' },
-                      { key: 'kesalahanTajwid', label: 'Kesalahan Tajwid', desc: 'Hukum tajwid tidak diterapkan' },
-                      { key: 'kesalahanMad', label: 'Kesalahan Mad', desc: 'Panjang pendek bacaan tidak sesuai' },
+                      { key: 'kesalahanMakhraj', label: 'Kesalahan Makhraj', desc: 'Salah pengucapan huruf / makhraj', tooltip: 'Contoh:\n• Huruf ث dibaca س\n• Huruf ذ dibaca ز\n• Huruf ض dibaca د\n• Huruf ظ dibaca ز\n• Huruf ق dibaca ك' },
+                      { key: 'kesalahanTajwid', label: 'Kesalahan Tajwid', desc: 'Hukum tajwid tidak diterapkan', tooltip: 'Contoh:\n• Idgham dibaca izhhar\n• Ikhfa tidak diterapkan\n• Qalqalah tidak dibaca membal\n• Iqlab tidak dilakukan\n• Ghunnah kurang dengung' },
+                      { key: 'kesalahanMad', label: 'Kesalahan Mad', desc: 'Panjang pendek bacaan tidak sesuai', tooltip: 'Contoh:\n• Mad thabi\'i kurang 2 harakat\n• Mad wajib muttashil kurang panjang\n• Mad lazim tidak 6 harakat\n• Mad \'aridh lissukun dipendekkan\n• Mad lin tidak dibaca panjang' },
                     ].map(field => (
                       <div key={field.key}>
-                        <label className="block text-xs font-medium text-muted-foreground mb-1">{field.label}</label>
+                        <label className="flex items-center gap-1 text-xs font-medium text-muted-foreground mb-1">
+                          {field.label}
+                          <TooltipProvider delayDuration={200}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-primary cursor-help transition-colors" />
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-[220px] whitespace-pre-line text-xs">
+                                {field.tooltip}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </label>
                         <input type="number" min={0} max={50}
                           value={(setoranForm.koreksi as any)[field.key]}
                           onChange={e => setSetoranForm({
@@ -365,7 +378,19 @@ const StudentDetail = () => {
                       </div>
                     ))}
                     <div>
-                      <label className="block text-xs font-medium text-muted-foreground mb-1">Lupa Ayat</label>
+                      <label className="flex items-center gap-1 text-xs font-medium text-muted-foreground mb-1">
+                        Lupa Ayat
+                        <TooltipProvider delayDuration={200}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-primary cursor-help transition-colors" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[220px] whitespace-pre-line text-xs">
+                              {"Contoh:\n• Lupa sambungan antar ayat\n• Lupa awal ayat berikutnya\n• Melewati ayat tanpa sadar\n• Perlu diingatkan guru"}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </label>
                       <input type="number" min={0} max={50}
                         value={setoranForm.lupaAyat}
                         onChange={e => setSetoranForm({ ...setoranForm, lupaAyat: parseInt(e.target.value) || 0 })}
@@ -373,7 +398,19 @@ const StudentDetail = () => {
                       <p className="text-[10px] text-muted-foreground mt-0.5">Lupa lanjutan ayat / ayat terlewat</p>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-muted-foreground mb-1">Terhenti / Terbata</label>
+                      <label className="flex items-center gap-1 text-xs font-medium text-muted-foreground mb-1">
+                        Terhenti / Terbata
+                        <TooltipProvider delayDuration={200}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-primary cursor-help transition-colors" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[220px] whitespace-pre-line text-xs">
+                              {"Contoh:\n• Berhenti lama di tengah ayat\n• Membaca terbata-bata\n• Mengulang-ulang kata\n• Ragu dalam melanjutkan"}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </label>
                       <input type="number" min={0} max={50}
                         value={setoranForm.terhentiTerbata}
                         onChange={e => setSetoranForm({ ...setoranForm, terhentiTerbata: parseInt(e.target.value) || 0 })}
@@ -381,7 +418,19 @@ const StudentDetail = () => {
                       <p className="text-[10px] text-muted-foreground mt-0.5">Bacaan terputus-putus / tidak lancar</p>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-muted-foreground mb-1">Kelancaran (1-10)</label>
+                      <label className="flex items-center gap-1 text-xs font-medium text-muted-foreground mb-1">
+                        Kelancaran (1-10)
+                        <TooltipProvider delayDuration={200}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-primary cursor-help transition-colors" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[220px] whitespace-pre-line text-xs">
+                              {"Panduan skor:\n• 9-10: Sangat lancar, tanpa jeda\n• 7-8: Lancar, sedikit jeda\n• 5-6: Cukup, beberapa kali jeda\n• 3-4: Kurang lancar, sering jeda\n• 1-2: Tidak lancar, sangat terbata"}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </label>
                       <input type="number" min={0} max={10}
                         value={setoranForm.koreksi.kelancaran}
                         onChange={e => setSetoranForm({
@@ -568,7 +617,19 @@ const StudentDetail = () => {
 
                           {/* Lahn Jali */}
                           <div className="p-3 rounded-md bg-destructive/5 border border-destructive/20">
-                            <h6 className="text-xs font-semibold text-foreground mb-2">1️⃣ Lahn Jali (Kesalahan Nyata)</h6>
+                            <h6 className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1">
+                              1️⃣ Lahn Jali (Kesalahan Nyata)
+                              <TooltipProvider delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Info className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-destructive cursor-help transition-colors" />
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="max-w-[240px] whitespace-pre-line text-xs">
+                                    {"Contoh Lahn Jali:\n• Huruf ث dibaca س\n• Harakat fathah dibaca kasrah\n• Huruf ع dibaca hamzah\n• Huruf ص dibaca س\n• Menambah/mengurangi huruf"}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </h6>
                             <p className="text-[10px] text-muted-foreground mb-2">Salah huruf · Salah harakat · Huruf tertukar · Makhraj jelas salah</p>
                             <div>
                               <label className="block text-xs font-medium text-muted-foreground mb-1">Jumlah Kesalahan</label>
@@ -581,7 +642,19 @@ const StudentDetail = () => {
 
                           {/* Lahn Khofi */}
                           <div className="p-3 rounded-md bg-warning/5 border border-warning/20">
-                            <h6 className="text-xs font-semibold text-foreground mb-2">2️⃣ Lahn Khofi (Kesalahan Samar)</h6>
+                            <h6 className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1">
+                              2️⃣ Lahn Khofi (Kesalahan Samar)
+                              <TooltipProvider delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Info className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-warning cursor-help transition-colors" />
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="max-w-[240px] whitespace-pre-line text-xs">
+                                    {"Contoh Lahn Khofi:\n• Mad thabi'i kurang 2 harakat\n• Ghunnah kurang berdengung\n• Ikhfa tidak tepat\n• Waqaf/ibtida kurang sesuai\n• Irama bacaan tidak konsisten"}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </h6>
                             <p className="text-[10px] text-muted-foreground mb-2">Kurang panjang mad · Ghunnah kurang jelas · Tajwid kurang sempurna · Irama kurang tepat</p>
                             <div>
                               <label className="block text-xs font-medium text-muted-foreground mb-1">Jumlah Kesalahan</label>
@@ -594,7 +667,19 @@ const StudentDetail = () => {
 
                           {/* Kelancaran */}
                           <div className="p-3 rounded-md bg-primary/5 border border-primary/20">
-                            <h6 className="text-xs font-semibold text-foreground mb-2">3️⃣ Kelancaran</h6>
+                            <h6 className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1">
+                              3️⃣ Kelancaran
+                              <TooltipProvider delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Info className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-primary cursor-help transition-colors" />
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="max-w-[240px] whitespace-pre-line text-xs">
+                                    {"Panduan kelancaran:\n• 100: Sangat lancar tanpa jeda\n• 90: Lancar, jeda sangat sedikit\n• 80: Cukup lancar, beberapa jeda\n• 70: Kurang lancar, sering jeda\n• 60: Tidak lancar, sangat terbata"}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </h6>
                             <select value={entry.kelancaran}
                               onChange={e => updateTahfizhEntry(index, 'kelancaran', parseInt(e.target.value))}
                               className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">

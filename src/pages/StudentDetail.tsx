@@ -6,7 +6,8 @@ import { calculateNilaiSetoran, calculateNilaiTahfizh, calculateNilaiSurah } fro
 import type { Koreksi, TahfizhSurahEntry } from "@/data/mockData";
 import { useStudentDetail, useAddSetoran, useAddTahfizhUjian, useUpdateCatatan } from "@/hooks/useStudentDetail";
 import { JUZ_SURAH_MAP, getSurahsForJuz, getSurahLabel } from "@/data/quranData";
-import { ArrowLeft, Plus, FileText, Award, BookOpen, PenLine, Loader2, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, FileText, Award, BookOpen, PenLine, Loader2, Trash2, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { getSafeErrorMessage } from "@/utils/errorMessages";

@@ -135,7 +135,7 @@ const StudentDetail = () => {
   const tahfizhPreview = tahfizhEntries.length > 0 ? calculateNilaiTahfizh(tahfizhEntries) : null;
 
   const addTahfizhEntry = () => {
-    setTahfizhEntries([...tahfizhEntries, { surah: getSurahsForJuz(30)[0]?.name || "An-Naba", juz: 30, lahn_jali: 0, lahn_khofi: 0, kelancaran: 100 }]);
+    setTahfizhEntries([...tahfizhEntries, { surah: getSurahsForJuz(30)[0]?.name || "An-Naba", juz: 30, lahn_jali: 0, lahn_khofi: 0, kelancaran: 100, waqaf_ibtida: 100 }]);
   };
 
   const removeTahfizhEntry = (index: number) => {

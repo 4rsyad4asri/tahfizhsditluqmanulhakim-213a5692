@@ -51,7 +51,7 @@ const StudentDetail = () => {
 
   // Tahfizh form state
   const [tahfizhEntries, setTahfizhEntries] = useState<TahfizhSurahEntry[]>([
-    { surah: getSurahsForJuz(30)[0]?.name || "An-Naba", juz: 30, lahn_jali: 0, lahn_khofi: 0, kelancaran: 100, waqaf_ibtida: 100 }
+    { surah: getSurahsForJuz(30)[0]?.name || "An-Naba", juz: 30, lahn_jali: 0, lahn_khofi: 0, kelancaran: 100, waqaf_ibtida: 0 }
   ]);
   const [catatanGuru, setCatatanGuru] = useState("");
 

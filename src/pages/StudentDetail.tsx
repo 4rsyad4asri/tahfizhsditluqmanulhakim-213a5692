@@ -820,11 +820,12 @@ const StudentDetail = () => {
                     {isTahfizh ? (
                       <div className="space-y-2">
                         {(u.nilai_aspek.surahEntries as TahfizhSurahEntry[]).map((entry: TahfizhSurahEntry, i: number) => (
-                          <div key={i} className="grid grid-cols-5 gap-2 text-center p-2 rounded-md bg-muted text-xs">
+                          <div key={i} className="grid grid-cols-6 gap-2 text-center p-2 rounded-md bg-muted text-xs">
                             <div><p className="text-muted-foreground">Surat</p><p className="font-bold text-foreground">{entry.surah}</p></div>
                             <div><p className="text-muted-foreground">Lahn Jali</p><p className="font-bold text-foreground">{entry.lahn_jali}</p></div>
                             <div><p className="text-muted-foreground">Lahn Khofi</p><p className="font-bold text-foreground">{entry.lahn_khofi}</p></div>
                             <div><p className="text-muted-foreground">Kelancaran</p><p className="font-bold text-foreground">{entry.kelancaran}</p></div>
+                            <div><p className="text-muted-foreground">Waqaf</p><p className="font-bold text-foreground">{entry.waqaf_ibtida ?? '-'}</p></div>
                             <div><p className="text-muted-foreground">Nilai</p><p className="font-bold text-primary">{calculateNilaiSurah(entry)}</p></div>
                           </div>
                         ))}

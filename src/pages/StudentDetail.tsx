@@ -695,9 +695,36 @@ const StudentDetail = () => {
                             </select>
                           </div>
 
+                          {/* Waqaf & Ibtida */}
+                          <div className="p-3 rounded-md bg-accent border border-border">
+                            <h6 className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1">
+                              4️⃣ Waqaf & Ibtida
+                              <TooltipProvider delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Info className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-foreground cursor-help transition-colors" />
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="max-w-[240px] whitespace-pre-line text-xs">
+                                    {"Panduan Waqaf & Ibtida:\n• 100: Berhenti & memulai sangat tepat\n• 90: Tepat, sesekali kurang sesuai\n• 80: Cukup, beberapa kali kurang tepat\n• 70: Kurang tepat, sering salah posisi\n• 60: Tidak memperhatikan waqaf/ibtida"}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </h6>
+                            <p className="text-[10px] text-muted-foreground mb-2">Ketepatan berhenti (waqaf) dan memulai (ibtida) bacaan · Memperhatikan tanda waqaf</p>
+                            <select value={entry.waqaf_ibtida}
+                              onChange={e => updateTahfizhEntry(index, 'waqaf_ibtida', parseInt(e.target.value))}
+                              className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                              <option value={100}>Sangat Baik (100)</option>
+                              <option value={90}>Baik (90)</option>
+                              <option value={80}>Cukup (80)</option>
+                              <option value={70}>Kurang (70)</option>
+                              <option value={60}>Perlu Perbaikan (60)</option>
+                            </select>
+                          </div>
+
                           {/* Nilai Surat */}
                           <div className="p-3 rounded-md bg-muted text-center">
-                            <p className="text-xs text-muted-foreground">Nilai Surat: (({Math.max(0, 100 - entry.lahn_jali * 2 - entry.lahn_khofi * 1)}) + {entry.kelancaran}) / 2</p>
+                            <p className="text-xs text-muted-foreground">Nilai = ({Math.max(0, 100 - entry.lahn_jali * 4 - entry.lahn_khofi * 2)} × 40%) + ({entry.kelancaran} × 40%) + ({entry.waqaf_ibtida} × 20%)</p>
                             <p className="text-2xl font-bold text-primary">{calculateNilaiSurah(entry)}</p>
                           </div>
                         </div>

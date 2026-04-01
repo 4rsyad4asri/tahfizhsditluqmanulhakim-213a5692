@@ -565,14 +565,14 @@ const StudentDetail = () => {
                     </div>
                     <div className="p-3 rounded-md bg-accent border border-border">
                       <p className="text-xs font-semibold text-foreground mb-1">4️⃣ Waqaf & Ibtida</p>
-                      <p className="text-[10px] text-muted-foreground">Cara berhenti dan memulai bacaan dengan baik</p>
-                      <p className="text-xs font-bold text-foreground mt-1">Bobot: 20% dari nilai akhir</p>
+                      <p className="text-[10px] text-muted-foreground">Kesalahan berhenti dan memulai bacaan</p>
+                      <p className="text-xs font-bold text-foreground mt-1">Penalti: −2 poin / kesalahan</p>
                     </div>
                   </div>
                   <div className="p-3 rounded-md bg-accent/50 border border-border space-y-1.5">
                     <p className="text-xs font-semibold text-foreground">📝 Rumus Nilai Per Surat:</p>
-                    <p className="text-xs text-muted-foreground font-mono bg-background/80 px-2 py-1 rounded">Koreksi = 100 − (Lahn Jali × 4) − (Lahn Khofi × 2)</p>
-                    <p className="text-xs text-muted-foreground font-mono bg-background/80 px-2 py-1 rounded">Nilai = (Koreksi × 40%) + (Kelancaran × 40%) + (Waqaf & Ibtida × 20%)</p>
+                    <p className="text-xs text-muted-foreground font-mono bg-background/80 px-2 py-1 rounded">Koreksi = 100 − (Lahn Jali × 4) − (Lahn Khofi × 2) − (Waqaf & Ibtida × 2)</p>
+                    <p className="text-xs text-muted-foreground font-mono bg-background/80 px-2 py-1 rounded">Nilai = (Koreksi × 60%) + (Kelancaran × 40%)</p>
                     <p className="text-xs font-semibold text-foreground mt-2">📊 Nilai Akhir Ujian = Rata-rata nilai seluruh surat</p>
                   </div>
                   <div className="flex flex-wrap gap-2 text-[10px]">

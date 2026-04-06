@@ -568,10 +568,15 @@ const StudentDetail = () => {
                       <p className="text-[10px] text-muted-foreground">Kesalahan berhenti dan memulai bacaan</p>
                       <p className="text-xs font-bold text-foreground mt-1">Penalti: −2 poin / kesalahan</p>
                     </div>
+                    <div className="p-3 rounded-md bg-violet-500/5 border border-violet-500/20">
+                      <p className="text-xs font-semibold text-foreground mb-1">5️⃣ Salah/Lupa Sambung Ayat</p>
+                      <p className="text-[10px] text-muted-foreground">Kesalahan menyambung antar ayat</p>
+                      <p className="text-xs font-bold text-violet-600 mt-1">Penalti: −2 poin / kesalahan</p>
+                    </div>
                   </div>
                   <div className="p-3 rounded-md bg-accent/50 border border-border space-y-1.5">
                     <p className="text-xs font-semibold text-foreground">📝 Rumus Nilai Per Surat:</p>
-                    <p className="text-xs text-muted-foreground font-mono bg-background/80 px-2 py-1 rounded">Koreksi = 100 − (Lahn Jali × 4) − (Lahn Khofi × 2) − (Waqaf & Ibtida × 2)</p>
+                    <p className="text-xs text-muted-foreground font-mono bg-background/80 px-2 py-1 rounded">Koreksi = 100 − (LJ × 4) − (LK × 2) − (Waqaf × 2) − (Sambung Ayat × 2)</p>
                     <p className="text-xs text-muted-foreground font-mono bg-background/80 px-2 py-1 rounded">Nilai = (Koreksi × 60%) + (Kelancaran × 40%)</p>
                     <p className="text-xs font-semibold text-foreground mt-2">📊 Nilai Akhir Ujian = Rata-rata nilai seluruh surat</p>
                   </div>

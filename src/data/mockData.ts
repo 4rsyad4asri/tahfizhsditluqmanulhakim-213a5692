@@ -168,10 +168,11 @@ export interface TahfizhSurahEntry {
   lahn_khofi: number;
   kelancaran: number; // 100, 90, 80, 70, 60
   waqaf_ibtida: number; // jumlah kesalahan, penalti -2 per kesalahan
+  salah_sambung_ayat: number; // jumlah kesalahan, penalti -2 per kesalahan
 }
 
 export function calculateNilaiSurah(entry: TahfizhSurahEntry): number {
-  const nilaiKoreksi = Math.max(0, 100 - (entry.lahn_jali * 4) - (entry.lahn_khofi * 2) - (entry.waqaf_ibtida * 2));
+  const nilaiKoreksi = Math.max(0, 100 - (entry.lahn_jali * 4) - (entry.lahn_khofi * 2) - (entry.waqaf_ibtida * 2) - ((entry.salah_sambung_ayat || 0) * 2));
   const nilaiAkhir = (nilaiKoreksi * 0.6) + (entry.kelancaran * 0.4);
   return Math.round(Math.max(0, Math.min(100, nilaiAkhir)));
 }

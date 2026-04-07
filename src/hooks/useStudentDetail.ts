@@ -35,11 +35,28 @@ export function useStudentDetail(studentId: string | undefined) {
         .eq("student_id", studentId)
         .order("tanggal", { ascending: false });
 
+      // Fetch assessor profiles for setoran and ujian
+      const assessorIds = new Set<string>();
+      (setoran || []).forEach((s: any) => s.assessed_by && assessorIds.add(s.assessed_by));
+      (ujian || []).forEach((u: any) => u.assessed_by && assessorIds.add(u.assessed_by));
+
+      let assessorMap: Record<string, string> = {};
+      if (assessorIds.size > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .in("id", Array.from(assessorIds));
+        if (profiles) {
+          profiles.forEach((p: any) => { assessorMap[p.id] = p.full_name; });
+        }
+      }
+
       return {
         student,
         classInfo: classData,
         setoran: setoran || [],
         ujian: ujian || [],
+        assessorMap,
       };
     },
     enabled: !!studentId,

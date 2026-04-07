@@ -498,6 +498,9 @@ const StudentDetail = () => {
                     <div>
                       <p className="font-medium text-foreground">{s.surah} (Ayat {s.ayat_mulai}-{s.ayat_akhir})</p>
                       <p className="text-xs text-muted-foreground">Juz {s.juz} · {s.tanggal}</p>
+                      {s.assessed_by && assessorMap[s.assessed_by] && (
+                        <p className="text-xs text-primary font-medium mt-0.5">👤 Dinilai oleh: {assessorMap[s.assessed_by]}</p>
+                      )}
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right">

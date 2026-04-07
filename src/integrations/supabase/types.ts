@@ -82,16 +82,19 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -118,6 +121,7 @@ export type Database = {
       }
       setoran: {
         Row: {
+          assessed_by: string | null
           ayat_akhir: number
           ayat_mulai: number
           catatan_guru: string | null
@@ -136,6 +140,7 @@ export type Database = {
           terhenti_terbata: number
         }
         Insert: {
+          assessed_by?: string | null
           ayat_akhir: number
           ayat_mulai: number
           catatan_guru?: string | null
@@ -154,6 +159,7 @@ export type Database = {
           terhenti_terbata?: number
         }
         Update: {
+          assessed_by?: string | null
           ayat_akhir?: number
           ayat_mulai?: number
           catatan_guru?: string | null
@@ -230,6 +236,7 @@ export type Database = {
       }
       ujian: {
         Row: {
+          assessed_by: string | null
           created_at: string
           grade: string
           id: string
@@ -241,6 +248,7 @@ export type Database = {
           tanggal: string
         }
         Insert: {
+          assessed_by?: string | null
           created_at?: string
           grade?: string
           id?: string
@@ -252,6 +260,7 @@ export type Database = {
           tanggal?: string
         }
         Update: {
+          assessed_by?: string | null
           created_at?: string
           grade?: string
           id?: string

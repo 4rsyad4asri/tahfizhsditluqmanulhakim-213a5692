@@ -158,6 +158,7 @@ export function useAddTahfizhUjian() {
       status: 'Lulus' | 'Tidak Lulus';
       grade: string;
       predikat: string;
+      assessed_by?: string;
     }) => {
       const nilai_aspek = {
         surahEntries: data.entries,
@@ -172,7 +173,8 @@ export function useAddTahfizhUjian() {
         nilai_akhir: data.nilaiAkhir,
         status: data.status,
         grade: data.grade,
-      });
+        assessed_by: data.assessed_by || null,
+      } as any);
       if (ujianError) throw ujianError;
 
       const { error: studentError } = await supabase

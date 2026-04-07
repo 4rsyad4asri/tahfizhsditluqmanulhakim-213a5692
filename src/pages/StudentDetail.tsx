@@ -95,6 +95,7 @@ const StudentDetail = () => {
       lupa_ayat: setoranForm.lupaAyat,
       terhenti_terbata: setoranForm.terhentiTerbata,
       catatan_guru: setoranForm.catatanGuru,
+      assessed_by: user?.id,
     }, {
       onSuccess: () => {
         toast.success("Setoran berhasil disimpan!");

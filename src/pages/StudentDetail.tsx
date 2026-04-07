@@ -113,6 +113,7 @@ const StudentDetail = () => {
       student_id: studentId,
       entries: tahfizhEntries,
       catatan_guru: catatanGuru,
+      assessed_by: user?.id,
       ...result,
     }, {
       onSuccess: () => {

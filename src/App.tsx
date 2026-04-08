@@ -14,6 +14,7 @@ import RekapSertifikat from "./pages/RekapSertifikat";
 import SearchStudents from "./pages/SearchStudents";
 
 import Login from "./pages/Login";
+import ChangePassword from "./pages/ChangePassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/kelola-user" element={<ProtectedRoute requiredRole="admin"><ManageUsers /></ProtectedRoute>} />
             <Route path="/rekap-sertifikat" element={<ProtectedRoute><RekapSertifikat /></ProtectedRoute>} />
             <Route path="/cari-siswa" element={<SearchStudents />} />
+            <Route path="/ganti-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>

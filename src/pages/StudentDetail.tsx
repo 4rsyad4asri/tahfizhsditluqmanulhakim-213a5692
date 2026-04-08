@@ -26,7 +26,7 @@ const StudentDetail = () => {
   const navigate = useNavigate();
   const { data, isLoading, error } = useStudentDetail(studentId);
   const { data: assignedClassIds } = useMyAssignedClasses();
-  const { isPenguji } = useAuthContext();
+  const { isPenguji, user } = useAuthContext();
   const addSetoran = useAddSetoran();
   
   const addTahfizhUjian = useAddTahfizhUjian();

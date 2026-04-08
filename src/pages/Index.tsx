@@ -2,6 +2,8 @@ import { useState, useMemo } from "react";
 import Header from "@/components/Header";
 import ClassCard from "@/components/ClassCard";
 import { useClasses } from "@/hooks/useClasses";
+import { useMyAssignedClasses } from "@/hooks/useMyAssignedClasses";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, BookOpen, Award, TrendingUp, Loader2 } from "lucide-react";
@@ -16,6 +18,8 @@ const LEVEL_COLORS = [
 const Dashboard = () => {
   const [selectedGrade, setSelectedGrade] = useState<number | null>(null);
   const { data: classes, isLoading, error } = useClasses();
+  const { data: assignedClassIds } = useMyAssignedClasses();
+  const { isPenguji } = useAuthContext();
 
   // Fetch student level distribution
   const { data: levelData } = useQuery({
@@ -40,9 +44,16 @@ const Dashboard = () => {
 
   const filteredClasses = useMemo(() => {
     if (!classes) return [];
-    if (selectedGrade === null) return classes;
-    return classes.filter(c => c.grade === selectedGrade);
-  }, [classes, selectedGrade]);
+    let result = classes;
+    // Penguji only sees assigned classes
+    if (isPenguji && assignedClassIds !== null && assignedClassIds !== undefined) {
+      result = result.filter(c => assignedClassIds.includes(c.id));
+    }
+    if (selectedGrade !== null) {
+      result = result.filter(c => c.grade === selectedGrade);
+    }
+    return result;
+  }, [classes, selectedGrade, isPenguji, assignedClassIds]);
 
   const totalStudents = classes?.reduce((sum, c) => sum + c.studentCount, 0) || 0;
   const avgProgress = totalStudents > 0

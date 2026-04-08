@@ -1,7 +1,9 @@
 import { useParams, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import { useClassStudents } from "@/hooks/useClassStudents";
-import { ArrowLeft, Search, Loader2 } from "lucide-react";
+import { useMyAssignedClasses } from "@/hooks/useMyAssignedClasses";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { ArrowLeft, Search, Loader2, ShieldAlert } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import AssignPengujiDialog from "@/components/AssignPengujiDialog";
@@ -18,6 +20,11 @@ const ClassStudents = () => {
   const { data, isLoading, error } = useClassStudents(grade, section);
   const classId_db = data?.classInfo?.id;
   const { data: assignedPenguji = [] } = useClassPenguji(classId_db);
+  const { data: assignedClassIds } = useMyAssignedClasses();
+  const { isPenguji } = useAuthContext();
+
+  // Check access for penguji
+  const hasAccess = !isPenguji || assignedClassIds === null || assignedClassIds === undefined || (classId_db && assignedClassIds.includes(classId_db));
 
   if (isLoading) {
     return (

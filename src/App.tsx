@@ -15,6 +15,7 @@ import SearchStudents from "./pages/SearchStudents";
 
 import Login from "./pages/Login";
 import ChangePassword from "./pages/ChangePassword";
+import ProfilPenguji from "./pages/ProfilPenguji";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/rekap-sertifikat" element={<ProtectedRoute><RekapSertifikat /></ProtectedRoute>} />
             <Route path="/cari-siswa" element={<SearchStudents />} />
             <Route path="/ganti-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+            <Route path="/profil" element={<ProtectedRoute><ProfilPenguji /></ProtectedRoute>} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>

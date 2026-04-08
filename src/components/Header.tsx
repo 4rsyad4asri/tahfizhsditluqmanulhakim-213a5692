@@ -1,4 +1,4 @@
-import { BookOpen, Star, Moon, Settings, Shield, LogOut, Award, Search, KeyRound } from "lucide-react";
+import { BookOpen, Star, Moon, Settings, Shield, LogOut, Award, Search, KeyRound, UserCircle } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
 
@@ -87,6 +87,12 @@ const Header = () => {
                 <span className="hidden md:inline text-xs opacity-70">
                   {profile?.full_name || user.email}
                 </span>
+                <button
+                onClick={() => navigate("/profil")}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-primary-foreground/10 hover:bg-primary-foreground/20 backdrop-blur-sm transition-all"
+                title="Profil Saya">
+                  <UserCircle className="w-4 h-4 text-slate-950" />
+                </button>
                 <button
                 onClick={() => navigate("/ganti-password")}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-primary-foreground/10 hover:bg-primary-foreground/20 backdrop-blur-sm transition-all"

@@ -6,7 +6,8 @@ import { useMyAssignedClasses } from "@/hooks/useMyAssignedClasses";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, BookOpen, Award, TrendingUp, Loader2 } from "lucide-react";
+import { Users, BookOpen, Award, TrendingUp, Loader2, Info } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 
 const LEVEL_COLORS = [

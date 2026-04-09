@@ -139,6 +139,9 @@ export default function ManageUsers() {
                     </span>
                   </div>
                 </div>
+                {u.role === "penguji" && (
+                  <AssignKelasDialog pengujiUserId={u.id} pengujiName={u.full_name || "Penguji"} />
+                )}
               </div>
             ))}
             {(users || []).length === 0 && (

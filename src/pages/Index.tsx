@@ -6,7 +6,8 @@ import { useMyAssignedClasses } from "@/hooks/useMyAssignedClasses";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, BookOpen, Award, TrendingUp, Loader2 } from "lucide-react";
+import { Users, BookOpen, Award, TrendingUp, Loader2, Info } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 
 const LEVEL_COLORS = [
@@ -114,6 +115,17 @@ const Dashboard = () => {
             </div>
           ))}
         </div>
+
+        {/* Onboarding banner for penguji with no classes */}
+        {isPenguji && filteredClasses.length === 0 && !isLoading && (
+          <Alert className="mb-6 border-primary/30 bg-primary/5">
+            <Info className="h-4 w-4 text-primary" />
+            <AlertTitle className="text-sm font-semibold">Selamat Datang, Penguji!</AlertTitle>
+            <AlertDescription className="text-sm text-muted-foreground">
+              Akun Anda belum ditugaskan ke kelas manapun. Hubungi Admin untuk mendapatkan akses ke kelas. Setelah ditugaskan, Anda dapat melihat daftar siswa dan mulai memberikan penilaian.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Grade Filter */}
         <div className="flex flex-wrap items-center gap-2 mb-6">

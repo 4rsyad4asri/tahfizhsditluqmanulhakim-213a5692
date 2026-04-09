@@ -6,7 +6,8 @@ import Header from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { BookOpen, Users, ArrowRight, Loader2, Mail, Shield } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { BookOpen, Users, ArrowRight, Loader2, Mail, Shield, Info } from "lucide-react";
 
 const ProfilPenguji = () => {
   const navigate = useNavigate();
@@ -75,9 +76,13 @@ const ProfilPenguji = () => {
                 <Loader2 className="w-6 h-6 animate-spin text-primary" />
               </div>
             ) : assignedClasses.length === 0 ? (
-              <p className="text-center text-muted-foreground py-6">
-                Belum ada kelas yang ditugaskan.
-              </p>
+              <Alert className="border-primary/30 bg-primary/5">
+                <Info className="h-4 w-4 text-primary" />
+                <AlertTitle className="text-sm font-semibold">Belum Ada Kelas</AlertTitle>
+                <AlertDescription className="text-sm text-muted-foreground">
+                  Anda belum ditugaskan ke kelas manapun. Silakan hubungi Admin agar Anda ditambahkan ke kelas yang sesuai. Setelah ditugaskan, daftar kelas akan muncul di sini dan Anda dapat mulai menilai siswa.
+                </AlertDescription>
+              </Alert>
             ) : (
               <div className="space-y-2">
                 {assignedClasses.map((cls) => (

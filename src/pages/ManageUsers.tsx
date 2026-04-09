@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { UserPlus, Trash2, Loader2, Shield, Users, Eye } from "lucide-react";
+import AssignKelasDialog from "@/components/AssignKelasDialog";
 import { toast } from "sonner";
 import { getSafeErrorMessage } from "@/utils/errorMessages";
 import {

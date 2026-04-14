@@ -644,7 +644,7 @@ const StudentDetail = () => {
               />
             )}
 
-            {showUjianForm && (
+            {showUjianForm && ujianMode === 'Tahfizh' && (
               <div className="bg-card rounded-lg border border-border p-5 shadow-card animate-scale-in space-y-4">
                 <h4 className="font-semibold text-foreground">Form Ujian Sertifikasi</h4>
 

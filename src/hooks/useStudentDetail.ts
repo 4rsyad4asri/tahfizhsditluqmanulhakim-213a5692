@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateNilaiSetoran, calculateNilaiUjian, calculateNilaiTahfizh } from "@/data/mockData";
 import type { TahfizhSurahEntry } from "@/data/mockData";
+import type { TahsinDasarEntry, TahsinLanjutanEntry, TahsinPenaltyConfig, WaqafSymbolTest } from "@/data/tahsinScoring";
 
 export function useStudentDetail(studentId: string | undefined) {
   return useQuery({
@@ -187,6 +188,36 @@ export function useAddTahfizhUjian() {
       queryClient.invalidateQueries({ queryKey: ["student-detail", variables.student_id] });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
       queryClient.invalidateQueries({ queryKey: ["rekap-sertifikat"] });
+    },
+  });
+}
+
+export function useAddTahsinUjian() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      student_id: string;
+      mode: 'Tahsin Dasar' | 'Tahsin Lanjutan';
+      nilai_aspek: Record<string, unknown>;
+      nilaiAkhir: number;
+      status: 'Lulus' | 'Tidak Lulus';
+      grade: string;
+      assessed_by?: string;
+    }) => {
+      const { error: ujianError } = await supabase.from("ujian").insert({
+        student_id: data.student_id,
+        mode: data.mode as any,
+        nilai_aspek: data.nilai_aspek as any,
+        nilai_akhir: data.nilaiAkhir,
+        status: data.status,
+        grade: data.grade,
+        assessed_by: data.assessed_by || null,
+      } as any);
+      if (ujianError) throw ujianError;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["student-detail", variables.student_id] });
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
     },
   });
 }

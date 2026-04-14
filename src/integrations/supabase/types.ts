@@ -315,7 +315,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "penguji"
       certification_status: "Belum Ujian" | "Lulus" | "Tidak Lulus"
-      exam_mode: "Tahsin" | "Tahfizh"
+      exam_mode: "Tahsin" | "Tahfizh" | "Tahsin Dasar" | "Tahsin Lanjutan"
       exam_status: "Lulus" | "Tidak Lulus"
       student_level: "Tahsin Dasar" | "Tahsin Lanjutan" | "Tahfizh"
     }
@@ -447,7 +447,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "penguji"],
       certification_status: ["Belum Ujian", "Lulus", "Tidak Lulus"],
-      exam_mode: ["Tahsin", "Tahfizh"],
+      exam_mode: ["Tahsin", "Tahfizh", "Tahsin Dasar", "Tahsin Lanjutan"],
       exam_status: ["Lulus", "Tidak Lulus"],
       student_level: ["Tahsin Dasar", "Tahsin Lanjutan", "Tahfizh"],
     },

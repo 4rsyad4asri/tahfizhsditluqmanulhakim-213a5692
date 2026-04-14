@@ -147,6 +147,7 @@ const StudentDetail = () => {
       onSuccess: () => {
         toast.success("Hasil ujian Tahfizh berhasil disimpan!");
         setShowUjianForm(false);
+        setUjianMode(null);
         setTahfizhEntries([{ surah: getSurahsForJuz(30)[0]?.name || "An-Naba", juz: 30, lahn_jali: 0, lahn_khofi: 0, kelancaran: 100, waqaf_ibtida: 0, salah_sambung_ayat: 0 }]);
         setCatatanGuru("");
       },

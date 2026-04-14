@@ -912,7 +912,7 @@ const StudentDetail = () => {
                     )}
 
                     <div className="flex gap-2 justify-end">
-                      <button onClick={() => setShowUjianForm(false)}
+                      <button onClick={() => { setShowUjianForm(false); setUjianMode(null); }}
                         className="px-4 py-2 rounded-md text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80 transition-colors">
                         Batal
                       </button>

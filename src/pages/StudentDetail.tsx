@@ -561,10 +561,10 @@ const StudentDetail = () => {
           {/* UJIAN TAB */}
           <TabsContent value="ujian" className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-foreground">Ujian Sertifikasi</h3>
-              {isLoggedIn && (
+              <h3 className="font-semibold text-foreground">Ujian</h3>
+              {isLoggedIn && !showUjianForm && (
               <button
-                onClick={() => setShowUjianForm(!showUjianForm)}
+                onClick={() => setShowUjianForm(true)}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium gradient-islamic text-primary-foreground hover:opacity-90 transition-opacity"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -572,6 +572,77 @@ const StudentDetail = () => {
               </button>
               )}
             </div>
+
+            {/* Exam Type Selector */}
+            {showUjianForm && !ujianMode && (
+              <div className="bg-card rounded-lg border border-border p-5 shadow-card animate-scale-in space-y-4">
+                <h4 className="font-semibold text-foreground">Pilih Jenis Ujian</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {[
+                    { mode: 'Tahsin Dasar' as const, icon: '📘', desc: 'EBTA Iqra 1-6' },
+                    { mode: 'Tahsin Lanjutan' as const, icon: '📗', desc: 'Surat Al-Quran + Tes Waqaf' },
+                    { mode: 'Tahfizh' as const, icon: '📕', desc: 'Ujian Sertifikasi Tahfizh' },
+                  ].map(opt => (
+                    <button key={opt.mode} onClick={() => setUjianMode(opt.mode)}
+                      className="p-4 rounded-lg border-2 border-border hover:border-primary bg-muted/30 hover:bg-primary/5 transition-all text-left">
+                      <p className="text-2xl mb-1">{opt.icon}</p>
+                      <p className="font-semibold text-foreground text-sm">{opt.mode}</p>
+                      <p className="text-[11px] text-muted-foreground">{opt.desc}</p>
+                    </button>
+                  ))}
+                </div>
+                <button onClick={() => setShowUjianForm(false)}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                  ← Batal
+                </button>
+              </div>
+            )}
+
+            {/* Tahsin Dasar Form */}
+            {showUjianForm && ujianMode === 'Tahsin Dasar' && (
+              <UjianTahsinDasarForm
+                isPending={addTahsinUjian.isPending}
+                onCancel={() => { setShowUjianForm(false); setUjianMode(null); }}
+                onSubmit={(data) => {
+                  if (!studentId) return;
+                  addTahsinUjian.mutate({
+                    student_id: studentId,
+                    mode: 'Tahsin Dasar',
+                    nilai_aspek: { entries: data.entries, config: data.config, catatanGuru: data.catatan_guru, predikat: data.predikat } as any,
+                    nilaiAkhir: data.nilaiAkhir,
+                    status: data.status,
+                    grade: data.grade,
+                    assessed_by: user?.id,
+                  }, {
+                    onSuccess: () => { toast.success("Hasil Ujian Tahsin Dasar berhasil disimpan!"); setShowUjianForm(false); setUjianMode(null); },
+                    onError: (err) => toast.error(getSafeErrorMessage(err)),
+                  });
+                }}
+              />
+            )}
+
+            {/* Tahsin Lanjutan Form */}
+            {showUjianForm && ujianMode === 'Tahsin Lanjutan' && (
+              <UjianTahsinLanjutanForm
+                isPending={addTahsinUjian.isPending}
+                onCancel={() => { setShowUjianForm(false); setUjianMode(null); }}
+                onSubmit={(data) => {
+                  if (!studentId) return;
+                  addTahsinUjian.mutate({
+                    student_id: studentId,
+                    mode: 'Tahsin Lanjutan',
+                    nilai_aspek: { entries: data.entries, config: data.config, penaltiWaqaf: data.penaltiWaqaf, waqafTest: data.waqafTest, catatanGuru: data.catatan_guru, predikat: data.predikat } as any,
+                    nilaiAkhir: data.nilaiAkhir,
+                    status: data.status,
+                    grade: data.grade,
+                    assessed_by: user?.id,
+                  }, {
+                    onSuccess: () => { toast.success("Hasil Ujian Tahsin Lanjutan berhasil disimpan!"); setShowUjianForm(false); setUjianMode(null); },
+                    onError: (err) => toast.error(getSafeErrorMessage(err)),
+                  });
+                }}
+              />
+            )}
 
             {showUjianForm && (
               <div className="bg-card rounded-lg border border-border p-5 shadow-card animate-scale-in space-y-4">

@@ -16,10 +16,6 @@ import UjianTahsinDasarForm from "@/components/UjianTahsinDasarForm";
 import UjianTahsinLanjutanForm from "@/components/UjianTahsinLanjutanForm";
 import { calculateNilaiTahsinDasar, calculateNilaiTahsinLanjutan } from "@/data/tahsinScoring";
 import type { TahsinDasarEntry, TahsinLanjutanEntry } from "@/data/tahsinScoring";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
-import { getSafeErrorMessage } from "@/utils/errorMessages";
 
 const KELANCARAN_OPTIONS = [
   { value: 100, label: "Sangat Lancar (100)" },

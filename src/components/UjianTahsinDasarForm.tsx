@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Info, Settings2 } from "lucide-react";
+import { Info, Settings2, Trash2, Calendar, Clock } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   TahsinDasarEntry, TahsinPenaltyConfig, DEFAULT_TAHSIN_DASAR_CONFIG,
@@ -16,7 +16,7 @@ const KELANCARAN_OPTIONS = [
 ];
 
 interface Props {
-  onSubmit: (data: { entries: TahsinDasarEntry[]; config: TahsinPenaltyConfig; catatan_guru: string; nilaiAkhir: number; status: 'Lulus' | 'Tidak Lulus'; grade: string; predikat: string }) => void;
+  onSubmit: (data: { entries: TahsinDasarEntry[]; config: TahsinPenaltyConfig; catatan_guru: string; nilaiAkhir: number; status: 'Lulus' | 'Tidak Lulus'; grade: string; predikat: string; tanggal: string; waktu: string }) => void;
   onCancel: () => void;
   isPending: boolean;
 }
@@ -28,6 +28,9 @@ export default function UjianTahsinDasarForm({ onSubmit, onCancel, isPending }: 
   const [config, setConfig] = useState<TahsinPenaltyConfig>({ ...DEFAULT_TAHSIN_DASAR_CONFIG });
   const [showConfig, setShowConfig] = useState(false);
   const [catatanGuru, setCatatanGuru] = useState("");
+  const now = new Date();
+  const [tanggal, setTanggal] = useState(now.toISOString().split("T")[0]);
+  const [waktu, setWaktu] = useState(now.toTimeString().slice(0, 5));
 
   const updateEntry = (index: number, field: keyof TahsinDasarEntry, value: any) => {
     const updated = [...entries];
@@ -35,15 +38,38 @@ export default function UjianTahsinDasarForm({ onSubmit, onCancel, isPending }: 
     setEntries(updated);
   };
 
+  const removeEntry = (index: number) => {
+    if (entries.length <= 1) return;
+    setEntries(entries.filter((_, i) => i !== index));
+  };
+
   const result = calculateTahsinDasarResult(entries, config);
 
   const handleSubmit = () => {
-    onSubmit({ entries, config, catatan_guru: catatanGuru, ...result });
+    onSubmit({ entries, config, catatan_guru: catatanGuru, ...result, tanggal, waktu });
   };
 
   return (
     <div className="bg-card rounded-lg border border-border p-5 shadow-card animate-scale-in space-y-4">
       <h4 className="font-semibold text-foreground">📘 Ujian Tahsin Dasar — EBTA Iqra 1-6</h4>
+
+      {/* Date & Time */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="flex items-center gap-1 text-xs font-medium text-muted-foreground mb-1">
+            <Calendar className="w-3.5 h-3.5" /> Tanggal Ujian
+          </label>
+          <input type="date" value={tanggal} onChange={e => setTanggal(e.target.value)}
+            className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+        </div>
+        <div>
+          <label className="flex items-center gap-1 text-xs font-medium text-muted-foreground mb-1">
+            <Clock className="w-3.5 h-3.5" /> Waktu Ujian
+          </label>
+          <input type="time" value={waktu} onChange={e => setWaktu(e.target.value)}
+            className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+        </div>
+      </div>
 
       {/* Penalty Config */}
       <div className="p-4 rounded-lg border border-border bg-muted/40 space-y-3">
@@ -111,7 +137,14 @@ export default function UjianTahsinDasarForm({ onSubmit, onCancel, isPending }: 
       <div className="space-y-4">
         {entries.map((entry, index) => (
           <div key={index} className="p-4 rounded-lg border border-border bg-muted/30 space-y-3">
-            <h5 className="text-sm font-semibold text-foreground">{entry.nama_ebta}</h5>
+            <div className="flex items-center justify-between">
+              <h5 className="text-sm font-semibold text-foreground">{entry.nama_ebta}</h5>
+              {entries.length > 1 && (
+                <button onClick={() => removeEntry(index)} className="text-destructive hover:text-destructive/80" title="Hapus">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
 
             {/* Lahn Jali */}
             <div className="p-3 rounded-md bg-destructive/5 border border-destructive/20">

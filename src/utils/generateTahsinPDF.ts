@@ -1,0 +1,255 @@
+import jsPDF from "jspdf";
+import type { TahsinDasarEntry, TahsinLanjutanEntry, TahsinPenaltyConfig, WaqafSymbolTest } from "@/data/tahsinScoring";
+import { calculateNilaiTahsinDasar, calculateNilaiTahsinLanjutan } from "@/data/tahsinScoring";
+
+interface TahsinExamData {
+  studentName: string;
+  className: string;
+  mode: 'Tahsin Dasar' | 'Tahsin Lanjutan';
+  tanggal: string;
+  nilaiAkhir: number;
+  status: string;
+  grade: string;
+  predikat: string;
+  assessorName?: string;
+  catatanGuru?: string;
+  // Dasar specific
+  dasarEntries?: TahsinDasarEntry[];
+  dasarConfig?: TahsinPenaltyConfig;
+  // Lanjutan specific
+  lanjutanEntries?: TahsinLanjutanEntry[];
+  lanjutanConfig?: TahsinPenaltyConfig;
+  penaltiWaqaf?: number;
+  waqafTest?: WaqafSymbolTest;
+}
+
+export const generateTahsinPDF = (data: TahsinExamData) => {
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const w = doc.internal.pageSize.getWidth();
+  const margin = 15;
+  let y = 20;
+
+  // Header
+  doc.setFillColor(22, 101, 52);
+  doc.rect(0, 0, w, 35, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text(`LAPORAN UJIAN ${data.mode.toUpperCase()}`, w / 2, 15, { align: "center" });
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text("SDIT Luqmanul Hakim — Program Tahfizh Al-Qur'an", w / 2, 23, { align: "center" });
+  doc.setFontSize(9);
+  const formattedDate = new Date(data.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+  doc.text(formattedDate, w / 2, 30, { align: "center" });
+
+  y = 45;
+
+  // Student info box
+  doc.setFillColor(245, 248, 245);
+  doc.roundedRect(margin, y, w - margin * 2, 28, 3, 3, "F");
+  doc.setDrawColor(22, 101, 52);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(margin, y, w - margin * 2, 28, 3, 3, "S");
+
+  doc.setTextColor(60, 60, 60);
+  doc.setFontSize(9);
+  doc.text("Nama Siswa:", margin + 5, y + 8);
+  doc.text("Kelas:", margin + 5, y + 16);
+  doc.text("Penguji:", margin + 5, y + 24);
+
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(22, 22, 22);
+  doc.setFontSize(11);
+  doc.text(data.studentName, margin + 35, y + 8);
+  doc.setFontSize(9);
+  doc.text(data.className, margin + 35, y + 16);
+  doc.text(data.assessorName || "-", margin + 35, y + 24);
+
+  y += 35;
+
+  // Score summary
+  const boxW = 50;
+  const boxH = 20;
+  const gap = 8;
+  const totalBoxW = boxW * 3 + gap * 2;
+  const startX = (w - totalBoxW) / 2;
+
+  const boxes = [
+    { label: "Nilai Akhir", value: String(data.nilaiAkhir), color: [22, 101, 52] as [number, number, number] },
+    { label: "Grade", value: data.grade, color: [30, 80, 160] as [number, number, number] },
+    { label: "Status", value: data.status, color: data.status === 'Lulus' ? [22, 101, 52] as [number, number, number] : [180, 50, 50] as [number, number, number] },
+  ];
+
+  boxes.forEach((box, i) => {
+    const bx = startX + i * (boxW + gap);
+    doc.setFillColor(250, 252, 250);
+    doc.roundedRect(bx, y, boxW, boxH, 2, 2, "F");
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(bx, y, boxW, boxH, 2, 2, "S");
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
+    doc.text(box.label, bx + boxW / 2, y + 6, { align: "center" });
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...box.color);
+    doc.text(box.value, bx + boxW / 2, y + 15, { align: "center" });
+  });
+
+  y += boxH + 8;
+
+  // Predikat
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(22, 101, 52);
+  doc.text(`Predikat: ${data.predikat}`, w / 2, y, { align: "center" });
+  y += 8;
+
+  // Detail table
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(22, 22, 22);
+  doc.text("Detail Penilaian", margin, y);
+  y += 5;
+
+  if (data.mode === 'Tahsin Dasar' && data.dasarEntries && data.dasarConfig) {
+    // Table header
+    const cols = ["EBTA", "S.Huruf", "S.Harakat", "S.Makhraj", "Mad", "Ghunnah", "Tajwid", "Waqaf", "Lancar", "Nilai"];
+    const colWidths = [28, 15, 18, 18, 13, 16, 14, 14, 15, 14];
+    let tx = margin;
+
+    doc.setFillColor(22, 101, 52);
+    doc.rect(margin, y, w - margin * 2, 7, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(6);
+    doc.setFont("helvetica", "bold");
+    cols.forEach((col, i) => {
+      doc.text(col, tx + colWidths[i] / 2, y + 5, { align: "center" });
+      tx += colWidths[i];
+    });
+    y += 7;
+
+    data.dasarEntries.forEach((entry, idx) => {
+      if (y > 270) { doc.addPage(); y = 20; }
+      const bgColor = idx % 2 === 0 ? [255, 255, 255] : [245, 248, 245];
+      doc.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
+      doc.rect(margin, y, w - margin * 2, 6, "F");
+
+      const nilai = calculateNilaiTahsinDasar(entry, data.dasarConfig!);
+      const vals = [
+        entry.nama_ebta.replace('Iqra 6 - ', 'I6-'),
+        String(entry.salah_huruf), String(entry.salah_harakat), String(entry.salah_makhraj),
+        String(entry.kesalahan_mad), String(entry.kesalahan_ghunnah), String(entry.kesalahan_tajwid), String(entry.kesalahan_waqaf),
+        String(entry.kelancaran), String(nilai),
+      ];
+
+      tx = margin;
+      doc.setTextColor(40, 40, 40);
+      doc.setFontSize(6);
+      doc.setFont("helvetica", "normal");
+      vals.forEach((val, i) => {
+        doc.text(val, tx + colWidths[i] / 2, y + 4, { align: "center" });
+        tx += colWidths[i];
+      });
+      y += 6;
+    });
+  }
+
+  if (data.mode === 'Tahsin Lanjutan' && data.lanjutanEntries && data.lanjutanConfig) {
+    const cols = ["Surat", "Ayat", "S.Huruf", "S.Harakat", "S.Makhraj", "Mad", "Ghunnah", "Tajwid", "Waqaf", "Lancar", "Nilai"];
+    const colWidths = [25, 14, 15, 17, 17, 13, 16, 14, 13, 15, 14];
+    let tx = margin;
+
+    doc.setFillColor(22, 101, 52);
+    doc.rect(margin, y, w - margin * 2, 7, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(5.5);
+    doc.setFont("helvetica", "bold");
+    cols.forEach((col, i) => {
+      doc.text(col, tx + colWidths[i] / 2, y + 5, { align: "center" });
+      tx += colWidths[i];
+    });
+    y += 7;
+
+    data.lanjutanEntries.forEach((entry, idx) => {
+      if (y > 270) { doc.addPage(); y = 20; }
+      const bgColor = idx % 2 === 0 ? [255, 255, 255] : [245, 248, 245];
+      doc.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
+      doc.rect(margin, y, w - margin * 2, 6, "F");
+
+      const nilai = calculateNilaiTahsinLanjutan(entry, data.lanjutanConfig!, data.penaltiWaqaf || 2);
+      const vals = [
+        entry.surah.slice(0, 12), entry.ayat.slice(0, 6),
+        String(entry.salah_huruf), String(entry.salah_harakat), String(entry.salah_makhraj),
+        String(entry.kesalahan_mad), String(entry.kesalahan_ghunnah), String(entry.kesalahan_tajwid),
+        String(entry.waqaf_ibtida), String(entry.kelancaran), String(nilai),
+      ];
+
+      tx = margin;
+      doc.setTextColor(40, 40, 40);
+      doc.setFontSize(5.5);
+      doc.setFont("helvetica", "normal");
+      vals.forEach((val, i) => {
+        doc.text(val, tx + colWidths[i] / 2, y + 4, { align: "center" });
+        tx += colWidths[i];
+      });
+      y += 6;
+    });
+
+    // Waqaf test result
+    if (data.waqafTest) {
+      y += 5;
+      if (y > 260) { doc.addPage(); y = 20; }
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(22, 22, 22);
+      doc.text("Tes Simbol Waqaf", margin, y);
+      y += 5;
+
+      const waqafLabels: Record<string, string> = {
+        waqaf_lazim: "Waqaf Lazim (مـ)",
+        waqaf_mustahab: "Waqaf Mustahab (قلى)",
+        waqaf_jaiz: "Waqaf Jaiz (ج)",
+        waqaf_mujawwaz: "Waqaf Mujawwaz (صلى)",
+        waqaf_mamnu: "Waqaf Mamnu' (لا)",
+        washol_lazim: "Washol Lazim",
+      };
+
+      Object.entries(data.waqafTest).forEach(([key, val]) => {
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(40, 40, 40);
+        const label = waqafLabels[key] || key;
+        const status = val ? "✓ Benar" : "✗ Salah";
+        doc.text(`${label}: ${status}`, margin + 5, y);
+        y += 4.5;
+      });
+    }
+  }
+
+  // Catatan
+  if (data.catatanGuru) {
+    y += 5;
+    if (y > 270) { doc.addPage(); y = 20; }
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(22, 22, 22);
+    doc.text("Catatan Guru:", margin, y);
+    y += 5;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(60, 60, 60);
+    const lines = doc.splitTextToSize(data.catatanGuru, w - margin * 2);
+    doc.text(lines, margin, y);
+  }
+
+  // Footer
+  const h = doc.internal.pageSize.getHeight();
+  doc.setFontSize(7);
+  doc.setTextColor(150, 150, 150);
+  doc.text("SDIT Luqmanul Hakim — Program Tahfizh Al-Qur'an", w / 2, h - 10, { align: "center" });
+
+  doc.save(`Ujian_${data.mode.replace(/\s+/g, "_")}_${data.studentName.replace(/\s+/g, "_")}.pdf`);
+};

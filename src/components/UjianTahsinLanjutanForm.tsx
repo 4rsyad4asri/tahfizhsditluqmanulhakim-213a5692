@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, Info, Settings2 } from "lucide-react";
+import { Plus, Trash2, Info, Settings2, Calendar, Clock } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   TahsinLanjutanEntry, TahsinPenaltyConfig, WaqafSymbolTest,
@@ -27,6 +27,8 @@ interface Props {
     status: 'Lulus' | 'Tidak Lulus';
     grade: string;
     predikat: string;
+    tanggal: string;
+    waktu: string;
   }) => void;
   onCancel: () => void;
   isPending: boolean;
@@ -41,6 +43,9 @@ export default function UjianTahsinLanjutanForm({ onSubmit, onCancel, isPending 
   const [showConfig, setShowConfig] = useState(false);
   const [waqafTest, setWaqafTest] = useState<WaqafSymbolTest>(createEmptyWaqafTest());
   const [catatanGuru, setCatatanGuru] = useState("");
+  const now = new Date();
+  const [tanggal, setTanggal] = useState(now.toISOString().split("T")[0]);
+  const [waktu, setWaktu] = useState(now.toTimeString().slice(0, 5));
 
   const updateEntry = (index: number, field: keyof TahsinLanjutanEntry, value: any) => {
     const updated = [...entries];
@@ -58,12 +63,30 @@ export default function UjianTahsinLanjutanForm({ onSubmit, onCancel, isPending 
   const waqafPassed = isWaqafTestPassed(waqafTest);
 
   const handleSubmit = () => {
-    onSubmit({ entries, config, penaltiWaqaf, waqafTest, catatan_guru: catatanGuru, ...result });
+    onSubmit({ entries, config, penaltiWaqaf, waqafTest, catatan_guru: catatanGuru, ...result, tanggal, waktu });
   };
 
   return (
     <div className="bg-card rounded-lg border border-border p-5 shadow-card animate-scale-in space-y-4">
       <h4 className="font-semibold text-foreground">📗 Ujian Tahsin Lanjutan</h4>
+
+      {/* Date & Time */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="flex items-center gap-1 text-xs font-medium text-muted-foreground mb-1">
+            <Calendar className="w-3.5 h-3.5" /> Tanggal Ujian
+          </label>
+          <input type="date" value={tanggal} onChange={e => setTanggal(e.target.value)}
+            className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+        </div>
+        <div>
+          <label className="flex items-center gap-1 text-xs font-medium text-muted-foreground mb-1">
+            <Clock className="w-3.5 h-3.5" /> Waktu Ujian
+          </label>
+          <input type="time" value={waktu} onChange={e => setWaktu(e.target.value)}
+            className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+        </div>
+      </div>
 
       {/* Penalty Config */}
       <div className="p-4 rounded-lg border border-border bg-muted/40 space-y-3">

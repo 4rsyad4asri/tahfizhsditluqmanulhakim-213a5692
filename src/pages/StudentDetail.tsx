@@ -7,7 +7,7 @@ import { calculateNilaiSetoran, calculateNilaiTahfizh, calculateNilaiSurah } fro
 import type { Koreksi, TahfizhSurahEntry } from "@/data/mockData";
 import { useStudentDetail, useAddSetoran, useAddTahfizhUjian, useAddTahsinUjian, useUpdateCatatan } from "@/hooks/useStudentDetail";
 import { JUZ_SURAH_MAP, getSurahsForJuz, getSurahLabel } from "@/data/quranData";
-import { ArrowLeft, Plus, FileText, Award, BookOpen, PenLine, Loader2, Trash2, Info } from "lucide-react";
+import { ArrowLeft, Plus, FileText, Award, BookOpen, PenLine, Loader2, Trash2, Info, Calendar, Clock, Download } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -15,7 +15,8 @@ import { getSafeErrorMessage } from "@/utils/errorMessages";
 import UjianTahsinDasarForm from "@/components/UjianTahsinDasarForm";
 import UjianTahsinLanjutanForm from "@/components/UjianTahsinLanjutanForm";
 import { calculateNilaiTahsinDasar, calculateNilaiTahsinLanjutan } from "@/data/tahsinScoring";
-import type { TahsinDasarEntry, TahsinLanjutanEntry } from "@/data/tahsinScoring";
+import type { TahsinDasarEntry, TahsinLanjutanEntry, TahsinPenaltyConfig, WaqafSymbolTest } from "@/data/tahsinScoring";
+import { generateTahsinPDF } from "@/utils/generateTahsinPDF";
 
 const KELANCARAN_OPTIONS = [
   { value: 100, label: "Sangat Lancar (100)" },
@@ -63,6 +64,9 @@ const StudentDetail = () => {
     { surah: getSurahsForJuz(30)[0]?.name || "An-Naba", juz: 30, lahn_jali: 0, lahn_khofi: 0, kelancaran: 100, waqaf_ibtida: 0, salah_sambung_ayat: 0 }
   ]);
   const [catatanGuru, setCatatanGuru] = useState("");
+  const tahfizhNow = new Date();
+  const [tahfizhTanggal, setTahfizhTanggal] = useState(tahfizhNow.toISOString().split("T")[0]);
+  const [tahfizhWaktu, setTahfizhWaktu] = useState(tahfizhNow.toTimeString().slice(0, 5));
 
   if (isLoading) {
     return (
@@ -142,6 +146,7 @@ const StudentDetail = () => {
       entries: tahfizhEntries,
       catatan_guru: catatanGuru,
       assessed_by: user?.id,
+      tanggal: tahfizhTanggal,
       ...result,
     }, {
       onSuccess: () => {
@@ -614,6 +619,8 @@ const StudentDetail = () => {
                     status: data.status,
                     grade: data.grade,
                     assessed_by: user?.id,
+                    tanggal: data.tanggal,
+                    waktu: data.waktu,
                   }, {
                     onSuccess: () => { toast.success("Hasil Ujian Tahsin Dasar berhasil disimpan!"); setShowUjianForm(false); setUjianMode(null); },
                     onError: (err) => toast.error(getSafeErrorMessage(err)),
@@ -637,6 +644,8 @@ const StudentDetail = () => {
                     status: data.status,
                     grade: data.grade,
                     assessed_by: user?.id,
+                    tanggal: data.tanggal,
+                    waktu: data.waktu,
                   }, {
                     onSuccess: () => { toast.success("Hasil Ujian Tahsin Lanjutan berhasil disimpan!"); setShowUjianForm(false); setUjianMode(null); },
                     onError: (err) => toast.error(getSafeErrorMessage(err)),
@@ -648,6 +657,24 @@ const StudentDetail = () => {
             {showUjianForm && ujianMode === 'Tahfizh' && (
               <div className="bg-card rounded-lg border border-border p-5 shadow-card animate-scale-in space-y-4">
                 <h4 className="font-semibold text-foreground">Form Ujian Sertifikasi</h4>
+
+                {/* Date & Time */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="flex items-center gap-1 text-xs font-medium text-muted-foreground mb-1">
+                      <Calendar className="w-3.5 h-3.5" /> Tanggal Ujian
+                    </label>
+                    <input type="date" value={tahfizhTanggal} onChange={e => setTahfizhTanggal(e.target.value)}
+                      className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-1 text-xs font-medium text-muted-foreground mb-1">
+                      <Clock className="w-3.5 h-3.5" /> Waktu Ujian
+                    </label>
+                    <input type="time" value={tahfizhWaktu} onChange={e => setTahfizhWaktu(e.target.value)}
+                      className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+                  </div>
+                </div>
 
                 {/* Keterangan Rumus Penilaian */}
                 <div className="p-4 rounded-lg border border-border bg-muted/40 space-y-3">
@@ -945,11 +972,42 @@ const StudentDetail = () => {
                           <p className="text-xs text-primary font-medium mt-0.5">👤 Dinilai oleh: {assessorMap[u.assessed_by]}</p>
                         )}
                       </div>
-                      <div className="text-right">
+                      <div className="text-right flex flex-col items-end gap-1">
                         <p className="text-2xl font-bold text-foreground">{u.nilai_akhir}</p>
                         <p className={`text-xs font-medium ${u.status === 'Lulus' ? 'text-success' : 'text-destructive'}`}>
                           {predikat} · {u.status === 'Lulus' ? '✅ Lulus' : '❌ Tidak Lulus'}
                         </p>
+                        {(isTahsinDasar || isTahsinLanjutan) && (
+                          <button
+                            onClick={() => {
+                              const mode = u.mode as 'Tahsin Dasar' | 'Tahsin Lanjutan';
+                              generateTahsinPDF({
+                                studentName: student.name,
+                                className: classInfo?.name || '',
+                                mode,
+                                tanggal: u.tanggal,
+                                nilaiAkhir: u.nilai_akhir,
+                                status: u.status,
+                                grade: u.grade,
+                                predikat,
+                                assessorName: u.assessed_by ? assessorMap[u.assessed_by] : undefined,
+                                catatanGuru: u.nilai_aspek?.catatanGuru,
+                                ...(mode === 'Tahsin Dasar' ? {
+                                  dasarEntries: u.nilai_aspek?.entries,
+                                  dasarConfig: u.nilai_aspek?.config,
+                                } : {
+                                  lanjutanEntries: u.nilai_aspek?.entries,
+                                  lanjutanConfig: u.nilai_aspek?.config,
+                                  penaltiWaqaf: u.nilai_aspek?.penaltiWaqaf,
+                                  waqafTest: u.nilai_aspek?.waqafTest,
+                                }),
+                              });
+                            }}
+                            className="flex items-center gap-1 text-[10px] text-primary hover:underline"
+                          >
+                            <Download className="w-3 h-3" /> Cetak PDF
+                          </button>
+                        )}
                       </div>
                     </div>
 

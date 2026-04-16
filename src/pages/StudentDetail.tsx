@@ -620,9 +620,6 @@ const StudentDetail = () => {
                     assessed_by: user?.id,
                     tanggal: data.tanggal,
                     waktu: data.waktu,
-                    status: data.status,
-                    grade: data.grade,
-                    assessed_by: user?.id,
                   }, {
                     onSuccess: () => { toast.success("Hasil Ujian Tahsin Dasar berhasil disimpan!"); setShowUjianForm(false); setUjianMode(null); },
                     onError: (err) => toast.error(getSafeErrorMessage(err)),
@@ -648,9 +645,6 @@ const StudentDetail = () => {
                     assessed_by: user?.id,
                     tanggal: data.tanggal,
                     waktu: data.waktu,
-                    status: data.status,
-                    grade: data.grade,
-                    assessed_by: user?.id,
                   }, {
                     onSuccess: () => { toast.success("Hasil Ujian Tahsin Lanjutan berhasil disimpan!"); setShowUjianForm(false); setUjianMode(null); },
                     onError: (err) => toast.error(getSafeErrorMessage(err)),

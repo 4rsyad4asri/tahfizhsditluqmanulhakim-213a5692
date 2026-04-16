@@ -7,7 +7,7 @@ import { calculateNilaiSetoran, calculateNilaiTahfizh, calculateNilaiSurah } fro
 import type { Koreksi, TahfizhSurahEntry } from "@/data/mockData";
 import { useStudentDetail, useAddSetoran, useAddTahfizhUjian, useAddTahsinUjian, useUpdateCatatan } from "@/hooks/useStudentDetail";
 import { JUZ_SURAH_MAP, getSurahsForJuz, getSurahLabel } from "@/data/quranData";
-import { ArrowLeft, Plus, FileText, Award, BookOpen, PenLine, Loader2, Trash2, Info } from "lucide-react";
+import { ArrowLeft, Plus, FileText, Award, BookOpen, PenLine, Loader2, Trash2, Info, Calendar, Clock, Download } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -15,7 +15,8 @@ import { getSafeErrorMessage } from "@/utils/errorMessages";
 import UjianTahsinDasarForm from "@/components/UjianTahsinDasarForm";
 import UjianTahsinLanjutanForm from "@/components/UjianTahsinLanjutanForm";
 import { calculateNilaiTahsinDasar, calculateNilaiTahsinLanjutan } from "@/data/tahsinScoring";
-import type { TahsinDasarEntry, TahsinLanjutanEntry } from "@/data/tahsinScoring";
+import type { TahsinDasarEntry, TahsinLanjutanEntry, TahsinPenaltyConfig, WaqafSymbolTest } from "@/data/tahsinScoring";
+import { generateTahsinPDF } from "@/utils/generateTahsinPDF";
 
 const KELANCARAN_OPTIONS = [
   { value: 100, label: "Sangat Lancar (100)" },

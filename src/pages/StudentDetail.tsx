@@ -972,11 +972,42 @@ const StudentDetail = () => {
                           <p className="text-xs text-primary font-medium mt-0.5">👤 Dinilai oleh: {assessorMap[u.assessed_by]}</p>
                         )}
                       </div>
-                      <div className="text-right">
+                      <div className="text-right flex flex-col items-end gap-1">
                         <p className="text-2xl font-bold text-foreground">{u.nilai_akhir}</p>
                         <p className={`text-xs font-medium ${u.status === 'Lulus' ? 'text-success' : 'text-destructive'}`}>
                           {predikat} · {u.status === 'Lulus' ? '✅ Lulus' : '❌ Tidak Lulus'}
                         </p>
+                        {(isTahsinDasar || isTahsinLanjutan) && (
+                          <button
+                            onClick={() => {
+                              const mode = u.mode as 'Tahsin Dasar' | 'Tahsin Lanjutan';
+                              generateTahsinPDF({
+                                studentName: student.name,
+                                className: classInfo?.name || '',
+                                mode,
+                                tanggal: u.tanggal,
+                                nilaiAkhir: u.nilai_akhir,
+                                status: u.status,
+                                grade: u.grade,
+                                predikat,
+                                assessorName: u.assessed_by ? assessorMap[u.assessed_by] : undefined,
+                                catatanGuru: u.nilai_aspek?.catatanGuru,
+                                ...(mode === 'Tahsin Dasar' ? {
+                                  dasarEntries: u.nilai_aspek?.entries,
+                                  dasarConfig: u.nilai_aspek?.config,
+                                } : {
+                                  lanjutanEntries: u.nilai_aspek?.entries,
+                                  lanjutanConfig: u.nilai_aspek?.config,
+                                  penaltiWaqaf: u.nilai_aspek?.penaltiWaqaf,
+                                  waqafTest: u.nilai_aspek?.waqafTest,
+                                }),
+                              });
+                            }}
+                            className="flex items-center gap-1 text-[10px] text-primary hover:underline"
+                          >
+                            <Download className="w-3 h-3" /> Cetak PDF
+                          </button>
+                        )}
                       </div>
                     </div>
 

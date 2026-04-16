@@ -8,6 +8,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import AssignPengujiDialog from "@/components/AssignPengujiDialog";
 import { useClassPenguji } from "@/hooks/usePenguji";
+import ClassExamStats from "@/components/ClassExamStats";
 
 const ClassStudents = () => {
   const { classId } = useParams<{ classId: string }>();
@@ -131,6 +132,10 @@ const ClassStudents = () => {
           </div>
         </div>
 
+        {/* Exam Statistics */}
+        {classId_db && <ClassExamStats classId={classId_db} />}
+
+        <div className="mt-6">
         {/* Mobile Cards */}
         <div className="md:hidden space-y-3">
           {filteredStudents.map((student) => (

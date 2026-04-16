@@ -222,6 +222,7 @@ const ClassStudents = () => {
             </table>
           </div>
         </div>
+        </div>
       </main>
     </div>
   );

@@ -1,5 +1,12 @@
 // Tahsin Dasar & Lanjutan scoring logic
 
+export type RumusVersion = 'baru' | 'lama';
+
+export const RUMUS_OPTIONS: { value: RumusVersion; label: string; desc: string }[] = [
+  { value: 'baru', label: 'Rumus Baru (Direkomendasikan)', desc: 'Nilai = Kelancaran − ΣPenalty (langsung)' },
+  { value: 'lama', label: 'Rumus Lama (Bobot 60/40)', desc: 'Nilai = (Koreksi × bobot) + (Kelancaran × bobot)' },
+];
+
 export interface TahsinPenaltyConfig {
   penalti_lahn_jali: number; // default -2 for Dasar
   penalti_lahn_khofi: number; // default -1 for Dasar
@@ -101,9 +108,14 @@ export function isWaqafTestPassed(test: WaqafSymbolTest): boolean {
   return Object.values(test).every(v => v === true);
 }
 
-export function calculateNilaiTahsinDasar(entry: TahsinDasarEntry, config: TahsinPenaltyConfig): number {
+export function calculateNilaiTahsinDasar(entry: TahsinDasarEntry, config: TahsinPenaltyConfig, rumus: RumusVersion = 'baru'): number {
   const totalLahnJali = entry.salah_huruf + entry.salah_harakat + entry.salah_makhraj;
   const totalLahnKhofi = entry.kesalahan_mad + entry.kesalahan_ghunnah + entry.kesalahan_tajwid + entry.kesalahan_waqaf;
+  if (rumus === 'baru') {
+    // Nilai = Kelancaran − (LJ × penaltiLJ) − (LK × penaltiLK)
+    const nilai = entry.kelancaran - (totalLahnJali * config.penalti_lahn_jali) - (totalLahnKhofi * config.penalti_lahn_khofi);
+    return Math.round(Math.max(0, Math.min(100, nilai)));
+  }
   const bobotKoreksi = (100 - config.bobot_kelancaran) / 100;
   const bobotKelancaran = config.bobot_kelancaran / 100;
   const nilaiKoreksi = Math.max(0, 100 - (totalLahnJali * config.penalti_lahn_jali) - (totalLahnKhofi * config.penalti_lahn_khofi));
@@ -111,9 +123,13 @@ export function calculateNilaiTahsinDasar(entry: TahsinDasarEntry, config: Tahsi
   return Math.round(Math.max(0, Math.min(100, nilaiAkhir)));
 }
 
-export function calculateNilaiTahsinLanjutan(entry: TahsinLanjutanEntry, config: TahsinPenaltyConfig, penaltiWaqaf: number = 2): number {
+export function calculateNilaiTahsinLanjutan(entry: TahsinLanjutanEntry, config: TahsinPenaltyConfig, penaltiWaqaf: number = 2, rumus: RumusVersion = 'baru'): number {
   const totalLahnJali = entry.salah_huruf + entry.salah_harakat + entry.salah_makhraj;
   const totalLahnKhofi = entry.kesalahan_mad + entry.kesalahan_ghunnah + entry.kesalahan_tajwid;
+  if (rumus === 'baru') {
+    const nilai = entry.kelancaran - (totalLahnJali * config.penalti_lahn_jali) - (totalLahnKhofi * config.penalti_lahn_khofi) - (entry.waqaf_ibtida * penaltiWaqaf);
+    return Math.round(Math.max(0, Math.min(100, nilai)));
+  }
   const bobotKoreksi = (100 - config.bobot_kelancaran) / 100;
   const bobotKelancaran = config.bobot_kelancaran / 100;
   const nilaiKoreksi = Math.max(0, 100 - (totalLahnJali * config.penalti_lahn_jali) - (totalLahnKhofi * config.penalti_lahn_khofi) - (entry.waqaf_ibtida * penaltiWaqaf));
@@ -121,20 +137,20 @@ export function calculateNilaiTahsinLanjutan(entry: TahsinLanjutanEntry, config:
   return Math.round(Math.max(0, Math.min(100, nilaiAkhir)));
 }
 
-export function calculateTahsinDasarResult(entries: TahsinDasarEntry[], config: TahsinPenaltyConfig): {
+export function calculateTahsinDasarResult(entries: TahsinDasarEntry[], config: TahsinPenaltyConfig, rumus: RumusVersion = 'baru'): {
   nilaiAkhir: number; status: 'Lulus' | 'Tidak Lulus'; grade: string; predikat: string;
 } {
   if (entries.length === 0) return { nilaiAkhir: 0, status: 'Tidak Lulus', grade: 'D', predikat: 'Perlu Perbaikan' };
-  const scores = entries.map(e => calculateNilaiTahsinDasar(e, config));
+  const scores = entries.map(e => calculateNilaiTahsinDasar(e, config, rumus));
   const nilaiAkhir = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
   return getGrading(nilaiAkhir);
 }
 
-export function calculateTahsinLanjutanResult(entries: TahsinLanjutanEntry[], config: TahsinPenaltyConfig, penaltiWaqaf: number, waqafTest: WaqafSymbolTest): {
+export function calculateTahsinLanjutanResult(entries: TahsinLanjutanEntry[], config: TahsinPenaltyConfig, penaltiWaqaf: number, waqafTest: WaqafSymbolTest, rumus: RumusVersion = 'baru'): {
   nilaiAkhir: number; status: 'Lulus' | 'Tidak Lulus'; grade: string; predikat: string;
 } {
   if (entries.length === 0) return { nilaiAkhir: 0, status: 'Tidak Lulus', grade: 'D', predikat: 'Perlu Perbaikan' };
-  const scores = entries.map(e => calculateNilaiTahsinLanjutan(e, config, penaltiWaqaf));
+  const scores = entries.map(e => calculateNilaiTahsinLanjutan(e, config, penaltiWaqaf, rumus));
   let nilaiAkhir = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
   // Waqaf symbol test: if not all passed, cap grade
   if (!isWaqafTestPassed(waqafTest)) {

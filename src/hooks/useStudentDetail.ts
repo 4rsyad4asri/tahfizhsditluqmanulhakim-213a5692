@@ -242,3 +242,57 @@ export function useUpdateCatatan() {
     },
   });
 }
+
+// Update existing ujian (edit penalti / kelancaran / nilai_akhir / status / catatan)
+export function useUpdateUjian() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      ujian_id: string;
+      student_id: string;
+      nilai_aspek: Record<string, unknown>;
+      nilai_akhir: number;
+      status: 'Lulus' | 'Tidak Lulus';
+      grade: string;
+      tanggal?: string;
+    }) => {
+      const payload: any = {
+        nilai_aspek: data.nilai_aspek,
+        nilai_akhir: data.nilai_akhir,
+        status: data.status,
+        grade: data.grade,
+      };
+      if (data.tanggal) payload.tanggal = data.tanggal;
+      const { error } = await supabase.from("ujian").update(payload).eq("id", data.ujian_id);
+      if (error) throw error;
+
+      // Sync student status_sertifikasi if Tahfizh
+      const { data: ujianRow } = await supabase.from("ujian").select("mode").eq("id", data.ujian_id).single();
+      if (ujianRow?.mode === 'Tahfizh') {
+        await supabase.from("students").update({ status_sertifikasi: data.status }).eq("id", data.student_id);
+      }
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["student-detail", variables.student_id] });
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
+      queryClient.invalidateQueries({ queryKey: ["rekap-sertifikat"] });
+      queryClient.invalidateQueries({ queryKey: ["rekap-ujian-global"] });
+    },
+  });
+}
+
+export function useDeleteUjian() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { ujian_id: string; student_id: string }) => {
+      const { error } = await supabase.from("ujian").delete().eq("id", data.ujian_id);
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["student-detail", variables.student_id] });
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
+      queryClient.invalidateQueries({ queryKey: ["rekap-sertifikat"] });
+      queryClient.invalidateQueries({ queryKey: ["rekap-ujian-global"] });
+    },
+  });
+}

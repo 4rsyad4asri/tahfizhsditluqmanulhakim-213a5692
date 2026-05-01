@@ -177,9 +177,25 @@ export function calculateNilaiSurah(entry: TahfizhSurahEntry): number {
   return Math.round(Math.max(0, Math.min(100, nilaiAkhir)));
 }
 
-export function calculateNilaiTahfizh(entries: TahfizhSurahEntry[]): { nilaiAkhir: number; status: 'Lulus' | 'Tidak Lulus'; grade: string; predikat: string } {
+// Rumus baru Tahfizh: Nilai = Kelancaran − (LJ×2) − (LK×1) − (Waqaf×2) − (Sambung×2)
+export function calculateNilaiSurahNew(entry: TahfizhSurahEntry): number {
+  const nilai = entry.kelancaran
+    - (entry.lahn_jali * 2)
+    - (entry.lahn_khofi * 1)
+    - (entry.waqaf_ibtida * 2)
+    - ((entry.salah_sambung_ayat || 0) * 2);
+  return Math.round(Math.max(0, Math.min(100, nilai)));
+}
+
+export type TahfizhRumus = 'baru' | 'lama';
+
+export function calculateNilaiSurahWithRumus(entry: TahfizhSurahEntry, rumus: TahfizhRumus = 'baru'): number {
+  return rumus === 'baru' ? calculateNilaiSurahNew(entry) : calculateNilaiSurah(entry);
+}
+
+export function calculateNilaiTahfizh(entries: TahfizhSurahEntry[], rumus: TahfizhRumus = 'baru'): { nilaiAkhir: number; status: 'Lulus' | 'Tidak Lulus'; grade: string; predikat: string } {
   if (entries.length === 0) return { nilaiAkhir: 0, status: 'Tidak Lulus', grade: 'D', predikat: 'Perlu Perbaikan' };
-  const nilaiPerSurah = entries.map(calculateNilaiSurah);
+  const nilaiPerSurah = entries.map(e => calculateNilaiSurahWithRumus(e, rumus));
   const nilaiAkhir = Math.round(nilaiPerSurah.reduce((a, b) => a + b, 0) / nilaiPerSurah.length);
   const status = nilaiAkhir >= 85 ? 'Lulus' : 'Tidak Lulus';
   let grade = 'D';

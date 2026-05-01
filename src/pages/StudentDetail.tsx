@@ -981,6 +981,30 @@ const StudentDetail = () => {
                         <p className={`text-xs font-medium ${u.status === 'Lulus' ? 'text-success' : 'text-destructive'}`}>
                           {predikat} · {u.status === 'Lulus' ? '✅ Lulus' : '❌ Tidak Lulus'}
                         </p>
+                        {isLoggedIn && (
+                          <div className="flex gap-1 mt-1">
+                            <button
+                              onClick={() => setEditingUjian(u)}
+                              className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                              title="Edit hasil ujian"
+                            >
+                              <Pencil className="w-3 h-3" /> Edit
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (!confirm(`Hapus hasil ujian ${u.mode} tanggal ${u.tanggal}? Tindakan ini tidak dapat dibatalkan.`)) return;
+                                deleteUjian.mutate({ ujian_id: u.id, student_id: studentId! }, {
+                                  onSuccess: () => toast.success("Hasil ujian dihapus"),
+                                  onError: (err) => toast.error(getSafeErrorMessage(err)),
+                                });
+                              }}
+                              className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+                              title="Hapus hasil ujian"
+                            >
+                              <Trash2 className="w-3 h-3" /> Hapus
+                            </button>
+                          </div>
+                        )}
                         {(isTahsinDasar || isTahsinLanjutan) && (
                           <button
                             onClick={() => {

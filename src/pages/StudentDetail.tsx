@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useMyAssignedClasses } from "@/hooks/useMyAssignedClasses";
 import Header from "@/components/Header";
-import { calculateNilaiSetoran, calculateNilaiTahfizh, calculateNilaiSurah } from "@/data/mockData";
+import { calculateNilaiSetoran, calculateNilaiTahfizh, calculateNilaiSurah, calculateNilaiSurahNew } from "@/data/mockData";
 import type { Koreksi, TahfizhSurahEntry } from "@/data/mockData";
 import { useStudentDetail, useAddSetoran, useAddTahfizhUjian, useAddTahsinUjian, useUpdateCatatan, useUpdateUjian, useDeleteUjian } from "@/hooks/useStudentDetail";
 import { JUZ_SURAH_MAP, getSurahsForJuz, getSurahLabel } from "@/data/quranData";
@@ -932,7 +932,7 @@ const StudentDetail = () => {
                             <p className="text-xs text-muted-foreground">
                               Nilai = {entry.kelancaran} − ({tahfizhPenalti.lj}×{entry.lahn_jali}) − ({tahfizhPenalti.lk}×{entry.lahn_khofi}) − ({tahfizhPenalti.waqaf}×{entry.waqaf_ibtida}) − ({tahfizhPenalti.sambung}×{entry.salah_sambung_ayat || 0})
                             </p>
-                            <p className="text-2xl font-bold text-primary">{calculateNilaiSurah(entry)}</p>
+                            <p className="text-2xl font-bold text-primary">{calculateNilaiSurahNew(entry)}</p>
                           </div>
                         </div>
                       ))}

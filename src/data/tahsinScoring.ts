@@ -83,7 +83,7 @@ export function createEmptyTahsinDasarEntry(nama: string): TahsinDasarEntry {
     nama_ebta: nama,
     salah_huruf: 0, salah_harakat: 0, salah_makhraj: 0,
     kesalahan_mad: 0, kesalahan_ghunnah: 0, kesalahan_tajwid: 0, kesalahan_waqaf: 0,
-    kelancaran: 100,
+    kelancaran: 90,
   };
 }
 
@@ -93,7 +93,7 @@ export function createEmptyTahsinLanjutanEntry(): TahsinLanjutanEntry {
     salah_huruf: 0, salah_harakat: 0, salah_makhraj: 0,
     kesalahan_mad: 0, kesalahan_ghunnah: 0, kesalahan_tajwid: 0,
     waqaf_ibtida: 0,
-    kelancaran: 100,
+    kelancaran: 90,
   };
 }
 

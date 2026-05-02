@@ -685,38 +685,77 @@ const StudentDetail = () => {
 
                 {/* Keterangan Rumus Penilaian */}
                 <div className="p-4 rounded-lg border border-border bg-muted/40 space-y-3">
-                  <h5 className="text-sm font-semibold text-foreground flex items-center gap-1.5">📐 Rumus & Bobot Penilaian</h5>
+                  <div className="flex items-center justify-between">
+                    <h5 className="text-sm font-semibold text-foreground flex items-center gap-1.5">📐 Rumus & Penalti Penilaian</h5>
+                    <button onClick={() => setShowTahfizhConfig(!showTahfizhConfig)} className="text-xs text-primary hover:underline">
+                      {showTahfizhConfig ? 'Tutup Pengaturan' : 'Edit Penalti'}
+                    </button>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="p-3 rounded-md bg-primary/10 border-2 border-primary/30">
+                      <p className="text-xs font-semibold text-foreground mb-1">⭐ 1️⃣ Kelancaran (Prioritas)</p>
+                      <p className="text-[10px] text-muted-foreground">Skor 60–100 — default 90</p>
+                      <p className="text-xs font-bold text-primary mt-1">Basis nilai (tanpa penalti)</p>
+                    </div>
                     <div className="p-3 rounded-md bg-destructive/5 border border-destructive/20">
-                      <p className="text-xs font-semibold text-foreground mb-1">1️⃣ Lahn Jali</p>
-                      <p className="text-[10px] text-muted-foreground">Kesalahan nyata: salah huruf, harakat, makhraj</p>
-                      <p className="text-xs font-bold text-destructive mt-1">Penalti: −4 poin / kesalahan</p>
+                      <p className="text-xs font-semibold text-foreground mb-1">2️⃣ Lahn Jali</p>
+                      <p className="text-[10px] text-muted-foreground">Kesalahan nyata: salah huruf, harakat, tasydid</p>
+                      <p className="text-xs font-bold text-destructive mt-1">Penalti: −{tahfizhPenalti.lj} poin / kesalahan</p>
                     </div>
                     <div className="p-3 rounded-md bg-warning/5 border border-warning/20">
-                      <p className="text-xs font-semibold text-foreground mb-1">2️⃣ Lahn Khofi</p>
+                      <p className="text-xs font-semibold text-foreground mb-1">3️⃣ Lahn Khofi</p>
                       <p className="text-[10px] text-muted-foreground">Kesalahan samar: mad, ghunnah, tajwid, irama</p>
-                      <p className="text-xs font-bold text-orange-600 mt-1">Penalti: −2 poin / kesalahan</p>
-                    </div>
-                    <div className="p-3 rounded-md bg-primary/5 border border-primary/20">
-                      <p className="text-xs font-semibold text-foreground mb-1">3️⃣ Kelancaran</p>
-                      <p className="text-[10px] text-muted-foreground">Skor 60–100 berdasarkan kelancaran bacaan</p>
-                      <p className="text-xs font-bold text-primary mt-1">Bobot: 40% dari nilai akhir</p>
+                      <p className="text-xs font-bold text-orange-600 mt-1">Penalti: −{tahfizhPenalti.lk} poin / kesalahan</p>
                     </div>
                     <div className="p-3 rounded-md bg-accent border border-border">
                       <p className="text-xs font-semibold text-foreground mb-1">4️⃣ Waqaf & Ibtida</p>
                       <p className="text-[10px] text-muted-foreground">Kesalahan berhenti dan memulai bacaan</p>
-                      <p className="text-xs font-bold text-foreground mt-1">Penalti: −2 poin / kesalahan</p>
+                      <p className="text-xs font-bold text-foreground mt-1">Penalti: −{tahfizhPenalti.waqaf} poin / kesalahan</p>
                     </div>
                     <div className="p-3 rounded-md bg-violet-500/5 border border-violet-500/20">
                       <p className="text-xs font-semibold text-foreground mb-1">5️⃣ Salah/Lupa Sambung Ayat</p>
                       <p className="text-[10px] text-muted-foreground">Kesalahan menyambung antar ayat</p>
-                      <p className="text-xs font-bold text-violet-600 mt-1">Penalti: −2 poin / kesalahan</p>
+                      <p className="text-xs font-bold text-violet-600 mt-1">Penalti: −{tahfizhPenalti.sambung} poin / kesalahan</p>
                     </div>
                   </div>
+
+                  {showTahfizhConfig && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 rounded-md bg-background border border-border">
+                      <div>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">Penalti Lahn Jali</label>
+                        <input type="number" min={0} max={10} value={tahfizhPenalti.lj}
+                          onChange={e => setTahfizhPenalti({ ...tahfizhPenalti, lj: parseFloat(e.target.value) || 0 })}
+                          className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">Penalti Lahn Khofi</label>
+                        <input type="number" min={0} max={10} value={tahfizhPenalti.lk}
+                          onChange={e => setTahfizhPenalti({ ...tahfizhPenalti, lk: parseFloat(e.target.value) || 0 })}
+                          className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">Penalti Waqaf</label>
+                        <input type="number" min={0} max={10} value={tahfizhPenalti.waqaf}
+                          onChange={e => setTahfizhPenalti({ ...tahfizhPenalti, waqaf: parseFloat(e.target.value) || 0 })}
+                          className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">Penalti Sambung Ayat</label>
+                        <input type="number" min={0} max={10} value={tahfizhPenalti.sambung}
+                          onChange={e => setTahfizhPenalti({ ...tahfizhPenalti, sambung: parseFloat(e.target.value) || 0 })}
+                          className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm" />
+                      </div>
+                    </div>
+                  )}
+
                   <div className="p-3 rounded-md bg-accent/50 border border-border space-y-1.5">
-                    <p className="text-xs font-semibold text-foreground">📝 Rumus Nilai Per Surat:</p>
-                    <p className="text-xs text-muted-foreground font-mono bg-background/80 px-2 py-1 rounded">Koreksi = 100 − (LJ × 4) − (LK × 2) − (Waqaf × 2) − (Sambung Ayat × 2)</p>
-                    <p className="text-xs text-muted-foreground font-mono bg-background/80 px-2 py-1 rounded">Nilai = (Koreksi × 60%) + (Kelancaran × 40%)</p>
+                    <p className="text-xs font-semibold text-foreground">📝 Rumus Nilai Per Surat (Tahfizh):</p>
+                    <p className="text-xs text-muted-foreground font-mono bg-background/80 px-2 py-1 rounded">
+                      Koreksi = Kelancaran (60–100) − (LJ × {tahfizhPenalti.lj}) − (LK × {tahfizhPenalti.lk}) − (Waqaf × {tahfizhPenalti.waqaf}) − (Sambung × {tahfizhPenalti.sambung})
+                    </p>
+                    <p className="text-xs font-semibold text-primary font-mono bg-background/80 px-2 py-1 rounded">
+                      Nilai akhir = Kelancaran − ({tahfizhPenalti.lj} × Lahn Jali) − ({tahfizhPenalti.lk} × Lahn Khofi) − ({tahfizhPenalti.waqaf} × Waqaf & Ibtida) − ({tahfizhPenalti.sambung} × Salah/Lupa Sambung Ayat)
+                    </p>
                     <p className="text-xs font-semibold text-foreground mt-2">📊 Nilai Akhir Ujian = Rata-rata nilai seluruh surat</p>
                   </div>
                   <div className="flex flex-wrap gap-2 text-[10px]">

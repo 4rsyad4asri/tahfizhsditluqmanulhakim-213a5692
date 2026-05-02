@@ -55,7 +55,7 @@ export default function UjianTahsinLanjutanForm({ onSubmit, onCancel, isPending 
 
   const addEntry = () => setEntries([...entries, createEmptyTahsinLanjutanEntry()]);
   const removeEntry = (index: number) => {
-    if (entries.length <= 5) return;
+    if (entries.length <= 1) return;
     setEntries(entries.filter((_, i) => i !== index));
   };
 
@@ -149,6 +149,16 @@ export default function UjianTahsinLanjutanForm({ onSubmit, onCancel, isPending 
             </div>
           </div>
         )}
+
+        <div className="p-3 rounded-md bg-accent/50 border border-border space-y-1">
+          <p className="text-xs font-semibold text-foreground">📝 Rumus Nilai Per Surat (Tahsin Lanjutan):</p>
+          <p className="text-xs text-muted-foreground font-mono bg-background/80 px-2 py-1 rounded">
+            Koreksi = Kelancaran (60–100) − (LJ × {config.penalti_lahn_jali}) − (LK × {config.penalti_lahn_khofi}) − (Waqaf × {penaltiWaqaf})
+          </p>
+          <p className="text-xs font-semibold text-primary font-mono bg-background/80 px-2 py-1 rounded">
+            Nilai akhir = Kelancaran − ({config.penalti_lahn_jali} × LJ) − ({config.penalti_lahn_khofi} × LK) − ({penaltiWaqaf} × Waqaf & Ibtida)
+          </p>
+        </div>
       </div>
 
       {/* Surah Entries */}
@@ -157,8 +167,8 @@ export default function UjianTahsinLanjutanForm({ onSubmit, onCancel, isPending 
           <div key={index} className="p-4 rounded-lg border border-border bg-muted/30 space-y-3">
             <div className="flex items-center justify-between">
               <h5 className="text-sm font-semibold text-foreground">Baris #{index + 1}</h5>
-              {entries.length > 5 && (
-                <button onClick={() => removeEntry(index)} className="text-destructive hover:text-destructive/80">
+              {entries.length > 1 && (
+                <button onClick={() => removeEntry(index)} className="text-destructive hover:text-destructive/80" title="Hapus baris">
                   <Trash2 className="w-4 h-4" />
                 </button>
               )}
@@ -181,14 +191,27 @@ export default function UjianTahsinLanjutanForm({ onSubmit, onCancel, isPending 
               </div>
             </div>
 
+            {/* Kelancaran (priority #1) */}
+            <div className="p-3 rounded-md bg-primary/10 border-2 border-primary/30">
+              <h6 className="text-xs font-semibold text-foreground mb-2">⭐ 1️⃣ Kelancaran (Prioritas Utama)</h6>
+              <select value={entry.kelancaran}
+                onChange={e => updateEntry(index, 'kelancaran', parseInt(e.target.value))}
+                className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                {KELANCARAN_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              <p className="text-[10px] text-muted-foreground mt-1">Default 90 — dapat diubah oleh penguji</p>
+            </div>
+
             {/* Lahn Jali */}
             <div className="p-3 rounded-md bg-destructive/5 border border-destructive/20">
-              <h6 className="text-xs font-semibold text-foreground mb-2">Lahn Jali (−{config.penalti_lahn_jali}/kesalahan)</h6>
+              <h6 className="text-xs font-semibold text-foreground mb-2">2️⃣ Lahn Jali (−{config.penalti_lahn_jali}/kesalahan)</h6>
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { key: 'salah_huruf', label: 'Salah Huruf' },
                   { key: 'salah_harakat', label: 'Salah Harakat' },
-                  { key: 'salah_makhraj', label: 'Salah Makhraj' },
+                  { key: 'salah_makhraj', label: 'Salah Tasydid' },
                 ].map(f => (
                   <div key={f.key}>
                     <label className="block text-[10px] text-muted-foreground mb-1">{f.label}</label>
@@ -202,7 +225,7 @@ export default function UjianTahsinLanjutanForm({ onSubmit, onCancel, isPending 
 
             {/* Lahn Khofi */}
             <div className="p-3 rounded-md bg-warning/5 border border-warning/20">
-              <h6 className="text-xs font-semibold text-foreground mb-2">Lahn Khofi (−{config.penalti_lahn_khofi}/kesalahan)</h6>
+              <h6 className="text-xs font-semibold text-foreground mb-2">3️⃣ Lahn Khofi (−{config.penalti_lahn_khofi}/kesalahan)</h6>
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { key: 'kesalahan_mad', label: 'Mad' },
@@ -221,25 +244,13 @@ export default function UjianTahsinLanjutanForm({ onSubmit, onCancel, isPending 
 
             {/* Waqaf & Ibtida */}
             <div className="p-3 rounded-md bg-accent/50 border border-border">
-              <h6 className="text-xs font-semibold text-foreground mb-2">Waqaf & Ibtida (−{penaltiWaqaf}/kesalahan)</h6>
+              <h6 className="text-xs font-semibold text-foreground mb-2">4️⃣ Waqaf & Ibtida (−{penaltiWaqaf}/kesalahan)</h6>
               <div>
                 <label className="block text-[10px] text-muted-foreground mb-1">Jumlah Kesalahan</label>
                 <input type="number" min={0} max={50} value={entry.waqaf_ibtida}
                   onChange={e => updateEntry(index, 'waqaf_ibtida', Math.max(0, parseInt(e.target.value) || 0))}
                   className="w-full px-2 py-1.5 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
               </div>
-            </div>
-
-            {/* Kelancaran */}
-            <div className="p-3 rounded-md bg-primary/5 border border-primary/20">
-              <h6 className="text-xs font-semibold text-foreground mb-2">Kelancaran ({config.bobot_kelancaran}%)</h6>
-              <select value={entry.kelancaran}
-                onChange={e => updateEntry(index, 'kelancaran', parseInt(e.target.value))}
-                className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                {KELANCARAN_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
             </div>
 
             {/* Nilai per baris */}

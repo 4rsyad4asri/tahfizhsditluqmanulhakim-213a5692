@@ -123,12 +123,12 @@ export default function UjianTahsinDasarForm({ onSubmit, onCancel, isPending }: 
         )}
 
         <div className="p-3 rounded-md bg-accent/50 border border-border space-y-1">
-          <p className="text-xs font-semibold text-foreground">📝 Rumus Nilai Per EBTA:</p>
+          <p className="text-xs font-semibold text-foreground">📝 Rumus Nilai Per EBTA (Tahsin Dasar):</p>
           <p className="text-xs text-muted-foreground font-mono bg-background/80 px-2 py-1 rounded">
-            Koreksi = 100 − (Lahn Jali × {config.penalti_lahn_jali}) − (Lahn Khofi × {config.penalti_lahn_khofi})
+            Koreksi = Kelancaran (60–100) − (Lahn Jali × {config.penalti_lahn_jali}) − (Lahn Khofi × {config.penalti_lahn_khofi})
           </p>
-          <p className="text-xs text-muted-foreground font-mono bg-background/80 px-2 py-1 rounded">
-            Nilai = (Koreksi × {100 - config.bobot_kelancaran}%) + (Kelancaran × {config.bobot_kelancaran}%)
+          <p className="text-xs font-semibold text-primary font-mono bg-background/80 px-2 py-1 rounded">
+            Nilai akhir = Kelancaran − ({config.penalti_lahn_jali} × Lahn Jali) − ({config.penalti_lahn_khofi} × Lahn Khofi)
           </p>
         </div>
       </div>
@@ -146,14 +146,27 @@ export default function UjianTahsinDasarForm({ onSubmit, onCancel, isPending }: 
               )}
             </div>
 
+            {/* Kelancaran (priority #1) */}
+            <div className="p-3 rounded-md bg-primary/10 border-2 border-primary/30">
+              <h6 className="text-xs font-semibold text-foreground mb-2">⭐ 1️⃣ Kelancaran (Prioritas Utama)</h6>
+              <select value={entry.kelancaran}
+                onChange={e => updateEntry(index, 'kelancaran', parseInt(e.target.value))}
+                className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                {KELANCARAN_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              <p className="text-[10px] text-muted-foreground mt-1">Default 90 — dapat diubah oleh penguji</p>
+            </div>
+
             {/* Lahn Jali */}
             <div className="p-3 rounded-md bg-destructive/5 border border-destructive/20">
-              <h6 className="text-xs font-semibold text-foreground mb-2">Lahn Jali (−{config.penalti_lahn_jali}/kesalahan)</h6>
+              <h6 className="text-xs font-semibold text-foreground mb-2">2️⃣ Lahn Jali (−{config.penalti_lahn_jali}/kesalahan)</h6>
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { key: 'salah_huruf', label: 'Salah Huruf' },
                   { key: 'salah_harakat', label: 'Salah Harakat' },
-                  { key: 'salah_makhraj', label: 'Salah Makhraj' },
+                  { key: 'salah_makhraj', label: 'Salah Tasydid' },
                 ].map(f => (
                   <div key={f.key}>
                     <label className="block text-[10px] text-muted-foreground mb-1">{f.label}</label>
@@ -167,7 +180,7 @@ export default function UjianTahsinDasarForm({ onSubmit, onCancel, isPending }: 
 
             {/* Lahn Khofi */}
             <div className="p-3 rounded-md bg-warning/5 border border-warning/20">
-              <h6 className="text-xs font-semibold text-foreground mb-2">Lahn Khofi (−{config.penalti_lahn_khofi}/kesalahan)</h6>
+              <h6 className="text-xs font-semibold text-foreground mb-2">3️⃣ Lahn Khofi (−{config.penalti_lahn_khofi}/kesalahan)</h6>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {[
                   { key: 'kesalahan_mad', label: 'Mad' },
@@ -183,18 +196,6 @@ export default function UjianTahsinDasarForm({ onSubmit, onCancel, isPending }: 
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Kelancaran */}
-            <div className="p-3 rounded-md bg-primary/5 border border-primary/20">
-              <h6 className="text-xs font-semibold text-foreground mb-2">Kelancaran ({config.bobot_kelancaran}%)</h6>
-              <select value={entry.kelancaran}
-                onChange={e => updateEntry(index, 'kelancaran', parseInt(e.target.value))}
-                className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                {KELANCARAN_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
             </div>
 
             {/* Nilai per EBTA */}

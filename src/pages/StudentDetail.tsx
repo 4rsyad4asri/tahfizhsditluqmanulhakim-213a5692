@@ -18,6 +18,7 @@ import { calculateNilaiTahsinDasar, calculateNilaiTahsinLanjutan } from "@/data/
 import type { TahsinDasarEntry, TahsinLanjutanEntry, TahsinPenaltyConfig, WaqafSymbolTest } from "@/data/tahsinScoring";
 import { generateTahsinPDF } from "@/utils/generateTahsinPDF";
 import EditUjianDialog from "@/components/EditUjianDialog";
+import RaportPreviewDialog from "@/components/RaportPreviewDialog";
 
 const KELANCARAN_OPTIONS = [
   { value: 100, label: "Sangat Lancar (100)" },
@@ -41,6 +42,7 @@ const StudentDetail = () => {
   const updateUjian = useUpdateUjian();
   const deleteUjian = useDeleteUjian();
   const [editingUjian, setEditingUjian] = useState<any | null>(null);
+  const [raportUjian, setRaportUjian] = useState<any | null>(null);
 
   const [catatan, setCatatan] = useState("");
   const [catatanInitialized, setCatatanInitialized] = useState(false);
@@ -1050,35 +1052,13 @@ const StudentDetail = () => {
                             </button>
                           </div>
                         )}
-                        {(isTahsinDasar || isTahsinLanjutan) && (
+                        {(isTahsinDasar || isTahsinLanjutan || isTahfizh) && (
                           <button
-                            onClick={() => {
-                              const mode = u.mode as 'Tahsin Dasar' | 'Tahsin Lanjutan';
-                              generateTahsinPDF({
-                                studentName: student.name,
-                                className: classInfo?.name || '',
-                                mode,
-                                tanggal: u.tanggal,
-                                nilaiAkhir: u.nilai_akhir,
-                                status: u.status,
-                                grade: u.grade,
-                                predikat,
-                                assessorName: u.assessed_by ? assessorMap[u.assessed_by] : undefined,
-                                catatanGuru: u.nilai_aspek?.catatanGuru,
-                                ...(mode === 'Tahsin Dasar' ? {
-                                  dasarEntries: u.nilai_aspek?.entries,
-                                  dasarConfig: u.nilai_aspek?.config,
-                                } : {
-                                  lanjutanEntries: u.nilai_aspek?.entries,
-                                  lanjutanConfig: u.nilai_aspek?.config,
-                                  penaltiWaqaf: u.nilai_aspek?.penaltiWaqaf,
-                                  waqafTest: u.nilai_aspek?.waqafTest,
-                                }),
-                              });
-                            }}
-                            className="flex items-center gap-1 text-[10px] text-primary hover:underline"
+                            onClick={() => setRaportUjian(u)}
+                            className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-emerald-600/10 text-emerald-700 hover:bg-emerald-600/20 transition-colors"
+                            title="Preview & cetak raport"
                           >
-                            <Download className="w-3 h-3" /> Cetak PDF
+                            <FileText className="w-3 h-3" /> Preview Raport
                           </button>
                         )}
                       </div>
@@ -1223,6 +1203,16 @@ const StudentDetail = () => {
               onError: (err) => toast.error(getSafeErrorMessage(err)),
             });
           }}
+        />
+      )}
+      {raportUjian && (
+        <RaportPreviewDialog
+          open={!!raportUjian}
+          onClose={() => setRaportUjian(null)}
+          ujian={raportUjian}
+          studentName={student.name}
+          className={classInfo?.name || ''}
+          assessorName={raportUjian.assessed_by ? assessorMap[raportUjian.assessed_by] : undefined}
         />
       )}
     </div>

@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import * as XLSX from "xlsx";
+import { exportJsonToExcel, readExcelFile } from "@/utils/excel";
 
 interface ParsedStudent {
   name: string;
@@ -142,34 +142,13 @@ const ImportStudentsDialog = ({ open, onOpenChange }: ImportStudentsDialogProps)
     }
 
     setFileName(file.name);
-
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const data = evt.target?.result;
-        const workbook = XLSX.read(data, { type: "binary" });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(sheet);
-
-        if (jsonData.length === 0) {
-          toast.error("File kosong atau format tidak sesuai");
-          return;
-        }
-
-        if (jsonData.length > 500) {
-          toast.error("Maksimal 500 baris per import");
-          return;
-        }
-
-        const parsed = jsonData.map((row: any, idx: number) => validateRow(row, idx));
-        setParsedData(parsed);
-        setStep("preview");
-      } catch {
-        toast.error("Gagal membaca file. Pastikan format Excel/CSV yang benar.");
-      }
-    };
-    reader.readAsBinaryString(file);
+    readExcelFile(file).then((jsonData) => {
+      if (jsonData.length === 0) { toast.error("File kosong atau format tidak sesuai"); return; }
+      if (jsonData.length > 500) { toast.error("Maksimal 500 baris per import"); return; }
+      const parsed = jsonData.map((row: any, idx: number) => validateRow(row, idx));
+      setParsedData(parsed);
+      setStep("preview");
+    }).catch(() => toast.error("Gagal membaca file. Pastikan format Excel/CSV yang benar."));
   };
 
   const handleDownloadTemplate = () => {
@@ -191,16 +170,7 @@ const ImportStudentsDialog = ({ open, onOpenChange }: ImportStudentsDialogProps)
         "Status": "Lulus",
       },
     ];
-    const ws = XLSX.utils.json_to_sheet(template);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Template");
-
-    // Set column widths
-    ws["!cols"] = [
-      { wch: 25 }, { wch: 8 }, { wch: 12 }, { wch: 18 }, { wch: 10 }, { wch: 15 },
-    ];
-
-    XLSX.writeFile(wb, "template_import_siswa.xlsx");
+    exportJsonToExcel(template, "Template", "template_import_siswa.xlsx");
   };
 
   const resetDialog = () => {

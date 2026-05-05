@@ -6,7 +6,7 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { Loader2, Download, Filter, CheckCircle2, XCircle, Edit2, FileText } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { useToast } from "@/hooks/use-toast";
-import * as XLSX from "xlsx";
+import { exportJsonToExcel } from "@/utils/excel";
 import { generateCertificatePDF } from "@/utils/generateCertificatePDF";
 
 interface RekapItem {
@@ -165,7 +165,7 @@ const RekapSertifikat = () => {
   }, [items]);
 
   const handleExportExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(
+    exportJsonToExcel(
       filtered.map((item, i) => ({
         No: i + 1,
         "Nama Siswa": item.studentName,
@@ -176,11 +176,10 @@ const RekapSertifikat = () => {
         Status: item.status,
         "Tanggal Lulus": item.tanggal,
         "Nomor Sertifikat": item.nomorSertifikat,
-      }))
+      })),
+      "Rekap Sertifikat",
+      "rekap_sertifikat_tahfizh.xlsx",
     );
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Rekap Sertifikat");
-    XLSX.writeFile(wb, "rekap_sertifikat_tahfizh.xlsx");
   };
 
   const CHART_COLORS = [

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import { Plus, Pencil, Trash2, Search, Loader2, UserPlus, Users, ChevronDown, FileSpreadsheet, AlertTriangle, Download } from "lucide-react";
-import * as XLSX from "xlsx";
+import { exportJsonToExcel } from "@/utils/excel";
 import ImportStudentsDialog from "@/components/ImportStudentsDialog";
 import { toast } from "sonner";
 import { getSafeErrorMessage } from "@/utils/errorMessages";
@@ -222,14 +222,10 @@ const ManageStudents = () => {
       return;
     }
 
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
-    ws["!cols"] = [{ wch: 25 }, { wch: 12 }, { wch: 12 }, { wch: 18 }, { wch: 12 }, { wch: 15 }];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Data Siswa");
     const className = selectedClass !== "all"
       ? `_${(classes || []).find(c => c.id === selectedClass)?.name || "kelas"}`
       : "";
-    XLSX.writeFile(wb, `data_siswa${className}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    exportJsonToExcel(dataToExport, "Data Siswa", `data_siswa${className}_${new Date().toISOString().slice(0, 10)}.xlsx`);
     toast.success(`${dataToExport.length} data siswa berhasil diexport!`);
   };
 

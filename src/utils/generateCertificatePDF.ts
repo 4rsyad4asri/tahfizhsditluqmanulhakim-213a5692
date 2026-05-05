@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import QRCode from "qrcode";
 
 interface CertificateData {
   studentName: string;
@@ -57,7 +58,7 @@ const drawIslamicBorder = (doc: jsPDF, w: number, h: number) => {
   doc.line(60, lineY + 1.5, w - 60, lineY + 1.5);
 };
 
-export const generateCertificatePDF = (data: CertificateData) => {
+export const generateCertificatePDF = async (data: CertificateData) => {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const w = doc.internal.pageSize.getWidth();
   const h = doc.internal.pageSize.getHeight();
@@ -240,6 +241,17 @@ export const generateCertificatePDF = (data: CertificateData) => {
   doc.setFontSize(7);
   doc.setTextColor(150, 150, 150);
   doc.text("SDIT Luqmanul Hakim — Program Tahfizh Al-Qur'an", w / 2, h - 22, { align: "center" });
+
+  // QR verifikasi (kanan bawah)
+  try {
+    const qr = await QRCode.toDataURL(
+      `SERTIFIKAT|${data.nomorSertifikat}|${data.studentName}|${data.juz}|${data.nilaiAkhir}|${data.predikat}|${data.tanggal}`,
+      { margin: 0, width: 240, color: { dark: "#16653e", light: "#fdfbf5" } },
+    );
+    doc.addImage(qr, "PNG", w - 38, h - 42, 22, 22);
+    doc.setFontSize(7); doc.setTextColor(120, 120, 120);
+    doc.text("Verifikasi", w - 27, h - 17, { align: "center" });
+  } catch {}
 
   doc.save(`Sertifikat_${data.studentName.replace(/\s+/g, "_")}.pdf`);
 };

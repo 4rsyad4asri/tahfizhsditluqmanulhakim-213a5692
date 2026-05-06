@@ -1,11 +1,11 @@
+import * as React from "react";
+
 // Smart form navigation: Enter advances focus to next focusable input,
 // Shift+Enter goes back. Works inside any container that uses this handler.
 export function handleSmartFormKey(e: React.KeyboardEvent<HTMLElement>) {
   if (e.key !== "Enter") return;
   const target = e.target as HTMLElement;
-  // Allow Enter inside textarea (multi-line)
   if (target.tagName === "TEXTAREA") return;
-  // Allow Enter on buttons (let them activate)
   if (target.tagName === "BUTTON") return;
 
   const container = e.currentTarget as HTMLElement;
@@ -28,5 +28,3 @@ export function handleSmartFormKey(e: React.KeyboardEvent<HTMLElement>) {
     }
   }
 }
-
-import * as React from "react";

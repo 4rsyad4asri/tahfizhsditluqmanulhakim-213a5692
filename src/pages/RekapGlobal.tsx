@@ -116,7 +116,8 @@ export default function RekapGlobal() {
         Nama: r.studentName, Kelas: r.className, Kelas_Tingkat: r.grade,
         Mode: r.mode, Tanggal: r.tanggal, Nilai: r.nilai, Status: r.status, Predikat: r.predikat,
       })),
-      "Rekap_Global"
+      "Rekap Global",
+      `Rekap_Global_${new Date().toISOString().slice(0,10)}.xlsx`
     );
   };
 

@@ -1,4 +1,4 @@
-import { BookOpen, Star, Moon, Settings, Shield, LogOut, Award, Search, KeyRound, UserCircle } from "lucide-react";
+import { BookOpen, Star, Moon, Settings, Shield, LogOut, Award, Search, KeyRound, UserCircle, BarChart3 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
 
@@ -52,6 +52,16 @@ const Header = () => {
               }>
               <Award className="w-4 h-4 text-slate-950" />
               <span className="hidden sm:inline text-gray-950 text-xs text-center">Rekap Sertifikat</span>
+            </button>
+            <button
+              onClick={() => navigate("/rekap-global")}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+              location.pathname === "/rekap-global" ?
+              "bg-primary-foreground/20 backdrop-blur-sm" :
+              "bg-primary-foreground/10 hover:bg-primary-foreground/20 backdrop-blur-sm"}`
+              }>
+              <BarChart3 className="w-4 h-4 text-slate-950" />
+              <span className="hidden sm:inline text-gray-950 text-xs text-center">Rekap Global</span>
             </button>
 
             {user && (

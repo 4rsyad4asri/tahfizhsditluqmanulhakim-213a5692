@@ -229,7 +229,7 @@ export default function UjianTahsinLanjutanForm({ onSubmit, onCancel, isPending 
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { key: 'kesalahan_mad', label: 'Mad' },
-                  { key: 'kesalahan_ghunnah', label: 'Ghunnah' },
+                  { key: 'kesalahan_ghunnah', label: 'Qalqalah' },
                   { key: 'kesalahan_tajwid', label: 'Tajwid' },
                 ].map(f => (
                   <div key={f.key}>

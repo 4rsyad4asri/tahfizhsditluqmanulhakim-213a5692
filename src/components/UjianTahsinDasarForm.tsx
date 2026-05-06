@@ -184,7 +184,7 @@ export default function UjianTahsinDasarForm({ onSubmit, onCancel, isPending }: 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {[
                   { key: 'kesalahan_mad', label: 'Mad' },
-                  { key: 'kesalahan_ghunnah', label: 'Ghunnah' },
+                  { key: 'kesalahan_ghunnah', label: 'Qalqalah' },
                   { key: 'kesalahan_tajwid', label: 'Tajwid' },
                   { key: 'kesalahan_waqaf', label: 'Waqaf' },
                 ].map(f => (

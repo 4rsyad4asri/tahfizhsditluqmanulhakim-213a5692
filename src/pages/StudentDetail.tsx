@@ -19,6 +19,7 @@ import type { TahsinDasarEntry, TahsinLanjutanEntry, TahsinPenaltyConfig, WaqafS
 import { generateTahsinPDF } from "@/utils/generateTahsinPDF";
 import EditUjianDialog from "@/components/EditUjianDialog";
 import RaportPreviewDialog from "@/components/RaportPreviewDialog";
+import { handleSmartFormKey } from "@/utils/smartFormNav";
 
 const KELANCARAN_OPTIONS = [
   { value: 100, label: "Sangat Lancar (100)" },
@@ -664,8 +665,14 @@ const StudentDetail = () => {
             )}
 
             {showUjianForm && ujianMode === 'Tahfizh' && (
-              <div className="bg-card rounded-lg border border-border p-5 shadow-card animate-scale-in space-y-4">
-                <h4 className="font-semibold text-foreground">Form Ujian Sertifikasi</h4>
+              <div
+                className="bg-card rounded-lg border border-border p-5 shadow-card animate-scale-in space-y-4"
+                onKeyDown={handleSmartFormKey}
+              >
+                <h4 className="font-semibold text-foreground flex items-center justify-between">
+                  <span>Form Ujian Sertifikasi</span>
+                  <span className="text-[10px] font-normal text-muted-foreground">⌨️ Tekan Enter untuk pindah field · Shift+Enter untuk mundur</span>
+                </h4>
 
                 {/* Date & Time */}
                 <div className="grid grid-cols-2 gap-3">

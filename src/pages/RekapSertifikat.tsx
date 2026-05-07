@@ -34,6 +34,7 @@ const RekapSertifikat = () => {
   const [filterKelas, setFilterKelas] = useState<string>("all");
   const [filterJuz, setFilterJuz] = useState<string>("all");
   const [showAll, setShowAll] = useState(false);
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
   const { role } = useAuthContext();
   const isAdmin = role === "admin";
   const queryClient = useQueryClient();
@@ -356,7 +357,28 @@ const RekapSertifikat = () => {
                             <div className="flex items-center justify-center gap-1">
                               {item.status === "Lulus" && (
                                 <button
-                                  onClick={() => generateCertificatePDF(item)}
+                                  onClick={async () => {
+  try {
+    setGeneratingId(item.id);
+
+    await generateCertificatePDF(item);
+
+    toast({
+      title: "Berhasil",
+      description: "Preview PDF berhasil dibuka",
+    });
+  } catch (error) {
+    console.error(error);
+
+    toast({
+      title: "Gagal",
+      description: "Gagal membuat PDF",
+      variant: "destructive",
+    });
+  } finally {
+    setGeneratingId(null);
+  }
+}}
                                   className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                                   title="Cetak Sertifikat"
                                 >

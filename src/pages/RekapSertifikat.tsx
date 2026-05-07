@@ -357,33 +357,38 @@ const RekapSertifikat = () => {
                             <div className="flex items-center justify-center gap-1">
                               {item.status === "Lulus" && (
                                 <button
-                                 onClick={async () => {
-  try {
-    setGeneratingId(item.id);
+  onClick={async () => {
+    try {
+      setGeneratingId(item.id);
 
-    await generateCertificatePDF(item);
+      await generateCertificatePDF(item);
 
-    toast({
-      title: "Berhasil",
-      description: "Preview PDF berhasil dibuka",
-    });
-  } catch (error) {
-    console.error(error);
+      toast({
+        title: "Berhasil",
+        description: "Preview PDF berhasil dibuka",
+      });
+    } catch (error) {
+      console.error(error);
 
-    toast({
-      title: "Gagal",
-      description: "Gagal membuat PDF",
-      variant: "destructive",
-    });
-  } finally {
-    setGeneratingId(null);
-  }
-}}
-                                  className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                                  title="Cetak Sertifikat"
-                                >
-                                  <FileText className="w-3 h-3" />
-                                </button>
+      toast({
+        title: "Gagal",
+        description: "Gagal membuat PDF",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingId(null);
+    }
+  }}
+  disabled={generatingId === item.id}
+  className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
+  title="Cetak Sertifikat"
+>
+  {generatingId === item.id ? (
+    <Loader2 className="w-3 h-3 animate-spin" />
+  ) : (
+    <FileText className="w-3 h-3" />
+  )}
+</button>
                               )}
                               <button
                                 onClick={() => {

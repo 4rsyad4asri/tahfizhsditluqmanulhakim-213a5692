@@ -357,7 +357,7 @@ const RekapSertifikat = () => {
                             <div className="flex items-center justify-center gap-1">
                               {item.status === "Lulus" && (
                                 <button
-                                  onClick={async () => {
+                                 onClick={async () => {
   try {
     setGeneratingId(item.id);
 

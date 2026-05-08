@@ -223,22 +223,130 @@ function drawStudentInfo(doc: jsPDF, data: RaportData, pageW: number, margin: nu
   });
 }
 
+  function drawScoreSummary(
+  doc: jsPDF,
+  data: RaportData,
+  pageW: number,
+  margin: number,
+  startY: number
+) {
+  const gap = 4;
+  const boxW = (pageW - margin * 2 - gap * 2) / 3;
+  const h = 22;
+
+  const statusX = margin + (boxW + gap) * 2;
+
+  const draw = (
+    x: number,
+    label: string,
+    value: string,
+    color: [number, number, number]
+  ) => {
+    doc.setDrawColor(...color);
+    doc.setLineWidth(0.6);
+    doc.setFillColor(255, 255, 255);
+
+    doc.roundedRect(x, startY, boxW, h, 2, 2, "FD");
+
+    // LABEL
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(110, 110, 110);
+
+    doc.text(
+      label.toUpperCase(),
+      x + boxW / 2,
+      startY + 5,
+      { align: "center" }
+    );
+
+    // VALUE
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(15);
+    doc.setTextColor(...color);
+
+    doc.text(
+      value,
+      x + boxW / 2,
+      startY + 13,
+      { align: "center" }
+    );
+  };
+
   // =========================
-  // STATUS
+  // BOX NILAI
   // =========================
+
+  draw(
+    margin,
+    "Nilai Akhir",
+    String(data.nilaiAkhir),
+    EMERALD
+  );
+
+  // =========================
+  // BOX GRADE
+  // =========================
+
+  draw(
+    margin + boxW + gap,
+    "Grade",
+    data.grade,
+    GOLD
+  );
+
+  // =========================
+  // BOX STATUS
+  // =========================
+
+  doc.setDrawColor(...EMERALD);
+  doc.setLineWidth(0.6);
+  doc.setFillColor(255, 255, 255);
+
+  doc.roundedRect(
+    statusX,
+    startY,
+    boxW,
+    h,
+    2,
+    2,
+    "FD"
+  );
+
+  // LABEL STATUS
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.setTextColor(110, 110, 110);
+
+  doc.text(
+    "STATUS",
+    statusX + boxW / 2,
+    startY + 5,
+    { align: "center" }
+  );
+
+  // TEXT LULUS
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+
+  doc.setTextColor(
+    ...(data.status === "Lulus"
+      ? EMERALD
+      : [185, 28, 28])
+  );
 
   const statusText =
     data.status === "Lulus"
       ? "L U L U S"
       : "T I D A K   L U L U S";
 
-  draw(
-    statusX,
-    "Status",
+  doc.text(
     statusText,
-    data.status === "Lulus"
-      ? EMERALD
-      : [185, 28, 28]
+    statusX + boxW / 2,
+    startY + 11.5,
+    {
+      align: "center",
+    }
   );
 
   // =========================
@@ -246,9 +354,7 @@ function drawStudentInfo(doc: jsPDF, data: RaportData, pageW: number, margin: nu
   // =========================
 
   doc.setFont("helvetica", "normal");
-
-  doc.setFontSize(6);
-
+  doc.setFontSize(5.8);
   doc.setTextColor(120, 120, 120);
 
   doc.text(
@@ -283,6 +389,7 @@ function drawStudentInfo(doc: jsPDF, data: RaportData, pageW: number, margin: nu
       align: "center",
     }
   );
+}
 
 function drawDetail(doc: jsPDF, data: RaportData, pageW: number, margin: number, startY: number, opts: RaportPdfOptions): number {
   const sectionTitle = (text: string, y: number) => {

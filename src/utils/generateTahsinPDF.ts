@@ -242,8 +242,7 @@ doc.roundedRect(
 doc.setFont("helvetica", "bold");
 doc.setFontSize(12);
 doc.setTextColor(255, 255, 255);
-doc.setTextColor(255,0,0);
-doc.text("DESAIN BARU AKTIF", margin, y);
+
 
 doc.text("TES SIMBOL WAQAF", margin + 5, y + 6.5);
 

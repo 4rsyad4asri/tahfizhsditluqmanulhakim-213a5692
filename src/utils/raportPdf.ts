@@ -231,10 +231,14 @@ function drawScoreSummary(
   startY: number
 ) {
   const gap = 4;
-  const boxW = (pageW - margin * 2 - gap * 2) / 3;
-  const h = 18;
 
-  const statusX = margin + (boxW + gap) * 2;
+  const boxW =
+    (pageW - margin * 2 - gap * 2) / 3;
+
+  const h = 22;
+
+  const statusX =
+    margin + (boxW + gap) * 2;
 
   const draw = (
     x: number,
@@ -243,29 +247,55 @@ function drawScoreSummary(
     color: [number, number, number]
   ) => {
     doc.setDrawColor(...color);
+
     doc.setLineWidth(0.6);
+
     doc.setFillColor(255, 255, 255);
 
-    doc.roundedRect(x, startY, boxW, h, 1.5, 1.5, "FD");
+    doc.roundedRect(
+      x,
+      startY,
+      boxW,
+      h,
+      1.5,
+      1.5,
+      "FD"
+    );
 
+    // LABEL
     doc.setFont("helvetica", "normal");
+
     doc.setFontSize(7);
+
     doc.setTextColor(110, 110, 110);
 
-    doc.text(label.toUpperCase(), x + boxW / 2, startY + 5, {
-      align: "center",
-    });
+    doc.text(
+      label.toUpperCase(),
+      x + boxW / 2,
+      startY + 5,
+      {
+        align: "center",
+      }
+    );
 
+    // VALUE
     doc.setFont("helvetica", "bold");
+
     doc.setFontSize(15);
+
     doc.setTextColor(...color);
 
-    doc.text(value, x + boxW / 2, startY + 13, {
-      align: "center",
-    });
+    doc.text(
+      value,
+      x + boxW / 2,
+      startY + 12,
+      {
+        align: "center",
+      }
+    );
   };
 
-  // BOX NILAI
+  // NILAI
   draw(
     margin,
     "Nilai Akhir",
@@ -273,7 +303,7 @@ function drawScoreSummary(
     EMERALD
   );
 
-  // BOX GRADE
+  // GRADE
   draw(
     margin + boxW + gap,
     "Grade",
@@ -281,7 +311,7 @@ function drawScoreSummary(
     GOLD
   );
 
-  // BOX STATUS
+  // STATUS
   draw(
     statusX,
     "Status",
@@ -293,19 +323,20 @@ function drawScoreSummary(
       : [185, 28, 28]
   );
 
-  // =========================
-  // PREDIKAT DI BAWAH STATUS
-  // =========================
+  // =====================
+  // PREDIKAT DALAM BOX
+  // =====================
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
+
+  doc.setFontSize(6.5);
 
   doc.setTextColor(...EMERALD);
 
   doc.text(
-    `Predikat: ${data.predikat}`,
+    data.predikat,
     statusX + boxW / 2,
-    startY + h + 10,
+    startY + 18,
     {
       align: "center",
     }
@@ -347,9 +378,9 @@ function drawDetail(doc: jsPDF, data: RaportData, pageW: number, margin: number,
       columnStyles: { 0: { halign: "left", fontStyle: "bold" }, 7: { fontStyle: "bold", textColor: EMERALD as any } },
       didDrawPage: () => {},
     });
-    y = (doc as any).lastAutoTable.finalY + 6;
+    y = (doc as any).lastAutoTable.finalY + 3.5;
     doc.setFont("helvetica", "italic");
-    doc.setFontSize(5.5);
+    doc.setFontSize(5);
     doc.setTextColor(120, 120, 120);
     doc.text("Rumus: Nilai = Kelancaran − (LJ×2) − (LK×1) − (Waqaf×2) − (Sambung×2)", margin, y);
     y += 5;
@@ -372,7 +403,7 @@ function drawDetail(doc: jsPDF, data: RaportData, pageW: number, margin: number,
       alternateRowStyles: { fillColor: [247, 254, 250] },
       columnStyles: { 0: { halign: "left", fontStyle: "bold" }, 9: { fontStyle: "bold", textColor: EMERALD as any } },
     });
-    y = (doc as any).lastAutoTable.finalY + 2;
+    y = (doc as any).lastAutoTable.finalY + 3.5;
     doc.setFont("helvetica", "italic"); doc.setFontSize(7); doc.setTextColor(120, 120, 120);
     doc.text(`Rumus: Nilai = Kelancaran − (LJ × ${cfg.penalti_lahn_jali}) − (LK × ${cfg.penalti_lahn_khofi})`, margin, y);
     y += 5;
@@ -396,7 +427,7 @@ function drawDetail(doc: jsPDF, data: RaportData, pageW: number, margin: number,
       alternateRowStyles: { fillColor: [247, 254, 250] },
       columnStyles: { 0: { halign: "left", fontStyle: "bold" }, 1: { halign: "left" }, 10: { fontStyle: "bold", textColor: EMERALD as any } },
     });
-    y = (doc as any).lastAutoTable.finalY + 2;
+    y = (doc as any).lastAutoTable.finalY + 3.5;
     doc.setFont("helvetica", "italic"); doc.setFontSize(7); doc.setTextColor(120, 120, 120);
     doc.text(`Rumus: Nilai = Kelancaran − (LJ × ${cfg.penalti_lahn_jali}) − (LK × ${cfg.penalti_lahn_khofi}) − (Waqaf × ${pw})`, margin, y);
     y += 5;
@@ -416,7 +447,7 @@ function drawDetail(doc: jsPDF, data: RaportData, pageW: number, margin: number,
         styles: { font: "helvetica", fontSize: opts.tableFontSize, cellPadding: 1.2, lineColor: GRAY_LINE, lineWidth: 0.15 },
         columnStyles: { 0: { fontStyle: "bold", cellWidth: (pageW - margin * 2) * 0.5 }, 1: { halign: "center" } },
       });
-      y = (doc as any).lastAutoTable.finalY + 4;
+      y = (doc as any).lastAutoTable.finalY + 2;
     }
   }
 

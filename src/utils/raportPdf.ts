@@ -232,10 +232,11 @@ function drawScoreSummary(
 ) {
   const gap = 4;
 
+  // ukuran box
   const boxW =
     (pageW - margin * 2 - gap * 2) / 3;
 
-  const h = 22;
+  const h = 20;
 
   const statusX =
     margin + (boxW + gap) * 2;
@@ -246,12 +247,15 @@ function drawScoreSummary(
     value: string,
     color: [number, number, number]
   ) => {
+    // border
     doc.setDrawColor(...color);
 
-    doc.setLineWidth(0.6);
+    doc.setLineWidth(0.5);
 
+    // fill
     doc.setFillColor(255, 255, 255);
 
+    // box
     doc.roundedRect(
       x,
       startY,
@@ -262,12 +266,12 @@ function drawScoreSummary(
       "FD"
     );
 
-    // LABEL
+    // label atas
     doc.setFont("helvetica", "normal");
 
     doc.setFontSize(7);
 
-    doc.setTextColor(110, 110, 110);
+    doc.setTextColor(120, 120, 120);
 
     doc.text(
       label.toUpperCase(),
@@ -278,24 +282,27 @@ function drawScoreSummary(
       }
     );
 
-    // VALUE
+    // value utama
     doc.setFont("helvetica", "bold");
 
-    doc.setFontSize(15);
+    doc.setFontSize(14);
 
     doc.setTextColor(...color);
 
     doc.text(
       value,
       x + boxW / 2,
-      startY + 12,
+      startY + 13,
       {
         align: "center",
       }
     );
   };
 
+  // =========================
   // NILAI
+  // =========================
+
   draw(
     margin,
     "Nilai Akhir",
@@ -303,7 +310,10 @@ function drawScoreSummary(
     EMERALD
   );
 
+  // =========================
   // GRADE
+  // =========================
+
   draw(
     margin + boxW + gap,
     "Grade",
@@ -311,25 +321,34 @@ function drawScoreSummary(
     GOLD
   );
 
+  // =========================
   // STATUS
+  // =========================
+
   draw(
     statusX,
     "Status",
     data.status === "Lulus"
-      ? "✓ LULUS"
-      : "✗ T.LULUS",
+      ? "LULUS"
+      : "TIDAK LULUS",
     data.status === "Lulus"
       ? EMERALD
       : [185, 28, 28]
   );
 
-  // =====================
-  // PREDIKAT DALAM BOX
-  // =====================
+  // =========================
+  // PREDIKAT
+  // =========================
 
   doc.setFont("helvetica", "bold");
 
-  doc.setFontSize(6.5);
+  // font otomatis menyesuaikan
+  const predikatSize =
+    data.predikat.length > 14
+      ? 7
+      : 8.5;
+
+  doc.setFontSize(predikatSize);
 
   doc.setTextColor(...EMERALD);
 
@@ -378,9 +397,9 @@ function drawDetail(doc: jsPDF, data: RaportData, pageW: number, margin: number,
       columnStyles: { 0: { halign: "left", fontStyle: "bold" }, 7: { fontStyle: "bold", textColor: EMERALD as any } },
       didDrawPage: () => {},
     });
-    y = (doc as any).lastAutoTable.finalY + 3.5;
+    y = (doc as any).lastAutoTable.finalY + 3;
     doc.setFont("helvetica", "italic");
-    doc.setFontSize(5);
+    doc.setFontSize(6.2);
     doc.setTextColor(120, 120, 120);
     doc.text("Rumus: Nilai = Kelancaran − (LJ×2) − (LK×1) − (Waqaf×2) − (Sambung×2)", margin, y);
     y += 5;
@@ -403,8 +422,8 @@ function drawDetail(doc: jsPDF, data: RaportData, pageW: number, margin: number,
       alternateRowStyles: { fillColor: [247, 254, 250] },
       columnStyles: { 0: { halign: "left", fontStyle: "bold" }, 9: { fontStyle: "bold", textColor: EMERALD as any } },
     });
-    y = (doc as any).lastAutoTable.finalY + 3.5;
-    doc.setFont("helvetica", "italic"); doc.setFontSize(7); doc.setTextColor(120, 120, 120);
+    y = (doc as any).lastAutoTable.finalY + 3;
+    doc.setFont("helvetica", "italic"); doc.setFontSize(6.2); doc.setTextColor(120, 120, 120);
     doc.text(`Rumus: Nilai = Kelancaran − (LJ × ${cfg.penalti_lahn_jali}) − (LK × ${cfg.penalti_lahn_khofi})`, margin, y);
     y += 5;
   }
@@ -427,8 +446,8 @@ function drawDetail(doc: jsPDF, data: RaportData, pageW: number, margin: number,
       alternateRowStyles: { fillColor: [247, 254, 250] },
       columnStyles: { 0: { halign: "left", fontStyle: "bold" }, 1: { halign: "left" }, 10: { fontStyle: "bold", textColor: EMERALD as any } },
     });
-    y = (doc as any).lastAutoTable.finalY + 3.5;
-    doc.setFont("helvetica", "italic"); doc.setFontSize(7); doc.setTextColor(120, 120, 120);
+    y = (doc as any).lastAutoTable.finalY + 3;
+    doc.setFont("helvetica", "italic"); doc.setFontSize(6.2); doc.setTextColor(120, 120, 120);
     doc.text(`Rumus: Nilai = Kelancaran − (LJ × ${cfg.penalti_lahn_jali}) − (LK × ${cfg.penalti_lahn_khofi}) − (Waqaf × ${pw})`, margin, y);
     y += 5;
 

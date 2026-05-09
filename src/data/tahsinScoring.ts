@@ -56,7 +56,7 @@ export interface WaqafSymbolTest {
   waqaf_jaiz: boolean;
   waqaf_mujawwaz: boolean;
   waqaf_mamnu: boolean;
-  washol_lazim: boolean;
+  waqaf_muanaqah: boolean;
 }
 
 export const WAQAF_SYMBOLS = [
@@ -65,7 +65,7 @@ export const WAQAF_SYMBOLS = [
   { key: 'waqaf_jaiz', label: 'Waqaf Jaiz (ج)', desc: 'Boleh berhenti atau lanjut' },
   { key: 'waqaf_mujawwaz', label: 'Waqaf Mujawwaz (صلى)', desc: 'Lebih baik lanjut' },
   { key: 'waqaf_mamnu', label: 'Waqaf Mamnu\' (لا)', desc: 'Tidak boleh berhenti' },
-  { key: 'washol_lazim', label: 'Washol Lazim (∴)', desc: 'Wajib disambung' },
+  { key: 'waqaf_muanaqah', label: 'Waqaf Muanaqah (∴)', desc: 'Berhenti di salah satu tanda' },
 ];
 
 export const EBTA_ITEMS = [
@@ -100,7 +100,7 @@ export function createEmptyTahsinLanjutanEntry(): TahsinLanjutanEntry {
 export function createEmptyWaqafTest(): WaqafSymbolTest {
   return {
     waqaf_lazim: false, waqaf_mustahab: false, waqaf_jaiz: false,
-    waqaf_mujawwaz: false, waqaf_mamnu: false, washol_lazim: false,
+    waqaf_mujawwaz: false, waqaf_mamnu: false, waqaf_muanaqah: false,
   };
 }
 

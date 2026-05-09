@@ -51,7 +51,7 @@ export default function EditUjianDialog({ open, onClose, ujian, studentName, onS
   const [penaltiWaqaf, setPenaltiWaqaf] = useState<number>(aspek.penaltiWaqaf || 2);
   const [waqafTest, setWaqafTest] = useState<WaqafSymbolTest>(aspek.waqafTest || {
     waqaf_lazim: false, waqaf_mustahab: false, waqaf_jaiz: false,
-    waqaf_mujawwaz: false, waqaf_mamnu: false, washol_lazim: false,
+    waqaf_mujawwaz: false, waqaf_mamnu: false, waqaf_muanaqah: false,
   });
 
   useEffect(() => {
@@ -68,7 +68,7 @@ export default function EditUjianDialog({ open, onClose, ujian, studentName, onS
       setPenaltiWaqaf(aspek.penaltiWaqaf || 2);
       setWaqafTest(aspek.waqafTest || {
         waqaf_lazim: false, waqaf_mustahab: false, waqaf_jaiz: false,
-        waqaf_mujawwaz: false, waqaf_mamnu: false, washol_lazim: false,
+        waqaf_mujawwaz: false, waqaf_mamnu: false, waqaf_muanaqah: false,
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

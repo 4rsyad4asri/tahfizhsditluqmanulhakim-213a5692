@@ -490,19 +490,168 @@ function drawDetail(doc: jsPDF, data: RaportData, pageW: number, margin: number,
     if (data.waqafTest) {
       const labels: Record<string, string> = {
         waqaf_lazim: "Waqaf Lazim", waqaf_mustahab: "Waqaf Mustahab", waqaf_jaiz: "Waqaf Jaiz",
-        waqaf_mujawwaz: "Waqaf Mujawwaz", waqaf_mamnu: "Waqaf Mamnu'", washol_lazim: "Washol Lazim",
+        waqaf_mujawwaz: "Waqaf Mujawwaz", waqaf_mamnu: "Waqaf Mamnu'", waqaf_muanaqah: "Waqaf Muanaqah",
       };
       y = sectionTitle("TES SIMBOL WAQAF", y);
-      const rows: RowInput[] = Object.entries(data.waqafTest).map(([k, v]) => [
-        labels[k] || k, v ? "✓ Benar" : "✗ Salah",
-      ]);
-      autoTable(doc, {
-        startY: y, margin: { left: margin, right: margin },
-        body: rows, theme: "grid",
-        styles: { font: "helvetica", fontSize: opts.tableFontSize, cellPadding: 1.2, lineColor: GRAY_LINE, lineWidth: 0.15 },
-        columnStyles: { 0: { fontStyle: "bold", cellWidth: (pageW - margin * 2) * 0.5 }, 1: { halign: "center" } },
-      });
-      y = (doc as any).lastAutoTable.finalY + 2;
+      // ======================================================
+// TES SIMBOL WAQAF - MODERN SDIT STYLE
+// ======================================================
+
+const waqafEntries = Object.entries(data.waqafTest);
+
+const columns = 2;
+
+const cardWidth = 82;
+const cardHeight = 16;
+
+const gapX = 6;
+const gapY = 5;
+
+// Simbol Arab
+const waqafArabic: Record<string, string> = {
+  waqaf_lazim: "مـ",
+  waqaf_mustahab: "قلى",
+  waqaf_jaiz: "ج",
+  waqaf_mujawwaz: "صلى",
+  waqaf_mamnu: "لا",
+  waqaf_muanaqah: "∴",
+};
+
+waqafEntries.forEach(([key, val], index) => {
+
+  const col = index % columns;
+  const row = Math.floor(index / columns);
+
+  const x =
+    margin +
+    (col * (cardWidth + gapX));
+
+  const cardY =
+    y +
+    (row * (cardHeight + gapY));
+
+  const label = labels[key] || key;
+
+  const arabic = waqafArabic[key] || "ۘ";
+
+  // WARNA
+  const bgColor = val
+    ? [240, 252, 245]
+    : [255, 243, 243];
+
+  const borderColor = val
+    ? [22, 163, 74]
+    : [220, 38, 38];
+
+  // SHADOW
+  doc.setFillColor(220, 220, 220);
+
+  doc.roundedRect(
+    x + 1,
+    cardY + 1,
+    cardWidth,
+    cardHeight,
+    2,
+    2,
+    "F"
+  );
+
+  // CARD
+  doc.setFillColor(...bgColor);
+  doc.setDrawColor(...borderColor);
+
+  doc.roundedRect(
+    x,
+    cardY,
+    cardWidth,
+    cardHeight,
+    2,
+    2,
+    "FD"
+  );
+
+  // ICON BOX
+  doc.setFillColor(...borderColor);
+
+  doc.roundedRect(
+    x + 3,
+    cardY + 3,
+    12,
+    10,
+    2,
+    2,
+    "F"
+  );
+
+  // ARABIC
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+
+  doc.setTextColor(255, 255, 255);
+
+  doc.text(
+    arabic,
+    x + 9,
+    cardY + 9,
+    { align: "center" }
+  );
+
+  // LABEL
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+
+  doc.setTextColor(40, 40, 40);
+
+  doc.text(
+    label,
+    x + 18,
+    cardY + 7
+  );
+
+  // STATUS
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+
+  doc.setTextColor(90, 90, 90);
+
+  doc.text(
+    val ? "Jawaban Benar" : "Jawaban Salah",
+    x + 18,
+    cardY + 11
+  );
+
+  // BADGE
+  doc.setFillColor(...borderColor);
+
+  doc.roundedRect(
+    x + cardWidth - 22,
+    cardY + 4,
+    18,
+    5,
+    2,
+    2,
+    "F"
+  );
+
+  doc.setFontSize(6);
+  doc.setFont("helvetica", "bold");
+
+  doc.setTextColor(255, 255, 255);
+
+  doc.text(
+    val ? "BENAR" : "SALAH",
+    x + cardWidth - 13,
+    cardY + 7.5,
+    { align: "center" }
+  );
+});
+
+// UPDATE Y
+y +=
+  (
+    Math.ceil(waqafEntries.length / columns)
+    * (cardHeight + gapY)
+  ) + 5;
     }
   }
 

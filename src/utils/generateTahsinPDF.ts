@@ -116,7 +116,7 @@ export const generateTahsinPDF = (data: TahsinExamData) => {
 
   if (data.mode === 'Tahsin Dasar' && data.dasarEntries && data.dasarConfig) {
     // Table header
-    const cols = ["EBTA", "S.Huruf", "S.Harakat", "S.Makhraj", "Mad", "Ghunnah", "Tajwid", "Waqaf", "Lancar", "Nilai"];
+    const cols = ["EBTA", "S.Huruf", "S.Harakat", "S.Makhraj", "Mad", "Qalqalah", "Tajwid", "Waqaf", "Lancar", "Nilai"];
     const colWidths = [28, 15, 18, 18, 13, 16, 14, 14, 15, 14];
     let tx = margin;
 
@@ -158,7 +158,7 @@ export const generateTahsinPDF = (data: TahsinExamData) => {
   }
 
   if (data.mode === 'Tahsin Lanjutan' && data.lanjutanEntries && data.lanjutanConfig) {
-    const cols = ["Surat", "Ayat", "S.Huruf", "S.Harakat", "S.Makhraj", "Mad", "Ghunnah", "Tajwid", "Waqaf", "Lancar", "Nilai"];
+    const cols = ["Surat", "Ayat", "S.Huruf", "S.Harakat", "S.Makhraj", "Mad", "Qalqalah", "Tajwid", "Waqaf", "Lancar", "Nilai"];
     const colWidths = [25, 14, 15, 17, 17, 13, 16, 14, 13, 15, 14];
     let tx = margin;
 

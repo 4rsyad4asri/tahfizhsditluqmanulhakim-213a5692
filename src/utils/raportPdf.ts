@@ -444,10 +444,10 @@ function drawDetail(doc: jsPDF, data: RaportData, pageW: number, margin: number,
   if (data.mode === "Tahsin Dasar" && data.dasarEntries) {
     const cfg = data.dasarConfig || { penalti_lahn_jali: 2, penalti_lahn_khofi: 1, bobot_kelancaran: 40 };
     y = sectionTitle("DETAIL UJIAN TAHSIN DASAR", y);
-    const head = [["EBTA", "S.Huruf", "S.Harakat", "S.Tasydid", "Mad", "Ghunnah", "Tajwid", "Waqaf", "Lancar", "Nilai"]];
+    const head = [["EBTA", "S.Huruf", "S.Harakat", "S.Tasydid", "Mad", "Qalqalah", "Tajwid", "Waqaf", "Lancar", "Nilai"]];
     const body: RowInput[] = data.dasarEntries.map((e) => [
       e.nama_ebta, String(e.salah_huruf), String(e.salah_harakat), String(e.salah_makhraj),
-      String(e.kesalahan_mad), String(e.kesalahan_ghunnah), String(e.kesalahan_tajwid), String(e.kesalahan_waqaf),
+      String(e.kesalahan_mad), String(e.kesalahan_qalqalah), String(e.kesalahan_tajwid), String(e.kesalahan_waqaf),
       String(e.kelancaran), String(calculateNilaiTahsinDasar(e, cfg)),
     ]);
     autoTable(doc, {
@@ -468,10 +468,10 @@ function drawDetail(doc: jsPDF, data: RaportData, pageW: number, margin: number,
     const cfg = data.lanjutanConfig || { penalti_lahn_jali: 2, penalti_lahn_khofi: 1, bobot_kelancaran: 40 };
     const pw = data.penaltiWaqaf ?? 2;
     y = sectionTitle("DETAIL UJIAN TAHSIN LANJUTAN", y);
-    const head = [["Surat", "Ayat", "S.Huruf", "S.Harakat", "S.Tasydid", "Mad", "Ghunnah", "Tajwid", "Waqaf", "Lancar", "Nilai"]];
+    const head = [["Surat", "Ayat", "S.Huruf", "S.Harakat", "S.Tasydid", "Mad", "Qalqalah", "Tajwid", "Waqaf", "Lancar", "Nilai"]];
     const body: RowInput[] = data.lanjutanEntries.map((e) => [
       e.surah, e.ayat, String(e.salah_huruf), String(e.salah_harakat), String(e.salah_makhraj),
-      String(e.kesalahan_mad), String(e.kesalahan_ghunnah), String(e.kesalahan_tajwid),
+      String(e.kesalahan_mad), String(e.kesalahan_qalqalah), String(e.kesalahan_tajwid),
       String(e.waqaf_ibtida), String(e.kelancaran), String(calculateNilaiTahsinLanjutan(e, cfg, pw)),
     ]);
     autoTable(doc, {

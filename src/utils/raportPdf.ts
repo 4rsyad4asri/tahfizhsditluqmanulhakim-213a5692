@@ -624,14 +624,19 @@ function drawDetail(
       theme: "grid",
       head: [["Surat", "Juz", "Lahn Jali", "Lahn Khofi", "Waqaf & Ibtida", "Sambung Ayat", "Kelancaran", "Nilai"]],
       body: data.tahfizhEntries.map((e) => [
-        e.surah, e.juz, e.lahn_jali, e.lahn_khofi, e.waqaf_ibtida ?? 0, e.salah_sambung_ayat ?? 0, e.kelancaran,
+        String(e.surah || "-"), 
+        String(e.juz || "-"), 
+        e.lahn_jali, 
+        e.lahn_khofi, 
+        e.waqaf_ibtida ?? 0, 
+        e.salah_sambung_ayat ?? 0, 
+        e.kelancaran,
         calculateNilaiSurahWithRumus(e, "baru"),
       ]),
       styles: { font: "helvetica", fontSize: opts.tableFontSize - 0.5, halign: "center" },
-      headStyles: { fillColor: EMERALD, fontStyle: "bold" },
+      headStyles: { fillColor: [16, 185, 129], fontStyle: "bold" }, // Mengganti EMERALD ke array warna jika EMERALD tidak terdefinisi
     });
     y = (doc as any).lastAutoTable.finalY + 3;
-    // Rumus Tahfizh
     doc.setFontSize(formulaFontSize);
     doc.setTextColor(100, 100, 100);
     doc.text("*Rumus: Kelancaran - (2 x Lahn Jali) - (1 x Lahn Khofi) - (2 x Waqaf & Ibtida) - (2 x Salah Sambung)", margin, y);
@@ -646,11 +651,11 @@ function drawDetail(
       theme: "grid",
       head: [["Materi EBTA", "Salah Huruf", "Salah Harakat", "Salah Makhraj", "Mad", "Qalqalah", "Tajwid", "Waqaf", "Kelancaran", "Nilai"]],
       body: data.dasarEntries.map((e) => [
-        e.nama_ebta, e.salah_huruf, e.salah_harakat, e.salah_makhraj, e.kesalahan_mad, e.kesalahan_qalqalah, e.kesalahan_tajwid, e.kesalahan_waqaf, e.kelancaran,
+        String(e.nama_ebta || "-"), e.salah_huruf, e.salah_harakat, e.salah_makhraj, e.kesalahan_mad, e.kesalahan_qalqalah, e.kesalahan_tajwid, e.kesalahan_waqaf, e.kelancaran,
         calculateNilaiTahsinDasar(e, data.dasarConfig || { penalti_lahn_jali: 2, penalti_lahn_khofi: 1, bobot_kelancaran: 40 }),
       ]),
       styles: { font: "helvetica", fontSize: opts.tableFontSize - 1, halign: "center" },
-      headStyles: { fillColor: EMERALD, fontStyle: "bold" },
+      headStyles: { fillColor: [16, 185, 129], fontStyle: "bold" },
     });
     y = (doc as any).lastAutoTable.finalY + 3;
     doc.setFontSize(formulaFontSize);
@@ -667,11 +672,11 @@ function drawDetail(
       theme: "grid",
       head: [["Surat", "Ayat", "Salah Huruf", "Salah Harakat", "Salah Makhraj", "Mad", "Qalqalah", "Tajwid", "Waqaf & Ibtida", "Kelancaran", "Nilai"]],
       body: data.lanjutanEntries.map((e) => [
-        e.surah, e.ayat, e.salah_huruf, e.salah_harakat, e.salah_makhraj, e.kesalahan_mad, e.kesalahan_qalqalah, e.kesalahan_tajwid, e.waqaf_ibtida, e.kelancaran,
+        String(e.surah || "-"), String(e.ayat || "-"), e.salah_huruf, e.salah_harakat, e.salah_makhraj, e.kesalahan_mad, e.kesalahan_qalqalah, e.kesalahan_tajwid, e.waqaf_ibtida, e.kelancaran,
         calculateNilaiTahsinLanjutan(e, data.lanjutanConfig || { penalti_lahn_jali: 2, penalti_lahn_khofi: 1, bobot_kelancaran: 40 }, data.penaltiWaqaf ?? 2),
       ]),
       styles: { font: "helvetica", fontSize: opts.tableFontSize - 1, halign: "center" },
-      headStyles: { fillColor: EMERALD, fontStyle: "bold" },
+      headStyles: { fillColor: [16, 185, 129], fontStyle: "bold" },
     });
     y = (doc as any).lastAutoTable.finalY + 3;
     doc.setFontSize(formulaFontSize);
@@ -679,13 +684,12 @@ function drawDetail(
     doc.text("*Rumus: Kelancaran - (2 x Lahn Jali) - (1 x Lahn Khofi) - (2 x Waqaf & Ibtida)", margin, y);
     y += 5;
 
-    // Bagian Tes Simbol Waqaf (Dikecilkan)
     if (data.waqafTest) {
       y = sectionTitle(doc, "TES SIMBOL WAQAF", margin, y);
       const entries = Object.entries(data.waqafTest);
-      const columns = 4; // Ditambah kolomnya agar card lebih kecil
+      const columns = 4;
       const cardW = (pageW - margin * 2 - (columns - 1) * 4) / columns;
-      const cardH = 12; // Lebih pendek
+      const cardH = 12;
 
       entries.forEach(([key, val], index) => {
         const col = index % columns;
@@ -693,25 +697,27 @@ function drawDetail(
         const x = margin + col * (cardW + 4);
         const cardY = y + row * (cardH + 3);
 
-        const color = val ? [22, 163, 74] : [220, 38, 38];
-        doc.setDrawColor(...color);
+        const color: [number, number, number] = val ? [22, 163, 74] : [220, 38, 38];
+        doc.setDrawColor(color[0], color[1], color[2]);
         doc.setFillColor(255, 255, 255);
         doc.roundedRect(x, cardY, cardW, cardH, 1, 1, "D");
 
-        // Simbol Arab kecil
+        const waqafArabic: any = { waqaf_lazim: "م", waqaf_mustahab: "قلى", waqaf_jaiz: "ج", waqaf_mujawwaz: "ص", waqaf_mamnu: "لا", waqaf_muanaqah: "ۛ" };
+        const labels: any = { waqaf_lazim: "Lazim", waqaf_mustahab: "Mustahab", waqaf_jaiz: "Jaiz", waqaf_mujawwaz: "Mujawwaz", waqaf_mamnu: "Mamnu'", waqaf_muanaqah: "Muanaqah" };
+
+        // Render Simbol Arab
         doc.setFont("Amiri", "normal");
         doc.setFontSize(9);
-        doc.setTextColor(...color);
-        const waqafArabic: any = { waqaf_lazim: "م", waqaf_mustahab: "قلى", waqaf_jaiz: "ج", waqaf_mujawwaz: "ص", waqaf_mamnu: "لا", waqaf_muanaqah: "ۛ" };
-        doc.text(waqafArabic[key] || "", x + 4, cardY + 7.5);
+        doc.setTextColor(color[0], color[1], color[2]);
+        doc.text(String(waqafArabic[key] || ""), x + 4, cardY + 7.5);
 
-        // Label teks
+        // Render Label
         doc.setFont("helvetica", "bold");
         doc.setFontSize(7);
         doc.setTextColor(40, 40, 40);
-        const labels: any = { waqaf_lazim: "Lazim", waqaf_mustahab: "Mustahab", waqaf_jaiz: "Jaiz", waqaf_mujawwaz: "Mujawwaz", waqaf_mamnu: "Mamnu'", waqaf_muanaqah: "Muanaqah" };
-        doc.text(labels[key], x + 12, cardY + 5);
+        doc.text(String(labels[key] || key), x + 12, cardY + 5);
         
+        // Render Status
         doc.setFont("helvetica", "normal");
         doc.setFontSize(6);
         doc.text(val ? "Benar" : "Salah", x + 12, cardY + 9);

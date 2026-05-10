@@ -624,30 +624,31 @@ function drawDetail(
     textColor: [50, 50, 50],
     lineColor: [220, 220, 220],
     lineWidth: 0.1,
-    cellPadding: 1.5 // Sedikit diperketat agar tidak terlalu tinggi
+    cellPadding: 1.5 // Sedikit lebih rapat agar muat 1 halaman
   };
   const headStyles: any = { 
     fillColor: EMERALD_RGB, 
     textColor: [255, 255, 255], 
     fontStyle: "bold",
-    lineColor: [255, 255, 255],
+    lineColor: [255, 255, 255], 
     lineWidth: 0.3
   };
 
-  // 1. DETAIL TAHSIN LANJUTAN
-  if (data.mode === "Tahsin Lanjutan" && data.lanjutanEntries) {
+  // 1. DETAIL TABEL (Selalu muncul jika ada data lanjutanEntries)
+  if (data.lanjutanEntries && data.lanjutanEntries.length > 0) {
     y = sectionTitle(doc, "DETAIL TAHSIN LANJUTAN", margin, y) || y;
     
-    // Filter hanya baris yang ada datanya agar tidak ada baris kosong mubazir
-    const cleanEntries = data.lanjutanEntries.filter(e => e.surah || e.ayat);
+    // Filter agar tidak menggambar baris kosong yang berlebihan
+    const displayEntries = data.lanjutanEntries.filter(e => e.surah || e.ayat);
 
     autoTable(doc, {
-      startY: y + 1,
+      startY: y,
       margin: { left: margin, right: margin },
       theme: "grid",
       head: [["Surat", "Ayat", "S.Huruf", "S.Harokat", "S.Makhraj", "Mad", "Qalqalah", "Tajwid", "Waqaf", "Lancar", "Nilai"]],
-      body: cleanEntries.map((e) => [
-        e.surah || "-", e.ayat || "-", e.salah_huruf ?? 0, e.salah_harakat ?? 0, e.salah_makhraj ?? 0, 
+      body: displayEntries.map((e) => [
+        e.surah || "-", e.ayat || "-", 
+        e.salah_huruf ?? 0, e.salah_harakat ?? 0, e.salah_makhraj ?? 0, 
         e.kesalahan_mad ?? 0, e.kesalahan_qalqalah ?? 0, e.kesalahan_tajwid ?? 0, 
         e.waqaf_ibtida ?? 0, e.kelancaran ?? 0,
         calculateNilaiTahsinLanjutan(e, data.lanjutanConfig || { penalti_lahn_jali: 2, penalti_lahn_khofi: 1, bobot_kelancaran: 40 }, data.penaltiWaqaf ?? 2),
@@ -657,66 +658,69 @@ function drawDetail(
       alternateRowStyles: { fillColor: [250, 250, 250] }
     });
 
-    y = (doc as any).lastAutoTable.finalY + 2;
+    y = (doc as any).lastAutoTable.finalY + 3;
     doc.setFontSize(formulaFontSize);
     doc.setTextColor(100, 100, 100);
     doc.text("*Rumus: Kelancaran - (2 x Lahn Jali) - (1 x Lahn Khofi) - (2 x Waqaf)", margin, y);
-    y += 5;
-
-    // 2. TES SIMBOL WAQAF (KODE ASLI DENGAN FIX WASHOL)
-    if (data.waqafTest && typeof data.waqafTest === 'object') {
-      const entries = Object.entries(data.waqafTest);
-      if (entries.length > 0) {
-        y = sectionTitle(doc, "TES SIMBOL WAQAF", margin, y) || y;
-        const cols = entries.length; 
-        const gap = 2;
-        const cardW = (pageW - margin * 2 - (cols - 1) * gap) / cols;
-        const cardH = 10; // Sedikit lebih pendek dari 11
-
-        const waqafArabic: Record<string, string> = { 
-          waqaf_lazim: "م", waqaf_mustahab: "قلى", waqaf_jaiz: "ج", 
-          waqaf_mujawwaz: "ص", waqaf_mamnu: "لا", waqaf_muanaqah: "ۛ", 
-          washol_lazim: "ۛ", washal_lazim: "ۛ", wasol_lazim: "ۛ"
-        };
-        const labels: Record<string, string> = { 
-          waqaf_lazim: "Lazim", waqaf_mustahab: "Mustahab", waqaf_jaiz: "Jaiz", 
-          waqaf_mujawwaz: "Mujawwaz", waqaf_mamnu: "Mamnu'", waqaf_muanaqah: "Muanaqah", 
-          washol_lazim: "Muanaqah", washal_lazim: "Muanaqah", wasol_lazim: "Muanaqah"
-        };
-
-        entries.forEach(([key, val], index) => {
-          const x = margin + index * (cardW + gap);
-          const color: [number, number, number] = val ? [22, 163, 74] : [220, 38, 38];
-          doc.setDrawColor(color[0], color[1], color[2]);
-          doc.roundedRect(x, y, cardW, cardH, 1, 1, "D");
-
-          const k = String(key).toLowerCase();
-          let fLabel = labels[k] || k.replace(/_/g, ' ').toUpperCase();
-          let fSymbol = waqafArabic[k] || " ";
-
-          if (k.includes("wasol") || k.includes("washol")) {
-            fLabel = "Muanaqah"; fSymbol = "ۛ";
-          }
-
-          doc.setFont("Amiri", "normal");
-          doc.setFontSize(9);
-          doc.setTextColor(color[0], color[1], color[2]);
-          doc.text(String(fSymbol), x + 2.5, y + 6.5);
-
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(6.5);
-          doc.setTextColor(40, 40, 40);
-          doc.text(String(fLabel), x + 8, y + 4);
-          
-          doc.setFont("helvetica", "normal"); doc.setFontSize(6);
-          doc.text(val ? "Benar" : "Salah", x + 8, y + 8);
-        });
-        y += cardH + 4;
-      }
-    }
+    y += 6;
   }
 
-  return y; 
+  // 2. TES SIMBOL WAQAF (Kamus Lengkap & Fix Muanaqah)
+  if (data.waqafTest) {
+    y = sectionTitle(doc, "TES SIMBOL WAQAF", margin, y) || y;
+    const entries = Object.entries(data.waqafTest);
+    const cols = entries.length; 
+    const gap = 2;
+    const cardW = (pageW - margin * 2 - (cols - 1) * gap) / (cols || 1);
+    const cardH = 10; // Ukuran diperkecil dikit biar naik tanda tangannya
+
+    const waqafArabic: any = { 
+      waqaf_lazim: "م", waqaf_mustahab: "قلى", waqaf_jaiz: "ج", 
+      waqaf_mujawwaz: "ص", waqaf_mamnu: "لا", waqaf_muanaqah: "ۛ",
+      washol_lazim: "ۛ", washal_lazim: "ۛ", wasol_lazim: "ۛ"
+    };
+    
+    const labels: any = { 
+      waqaf_lazim: "Lazim", waqaf_mustahab: "Mustahab", waqaf_jaiz: "Jaiz", 
+      waqaf_mujawwaz: "Mujawwaz", waqaf_mamnu: "Mamnu'", waqaf_muanaqah: "Muanaqah",
+      washol_lazim: "Muanaqah", washal_lazim: "Muanaqah", wasol_lazim: "Muanaqah"
+    };
+
+    entries.forEach(([key, val], index) => {
+      const x = margin + index * (cardW + gap);
+      const color: [number, number, number] = val ? [22, 163, 74] : [220, 38, 38];
+      
+      doc.setDrawColor(color[0], color[1], color[2]);
+      doc.roundedRect(x, y, cardW, cardH, 1, 1, "D");
+
+      // Gunakan lowercase untuk pengecekan sapu jagat
+      const k = key.toLowerCase();
+      let labelText = labels[key] || labels[k] || key.replace(/_/g, ' ').toUpperCase();
+      let symbolText = waqafArabic[key] || waqafArabic[k] || " ";
+
+      if (k.includes("wasol") || k.includes("washol") || k.includes("washal")) {
+        labelText = "Muanaqah";
+        symbolText = "ۛ";
+      }
+
+      doc.setFont("Amiri", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(color[0], color[1], color[2]);
+      doc.text(String(symbolText), x + 2.5, y + 6.5);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(6.5);
+      doc.setTextColor(40, 40, 40);
+      doc.text(String(labelText), x + 8, y + 4);
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6);
+      doc.text(val ? "Benar" : "Salah", x + 8, y + 8);
+    });
+    y += cardH + 5;
+  }
+
+  return y;
 }
 function drawCatatan(
   doc: jsPDF,

@@ -1,3 +1,4 @@
+import "@/fonts/amiri-font";
 import jsPDF from "jspdf";
 import type { TahsinDasarEntry, TahsinLanjutanEntry, TahsinPenaltyConfig, WaqafSymbolTest } from "@/data/tahsinScoring";
 import { calculateNilaiTahsinDasar, calculateNilaiTahsinLanjutan } from "@/data/tahsinScoring";
@@ -95,7 +96,7 @@ export const generateTahsinPDF = (data: TahsinExamData) => {
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...box.color);
-    doc.text(box.value, bx + boxW / 2, y + 15, { align: "center" });
+    doc.text(box.value, bx + boxW / 2, y + 17, { align: "center" });
   });
 
   y += boxH + 8;
@@ -214,7 +215,7 @@ export const generateTahsinPDF = (data: TahsinExamData) => {
         waqaf_jaiz: "Waqaf Jaiz (ج)",
         waqaf_mujawwaz: "Waqaf Mujawwaz (صلى)",
         waqaf_mamnu: "Waqaf Mamnu' (لا)",
-        waqaf_muanaqaf: "Waqaf Muanaqah (∴)",
+        waqaf_muanaqah: "Waqaf Muanaqah (∴)",
       };
 
       // ======================================================
@@ -232,7 +233,7 @@ doc.setFillColor(7, 94, 84);
 doc.roundedRect(
   margin,
   y,
-  pageWidth - (margin * 2),
+  w - (margin * 2),
   10,
   2,
   2,
@@ -359,22 +360,28 @@ waqafEntries.forEach(([key, val], index) => {
     "F"
   );
 
-  // ======================================================
-  // ARABIC SYMBOL
-  // ======================================================
+// ======================================================
+// ARABIC SYMBOL
+// ======================================================
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.setTextColor(255, 255, 255);
+// PAKAI FONT ARAB AMIRI
+doc.setFont("Amiri", "bold");
 
-  doc.text(
-    arabic,
-    x + 10,
-    cardY + 10,
-    {
-      align: "center"
-    }
-  );
+doc.setFontSize(13);
+
+doc.setTextColor(255, 255, 255);
+
+doc.text(
+  arabic,
+  x + 10,
+  cardY + 10.5,
+  {
+    align: "center"
+  }
+);
+
+// KEMBALIKAN KE FONT DEFAULT
+doc.setFont("helvetica", "normal");
 
   // ======================================================
   // LABEL

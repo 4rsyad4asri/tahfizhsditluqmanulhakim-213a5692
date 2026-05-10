@@ -658,79 +658,75 @@ function drawDetail(
     doc.text("*Rumus: Kelancaran - (2 x Lahn Jali) - (1 x Lahn Khofi) - (2 x Waqaf)", margin, y);
     y += 6;
   }
-// 2. TES SIMBOL WAQAF (VERSI FINAL - FIX WASHOL LAZIM)
-    if (data.waqafTest && Object.keys(data.waqafTest).length > 0) {
-      y = sectionTitle(doc, "TES SIMBOL WAQAF", margin, y) || y;
-      const entries = Object.entries(data.waqafTest);
-      const cols = entries.length; 
-      const gap = 2;
-      const cardW = (pageW - margin * 2 - (cols - 1) * gap) / (cols || 1);
-      const cardH = 11;
 
-      // Daftar ejaan yang mungkin muncul dari database
-      const waqafArabic: Record<string, string> = { 
-        waqaf_lazim: "م", 
-        waqaf_mustahab: "قلى", 
-        waqaf_jaiz: "ج", 
-        waqaf_mujawwaz: "ص", 
-        waqaf_mamnu: "لا", 
-        waqaf_muanaqah: "ۛ", 
-        washol_lazim: "ۛ", // Ejaan user
-        washal_lazim: "ۛ", 
-        wasol_lazim: "ۛ"
-      };
+  // 2. TES SIMBOL WAQAF (VERSI ANTI-CRASH & FIX WASHOL)
+    if (data.waqafTest && typeof data.waqafTest === 'object') {
+      // PENTING: Gunakan try-catch agar jika bagian ini error, bagian rapor lain tetap muncul
+      try {
+        const entries = Object.entries(data.waqafTest);
+        if (entries.length === 0) return y; // Lewati jika kosong
 
-      const labels: Record<string, string> = { 
-        waqaf_lazim: "Lazim", 
-        waqaf_mustahab: "Mustahab", 
-        waqaf_jaiz: "Jaiz", 
-        waqaf_mujawwaz: "Mujawwaz", 
-        waqaf_mamnu: "Mamnu'", 
-        waqaf_muanaqah: "Muanaqah", 
-        washol_lazim: "Muanaqah", // Ejaan user
-        washal_lazim: "Muanaqah",
-        wasol_lazim: "Muanaqah"
-      };
-
-      entries.forEach(([key, val], index) => {
-        const x = margin + index * (cardW + gap);
-        const color: [number, number, number] = val ? [22, 163, 74] : [220, 38, 38];
+        y = sectionTitle(doc, "TES SIMBOL WAQAF", margin, y) || y;
         
-        doc.setDrawColor(color[0], color[1], color[2]);
-        doc.roundedRect(x, y, cardW, cardH, 1, 1, "D");
+        const cols = entries.length; 
+        const gap = 2;
+        const cardW = (pageW - margin * 2 - (cols - 1) * gap) / cols;
+        const cardH = 11;
 
-        // --- LOGIKA SAPU JAGAT ---
-        // Jika nama mengandung 'washol', 'washal', atau 'wasol', paksa jadi Muanaqah
-        let finalLabel = labels[key] || key.replace(/_/g, ' ').toUpperCase();
-        let finalSymbol = waqafArabic[key] || " ";
+        const waqafArabic: Record<string, string> = { 
+          waqaf_lazim: "م", waqaf_mustahab: "قلى", waqaf_jaiz: "ج", 
+          waqaf_mujawwaz: "ص", waqaf_mamnu: "لا", waqaf_muanaqah: "ۛ", 
+          washol_lazim: "ۛ", washal_lazim: "ۛ", wasol_lazim: "ۛ"
+        };
 
-        const k = key.toLowerCase();
-        if (k.includes("washol") || k.includes("washal") || k.includes("wasol")) {
-          finalLabel = "Muanaqah";
-          finalSymbol = "ۛ";
-        }
+        const labels: Record<string, string> = { 
+          waqaf_lazim: "Lazim", waqaf_mustahab: "Mustahab", waqaf_jaiz: "Jaiz", 
+          waqaf_mujawwaz: "Mujawwaz", waqaf_mamnu: "Mamnu'", waqaf_muanaqah: "Muanaqah", 
+          washol_lazim: "Muanaqah", washal_lazim: "Muanaqah", wasol_lazim: "Muanaqah"
+        };
 
-        // Render Simbol Arab
-        doc.setFont("Amiri", "normal");
-        doc.setFontSize(9);
-        doc.setTextColor(color[0], color[1], color[2]);
-        doc.text(String(finalSymbol), x + 2.5, y + 7);
+        entries.forEach(([key, val], index) => {
+          // 1. Safety check untuk key
+          const safeKey = String(key || "");
+          const x = margin + index * (cardW + gap);
+          
+          // 2. Warna
+          const color: [number, number, number] = val ? [22, 163, 74] : [220, 38, 38];
+          doc.setDrawColor(color[0], color[1], color[2]);
+          doc.roundedRect(x, y, cardW, cardH, 1, 1, "D");
 
-        // Render Label Teks
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(6.5);
-        doc.setTextColor(40, 40, 40);
-        doc.text(String(finalLabel), x + 8, y + 4.5);
-        
-        // Render Status (Benar/Salah)
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(6);
-        doc.text(val ? "Benar" : "Salah", x + 8, y + 8.5);
-      });
-      y += cardH + 5;
+          // 3. Logika Penentuan Teks
+          let finalLabel = labels[safeKey] || safeKey.replace(/_/g, ' ').toUpperCase();
+          let finalSymbol = waqafArabic[safeKey] || " ";
+
+          const k = safeKey.toLowerCase();
+          if (k.includes("washol") || k.includes("washal") || k.includes("wasol")) {
+            finalLabel = "Muanaqah";
+            finalSymbol = "ۛ";
+          }
+
+          // 4. Render (Gunakan String() pada semua input teks)
+          doc.setFont("Amiri", "normal");
+          doc.setFontSize(9);
+          doc.setTextColor(color[0], color[1], color[2]);
+          doc.text(String(finalSymbol), x + 2.5, y + 7);
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(6.5);
+          doc.setTextColor(40, 40, 40);
+          doc.text(String(finalLabel), x + 8, y + 4.5);
+          
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(6);
+          doc.text(val ? "Benar" : "Salah", x + 8, y + 8.5);
+        });
+
+        y += cardH + 5;
+      } catch (e) {
+        console.error("Error drawing waqafTest:", e);
+        // Jika error, y tidak berubah agar tidak merusak layout bawahnya
+      }
     }
-    }
-
 function drawCatatan(
   doc: jsPDF,
   catatan: string,

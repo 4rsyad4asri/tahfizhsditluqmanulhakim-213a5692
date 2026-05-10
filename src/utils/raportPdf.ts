@@ -614,112 +614,75 @@ function drawDetail(
   opts: RaportPdfOptions
 ): number {
   let y = startY;
-  const formulaFontSize = 7;
   const EMERALD_RGB = [16, 185, 129]; 
 
+  // Style Tabel Super Padat
   const tableStyles: any = { 
     font: "helvetica", 
-    fontSize: opts.tableFontSize - 1, 
+    fontSize: 7, // Perkecil font tabel
     halign: "center",
     textColor: [50, 50, 50],
-    lineColor: [220, 220, 220],
+    lineColor: [200, 200, 200],
     lineWidth: 0.1,
-    cellPadding: 1.5 // Sedikit lebih rapat agar muat 1 halaman
-  };
-  const headStyles: any = { 
-    fillColor: EMERALD_RGB, 
-    textColor: [255, 255, 255], 
-    fontStyle: "bold",
-    lineColor: [255, 255, 255], 
-    lineWidth: 0.3
+    cellPadding: 1 // Padding sangat rapat
   };
 
-  // 1. DETAIL TABEL (Selalu muncul jika ada data lanjutanEntries)
-  if (data.lanjutanEntries && data.lanjutanEntries.length > 0) {
+  // 1. DETAIL TABEL (Paksa Muncul)
+  // Kita hilangkan filter ketat agar data pasti ditarik ke tabel
+  const bodyData = (data.lanjutanEntries || []).map((e) => [
+    e.surah || "-", e.ayat || "-", 
+    e.salah_huruf ?? 0, e.salah_harakat ?? 0, e.salah_makhraj ?? 0, 
+    e.kesalahan_mad ?? 0, e.kesalahan_qalqalah ?? 0, e.kesalahan_tajwid ?? 0, 
+    e.waqaf_ibtida ?? 0, e.kelancaran ?? 0,
+    calculateNilaiTahsinLanjutan(e, data.lanjutanConfig || { penalti_lahn_jali: 2, penalti_lahn_khofi: 1, bobot_kelancaran: 40 }, data.penaltiWaqaf ?? 2),
+  ]);
+
+  if (bodyData.length > 0) {
     y = sectionTitle(doc, "DETAIL TAHSIN LANJUTAN", margin, y) || y;
-    
-    // Filter agar tidak menggambar baris kosong yang berlebihan
-    const displayEntries = data.lanjutanEntries.filter(e => e.surah || e.ayat);
-
     autoTable(doc, {
-      startY: y,
+      startY: y + 1,
       margin: { left: margin, right: margin },
       theme: "grid",
-      head: [["Surat", "Ayat", "S.Huruf", "S.Harokat", "S.Makhraj", "Mad", "Qalqalah", "Tajwid", "Waqaf", "Lancar", "Nilai"]],
-      body: displayEntries.map((e) => [
-        e.surah || "-", e.ayat || "-", 
-        e.salah_huruf ?? 0, e.salah_harakat ?? 0, e.salah_makhraj ?? 0, 
-        e.kesalahan_mad ?? 0, e.kesalahan_qalqalah ?? 0, e.kesalahan_tajwid ?? 0, 
-        e.waqaf_ibtida ?? 0, e.kelancaran ?? 0,
-        calculateNilaiTahsinLanjutan(e, data.lanjutanConfig || { penalti_lahn_jali: 2, penalti_lahn_khofi: 1, bobot_kelancaran: 40 }, data.penaltiWaqaf ?? 2),
-      ]),
+      head: [["Surat", "Ayat", "S.Huruf", "S.Harkat", "S.Makhraj", "Mad", "Qolqolah", "Tajwid", "Waqaf", "Lancar", "Nilai"]],
+      body: bodyData,
       styles: tableStyles,
-      headStyles: headStyles,
-      alternateRowStyles: { fillColor: [250, 250, 250] }
+      headStyles: { fillColor: EMERALD_RGB, textColor: [255, 255, 255], fontSize: 7, fontStyle: "bold" },
     });
-
-    y = (doc as any).lastAutoTable.finalY + 3;
-    doc.setFontSize(formulaFontSize);
-    doc.setTextColor(100, 100, 100);
-    doc.text("*Rumus: Kelancaran - (2 x Lahn Jali) - (1 x Lahn Khofi) - (2 x Waqaf)", margin, y);
-    y += 6;
+    y = (doc as any).lastAutoTable.finalY + 2;
+    doc.setFontSize(6);
+    doc.text("*Rumus: Kelancaran - (2x Jali) - (1x Khofi) - (2x Waqaf)", margin, y);
+    y += 4;
   }
 
-  // 2. TES SIMBOL WAQAF (Kamus Lengkap & Fix Muanaqah)
+  // 2. TES SIMBOL WAQAF (Lebih Rapat)
   if (data.waqafTest) {
     y = sectionTitle(doc, "TES SIMBOL WAQAF", margin, y) || y;
     const entries = Object.entries(data.waqafTest);
-    const cols = entries.length; 
-    const gap = 2;
-    const cardW = (pageW - margin * 2 - (cols - 1) * gap) / (cols || 1);
-    const cardH = 10; // Ukuran diperkecil dikit biar naik tanda tangannya
+    const cardW = (pageW - margin * 2 - (entries.length - 1) * 2) / (entries.length || 1);
+    const cardH = 9; // Tinggi kartu diperkecil
 
-    const waqafArabic: any = { 
-      waqaf_lazim: "م", waqaf_mustahab: "قلى", waqaf_jaiz: "ج", 
-      waqaf_mujawwaz: "ص", waqaf_mamnu: "لا", waqaf_muanaqah: "ۛ",
-      washol_lazim: "ۛ", washal_lazim: "ۛ", wasol_lazim: "ۛ"
-    };
-    
-    const labels: any = { 
-      waqaf_lazim: "Lazim", waqaf_mustahab: "Mustahab", waqaf_jaiz: "Jaiz", 
-      waqaf_mujawwaz: "Mujawwaz", waqaf_mamnu: "Mamnu'", waqaf_muanaqah: "Muanaqah",
-      washol_lazim: "Muanaqah", washal_lazim: "Muanaqah", wasol_lazim: "Muanaqah"
-    };
+    const waqafArabic: any = { waqaf_lazim: "م", waqaf_mustahab: "قلى", waqaf_jaiz: "ج", waqaf_mujawwaz: "ص", waqaf_mamnu: "لا", waqaf_muanaqah: "ۛ", washol_lazim: "ۛ", washal_lazim: "ۛ", washol_lazim: "ۛ" };
+    const labels: any = { waqaf_lazim: "Lazim", waqaf_mustahab: "Mustahab", waqaf_jaiz: "Jaiz", waqaf_mujawwaz: "Mujawwaz", waqaf_mamnu: "Mamnu'", waqaf_muanaqah: "Muanaqah", washol_lazim: "Muanaqah", washal_lazim: "Muanaqah", wasol_lazim: "Muanaqah" };
 
     entries.forEach(([key, val], index) => {
-      const x = margin + index * (cardW + gap);
+      const x = margin + index * (cardW + 2);
       const color: [number, number, number] = val ? [22, 163, 74] : [220, 38, 38];
-      
       doc.setDrawColor(color[0], color[1], color[2]);
       doc.roundedRect(x, y, cardW, cardH, 1, 1, "D");
 
-      // Gunakan lowercase untuk pengecekan sapu jagat
       const k = key.toLowerCase();
-      let labelText = labels[key] || labels[k] || key.replace(/_/g, ' ').toUpperCase();
-      let symbolText = waqafArabic[key] || waqafArabic[k] || " ";
+      let lText = labels[k] || key.replace(/_/g, ' ').toUpperCase();
+      let sText = waqafArabic[k] || " ";
+      if (k.includes("wasol") || k.includes("washol")) { lText = "Muanaqah"; sText = "ۛ"; }
 
-      if (k.includes("wasol") || k.includes("washol") || k.includes("washal")) {
-        labelText = "Muanaqah";
-        symbolText = "ۛ";
-      }
-
-      doc.setFont("Amiri", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(color[0], color[1], color[2]);
-      doc.text(String(symbolText), x + 2.5, y + 6.5);
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(6.5);
-      doc.setTextColor(40, 40, 40);
-      doc.text(String(labelText), x + 8, y + 4);
-      
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(6);
-      doc.text(val ? "Benar" : "Salah", x + 8, y + 8);
+      doc.setFont("Amiri", "normal").setFontSize(8).setTextColor(color[0], color[1], color[2]);
+      doc.text(String(sText), x + 2, y + 6);
+      doc.setFont("helvetica", "bold").setFontSize(6).setTextColor(40, 40, 40);
+      doc.text(String(lText), x + 7, y + 3.5);
+      doc.setFont("helvetica", "normal").setFontSize(5.5).text(val ? "Benar" : "Salah", x + 7, y + 7.5);
     });
-    y += cardH + 5;
+    y += cardH + 4;
   }
-
   return y;
 }
 function drawCatatan(

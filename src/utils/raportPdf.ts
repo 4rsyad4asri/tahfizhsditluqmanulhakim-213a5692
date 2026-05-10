@@ -605,6 +605,59 @@ function sectionTitle(
   return y + 7;
 }
 
+function drawDetail(
+  doc: jsPDF,
+  data: RaportData,
+  pageW: number,
+  margin: number,
+  startY: number,
+  opts: RaportPdfOptions
+): number {
+  let y = startY;
+  const formulaFontSize = 7;
+  const EMERALD_RGB = [16, 185, 129]; 
+
+  const tableStyles: any = { 
+    font: "helvetica", 
+    fontSize: opts.tableFontSize - 1, 
+    halign: "center",
+    textColor: [50, 50, 50],
+    lineColor: [220, 220, 220],
+    lineWidth: 0.1
+  };
+
+  const headStyles: any = { 
+    fillColor: EMERALD_RGB, 
+    textColor: [255, 255, 255], 
+    fontStyle: "bold",
+    lineColor: [255, 255, 255],
+    lineWidth: 0.3
+  };
+
+  // 1. DETAIL TABEL (Hanya muncul jika mode sesuai)
+  if (data.mode === "Tahsin Lanjutan" && data.lanjutanEntries) {
+    y = sectionTitle(doc, "DETAIL TAHSIN LANJUTAN", margin, y) || y;
+    autoTable(doc, {
+      startY: y,
+      margin: { left: margin, right: margin },
+      theme: "grid",
+      head: [["Surat", "Ayat", "Salah Huruf", "Salah Harakat", "Salah Makhraj", "Mad", "Qalqalah", "Tajwid", "Waqaf", "Kelancaran", "Nilai"]],
+      body: data.lanjutanEntries.map((e) => [
+        e.surah || "-", e.ayat || "-", e.salah_huruf ?? 0, e.salah_harakat ?? 0, e.salah_makhraj ?? 0,
+        e.kesalahan_mad ?? 0, e.kesalahan_qalqalah ?? 0, e.kesalahan_tajwid ?? 0, e.waqaf_ibtida ?? 0,
+        e.kelancaran ?? 0,
+        calculateNilaiTahsinLanjutan(e, data.lanjutanConfig || { penalti_lahn_jali: 2, penalti_lahn_khofi: 1, bobot_kelancaran: 40 }, data.penaltiWaqaf ?? 2),
+      ]),
+      styles: tableStyles,
+      headStyles: headStyles,
+      alternateRowStyles: { fillColor: [250, 250, 250] }
+    });
+    y = (doc as any).lastAutoTable.finalY + 3;
+    doc.setFontSize(formulaFontSize);
+    doc.setTextColor(100, 100, 100);
+    doc.text("*Rumus: Kelancaran - (2 x Lahn Jali) - (1 x Lahn Khofi) - (2 x Waqaf)", margin, y);
+    y += 6;
+  }
 // 2. TES SIMBOL WAQAF (VERSI FINAL - FIX WASHOL LAZIM)
     if (data.waqafTest && Object.keys(data.waqafTest).length > 0) {
       y = sectionTitle(doc, "TES SIMBOL WAQAF", margin, y) || y;

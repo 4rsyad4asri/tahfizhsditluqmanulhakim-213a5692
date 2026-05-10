@@ -1,25 +1,13 @@
 import { jsPDF } from "jspdf";
-import amiriFont from "./Amiri-Regular.ttf?base64";
+import AmiriRegular from "./Amiri-Regular.ttf";
 
-jsPDF.API.events.push([
+const font = AmiriRegular;
+
+(jsPDF as any).API.events.push([
   "addFonts",
   function () {
-
-    this.addFileToVFS(
-      "Amiri-Regular.ttf",
-      amiriFont
-    );
-
-    this.addFont(
-      "Amiri-Regular.ttf",
-      "Amiri",
-      "normal"
-    );
-
-    this.addFont(
-      "Amiri-Regular.ttf",
-      "Amiri",
-      "bold"
-    );
+    this.addFileToVFS("Amiri-Regular.ttf", font);
+    this.addFont("Amiri-Regular.ttf", "Amiri", "normal");
+    this.addFont("Amiri-Regular.ttf", "Amiri", "bold");
   },
 ]);

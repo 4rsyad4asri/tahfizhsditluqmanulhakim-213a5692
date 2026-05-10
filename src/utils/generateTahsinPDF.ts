@@ -1,4 +1,4 @@
-import "@/fonts/amiri-font";
+import { loadArabicFont } from "@/utils/loadArabicFont";
 import jsPDF from "jspdf";
 import type { TahsinDasarEntry, TahsinLanjutanEntry, TahsinPenaltyConfig, WaqafSymbolTest } from "@/data/tahsinScoring";
 import { calculateNilaiTahsinDasar, calculateNilaiTahsinLanjutan } from "@/data/tahsinScoring";
@@ -24,12 +24,23 @@ interface TahsinExamData {
   waqafTest?: WaqafSymbolTest;
 }
 
-export const generateTahsinPDF = (data: TahsinExamData) => {
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  const w = doc.internal.pageSize.getWidth();
-  const margin = 15;
-  let y = 20;
+export const generateTahsinPDF = async (data: TahsinExamData) => {
 
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4"
+  });
+
+  // LOAD FONT ARAB DULU
+  await loadArabicFont(doc);
+
+  const w = doc.internal.pageSize.getWidth();
+
+  const margin = 15;
+
+  let y = 20;
+  
   // Header
   doc.setFillColor(22, 101, 52);
   doc.rect(0, 0, w, 35, "F");

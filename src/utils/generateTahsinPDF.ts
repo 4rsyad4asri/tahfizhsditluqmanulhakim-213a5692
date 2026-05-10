@@ -365,7 +365,9 @@ waqafEntries.forEach(([key, val], index) => {
 // ======================================================
 
 // PAKAI FONT ARAB AMIRI
-doc.setFont("Amiri", "bold");
+// ARABIC SYMBOL
+
+doc.setFont("Amiri", "normal");
 
 doc.setFontSize(13);
 

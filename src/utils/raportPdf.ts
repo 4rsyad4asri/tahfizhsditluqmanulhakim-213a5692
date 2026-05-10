@@ -15,7 +15,7 @@ import {
   type TahfizhSurahEntry,
 } from "@/data/mockData";
 
-export type Orientation = "landscape";
+export type Orientation = "portrait" | "landscape";
 
 export interface RaportHeader {
   schoolName: string;
@@ -56,13 +56,18 @@ export interface RaportData {
   grade: string;
   predikat: string;
   catatanGuru?: string;
+
   tahfizhEntries?: TahfizhSurahEntry[];
+
   dasarEntries?: TahsinDasarEntry[];
   dasarConfig?: TahsinPenaltyConfig;
+
   lanjutanEntries?: TahsinLanjutanEntry[];
   lanjutanConfig?: TahsinPenaltyConfig;
+
   penaltiWaqaf?: number;
   waqafTest?: WaqafSymbolTest;
+
   ujianId?: string;
 }
 
@@ -87,7 +92,7 @@ function fmtTanggal(iso: string): string {
 async function makeQR(text: string): Promise<string> {
   return await QRCode.toDataURL(text, {
     margin: 0,
-    width: 240,
+    width: 220,
     color: {
       dark: "#065f46",
       light: "#ffffff",
@@ -106,18 +111,13 @@ function safeAddImage(
   if (!dataUrl) return;
 
   try {
-    const format = dataUrl.includes("image/png") ? "PNG" : "JPEG";
+    let fmt: "PNG" | "JPEG" = "JPEG";
 
-    doc.addImage(
-      dataUrl,
-      format,
-      x,
-      y,
-      w,
-      h,
-      undefined,
-      "FAST"
-    );
+    if (dataUrl.startsWith("data:image/png")) {
+      fmt = "PNG";
+    }
+
+    doc.addImage(dataUrl, fmt, x, y, w, h, undefined, "FAST");
   } catch (err) {
     console.error("Gagal add image:", err);
   }
@@ -133,12 +133,17 @@ function generateNomorDokumen(
     `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
 
   const id =
-    (ujianId || Math.random().toString(36).slice(2, 8))
+    (ujianId ||
+      Math.random()
+        .toString(36)
+        .slice(2, 8))
       .slice(0, 6)
       .toUpperCase();
 
   const code =
-    mode.replace(/\s+/g, "").toUpperCase();
+    mode
+      .replace(/\s+/g, "")
+      .toUpperCase();
 
   return `RPT/${code}/${ym}/${id}`;
 }
@@ -151,12 +156,12 @@ function drawHeader(
   pageW: number,
   margin: number,
   qrDataUrl?: string,
-  nomorDokumen?: string
+  nomorDokumen?: string,
 ) {
-  const headerH = 26;
+  const headerH = 22;
 
   doc.setDrawColor(...EMERALD);
-  doc.setLineWidth(0.8);
+  doc.setLineWidth(0.5);
 
   doc.line(
     margin,
@@ -165,7 +170,7 @@ function drawHeader(
     margin + headerH
   );
 
-  const logoSize = 18;
+  const logoSize = 16;
 
   if (assets.logoLeft) {
     safeAddImage(
@@ -190,40 +195,42 @@ function drawHeader(
   }
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
+  doc.setFontSize(14);
   doc.setTextColor(...EMERALD);
 
   doc.text(
     header.schoolName.toUpperCase(),
     pageW / 2,
-    margin + 6,
+    margin + 5,
     { align: "center" }
   );
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
+  doc.setFontSize(9);
 
   doc.text(
     header.programName,
     pageW / 2,
-    margin + 12,
+    margin + 10,
     { align: "center" }
   );
 
-  doc.setFontSize(8);
+  doc.setFontSize(7);
+
   doc.setTextColor(...GRAY_TEXT);
 
   doc.text(
     header.address,
     pageW / 2,
-    margin + 17,
+    margin + 15,
     { align: "center" }
   );
 
-  const titleY = margin + headerH + 7;
+  const titleY = margin + headerH + 5;
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
+  doc.setFontSize(12);
+
   doc.setTextColor(...EMERALD);
 
   const title =
@@ -231,19 +238,23 @@ function drawHeader(
       ? "RAPOR HASIL UJIAN TAHFIZH AL-QUR'AN"
       : `RAPOR HASIL UJIAN ${data.mode.toUpperCase()}`;
 
-  doc.text(title, pageW / 2, titleY, {
-    align: "center",
-  });
+  doc.text(
+    title,
+    pageW / 2,
+    titleY,
+    { align: "center" }
+  );
 
   if (nomorDokumen) {
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
+    doc.setFontSize(7);
+
     doc.setTextColor(120, 120, 120);
 
     doc.text(
       `No. Dok: ${nomorDokumen}`,
       pageW / 2,
-      titleY + 5,
+      titleY + 4,
       { align: "center" }
     );
   }
@@ -252,21 +263,10 @@ function drawHeader(
     safeAddImage(
       doc,
       qrDataUrl,
-      pageW - margin - 18,
-      margin + headerH + 2,
-      18,
-      18
-    );
-
-    doc.setFontSize(6);
-
-    doc.text(
-      "Verifikasi",
-      pageW - margin - 9,
-      margin + headerH + 22,
-      {
-        align: "center",
-      }
+      pageW - margin - 15,
+      margin + headerH + 1,
+      15,
+      15
     );
   }
 }
@@ -282,19 +282,17 @@ function drawWatermark(
   if (!opts.showWatermark) return;
 
   if (assets.watermark) {
-    const w = pageW * 0.45;
+    const w = pageW * 0.4;
     const h = w;
 
     const gs =
       (doc as any).GState
         ? new (doc as any).GState({
-            opacity: 0.05,
+            opacity: 0.06,
           })
         : null;
 
-    if (gs) {
-      (doc as any).setGState(gs);
-    }
+    if (gs) (doc as any).setGState(gs);
 
     safeAddImage(
       doc,
@@ -306,26 +304,26 @@ function drawWatermark(
     );
 
     if (gs) {
-      (doc as any).setGState(
+      const reset =
         new (doc as any).GState({
           opacity: 1,
-        })
-      );
+        });
+
+      (doc as any).setGState(reset);
     }
   } else {
     const gs =
       (doc as any).GState
         ? new (doc as any).GState({
-            opacity: 0.04,
+            opacity: 0.05,
           })
         : null;
 
-    if (gs) {
-      (doc as any).setGState(gs);
-    }
+    if (gs) (doc as any).setGState(gs);
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(70);
+    doc.setFontSize(55);
+
     doc.setTextColor(...EMERALD);
 
     doc.text(
@@ -363,32 +361,42 @@ function drawStudentInfo(
       right: margin,
     },
     theme: "grid",
+
     styles: {
       font: "helvetica",
-      fontSize: opts.fontSize - 1,
-      cellPadding: 2,
+      fontSize: 7,
+      cellPadding: 1,
       lineColor: GRAY_LINE,
-      lineWidth: 0.2,
+      lineWidth: 0.15,
       textColor: [40, 40, 40],
     },
+
     columnStyles: {
       0: {
         fillColor: EMERALD_SOFT,
         fontStyle: "bold",
-        cellWidth: 45,
+        cellWidth:
+          (pageW - margin * 2) * 0.16,
       },
+
       1: {
-        cellWidth: 85,
+        cellWidth:
+          (pageW - margin * 2) * 0.34,
       },
+
       2: {
         fillColor: EMERALD_SOFT,
         fontStyle: "bold",
-        cellWidth: 45,
+        cellWidth:
+          (pageW - margin * 2) * 0.16,
       },
+
       3: {
-        cellWidth: 85,
+        cellWidth:
+          (pageW - margin * 2) * 0.34,
       },
     },
+
     body: [
       [
         "Nama Siswa",
@@ -399,7 +407,7 @@ function drawStudentInfo(
       [
         "Penguji",
         data.assessorName || "-",
-        "Tanggal Ujian",
+        "Tanggal",
         fmtTanggal(data.tanggal),
       ],
     ],
@@ -413,166 +421,82 @@ function drawScoreSummary(
   margin: number,
   startY: number
 ) {
-  const gap = 6;
+  const gap = 4;
 
   const boxW =
     (pageW - margin * 2 - gap * 2) / 3;
 
-  const h = 24;
+  const h = 18;
 
-  const drawCard = (
+  const draw = (
     x: number,
-    title: string,
+    label: string,
     value: string,
     color: [number, number, number]
   ) => {
     doc.setDrawColor(...color);
-    doc.setLineWidth(0.5);
-    doc.setFillColor(255, 255, 255);
+
+    doc.setLineWidth(0.4);
 
     doc.roundedRect(
       x,
       startY,
       boxW,
       h,
-      3,
-      3,
-      "FD"
+      2,
+      2,
+      "D"
     );
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.setTextColor(110, 110, 110);
+    doc.setFontSize(6);
+
+    doc.setTextColor(100, 100, 100);
 
     doc.text(
-      title.toUpperCase(),
+      label.toUpperCase(),
       x + boxW / 2,
-      startY + 6,
-      {
-        align: "center",
-      }
+      startY + 4,
+      { align: "center" }
     );
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
+    doc.setFontSize(12);
+
     doc.setTextColor(...color);
 
     doc.text(
       value,
       x + boxW / 2,
-      startY + 16,
-      {
-        align: "center",
-      }
+      startY + 11,
+      { align: "center" }
     );
   };
 
-  drawCard(
+  draw(
     margin,
-    "Nilai Akhir",
+    "Nilai",
     String(data.nilaiAkhir),
     EMERALD
   );
 
-  drawCard(
+  draw(
     margin + boxW + gap,
     "Grade",
     data.grade,
     GOLD
   );
 
-  const statusX =
-    margin + (boxW + gap) * 2;
-
-  doc.setDrawColor(...EMERALD);
-  doc.setFillColor(255, 255, 255);
-
-  doc.roundedRect(
-    statusX,
-    startY,
-    boxW,
-    h,
-    3,
-    3,
-    "FD"
-  );
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.setTextColor(110, 110, 110);
-
-  doc.text(
-    "STATUS",
-    statusX + boxW / 2,
-    startY + 6,
-    {
-      align: "center",
-    }
-  );
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(13);
-
-  doc.setTextColor(
-    ...(data.status === "Lulus"
-      ? EMERALD
-      : [185, 28, 28])
-  );
-
-  const statusText =
+  const statusColor =
     data.status === "Lulus"
-      ? "L U L U S"
-      : "T I D A K  L U L U S";
+      ? EMERALD
+      : [185, 28, 28];
 
-  doc.text(
-    statusText,
-    statusX + boxW / 2,
-    startY + 14,
-    {
-      align: "center",
-    }
-  );
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.5);
-  doc.setTextColor(120, 120, 120);
-
-  const label = "Predikat : ";
-
-  const labelW =
-    doc.getTextWidth(label);
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(6.5);
-  doc.setTextColor(...EMERALD);
-
-  const valueW =
-    doc.getTextWidth(data.predikat);
-
-  const totalW =
-    labelW + valueW;
-
-  const startX =
-    statusX +
-    (boxW / 2) -
-    totalW / 2;
-
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(120, 120, 120);
-
-  doc.text(
-    label,
-    startX,
-    startY + 20
-  );
-
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(...EMERALD);
-
-  doc.text(
-    data.predikat,
-    startX + labelW,
-    startY + 20
+  draw(
+    margin + (boxW + gap) * 2,
+    "Status",
+    data.status.toUpperCase(),
+    statusColor as [number, number, number]
   );
 }
 
@@ -587,22 +511,23 @@ function sectionTitle(
   doc.rect(
     margin,
     y,
-    2,
-    5,
+    1.2,
+    4,
     "F"
   );
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
+  doc.setFontSize(8);
+
   doc.setTextColor(...EMERALD);
 
   doc.text(
     text,
-    margin + 4,
-    y + 4
+    margin + 3,
+    y + 3
   );
 
-  return y + 7;
+  return y + 5;
 }
 
 function drawDetail(
@@ -614,77 +539,453 @@ function drawDetail(
   opts: RaportPdfOptions
 ): number {
   let y = startY;
-  const EMERALD_RGB = [16, 185, 129]; 
 
-  // Style Tabel Super Padat
-  const tableStyles: any = { 
-    font: "helvetica", 
-    fontSize: 7, // Perkecil font tabel
-    halign: "center",
-    textColor: [50, 50, 50],
-    lineColor: [200, 200, 200],
-    lineWidth: 0.1,
-    cellPadding: 1 // Padding sangat rapat
-  };
+  if (
+    data.mode === "Tahfizh" &&
+    data.tahfizhEntries
+  ) {
+    y =
+      sectionTitle(
+        doc,
+        "DETAIL UJIAN TAHFIZH",
+        margin,
+        y
+      ) || y;
 
-  // 1. DETAIL TABEL (Paksa Muncul)
-  // Kita hilangkan filter ketat agar data pasti ditarik ke tabel
-  const bodyData = (data.lanjutanEntries || []).map((e) => [
-    e.surah || "-", e.ayat || "-", 
-    e.salah_huruf ?? 0, e.salah_harakat ?? 0, e.salah_makhraj ?? 0, 
-    e.kesalahan_mad ?? 0, e.kesalahan_qalqalah ?? 0, e.kesalahan_tajwid ?? 0, 
-    e.waqaf_ibtida ?? 0, e.kelancaran ?? 0,
-    calculateNilaiTahsinLanjutan(e, data.lanjutanConfig || { penalti_lahn_jali: 2, penalti_lahn_khofi: 1, bobot_kelancaran: 40 }, data.penaltiWaqaf ?? 2),
-  ]);
+    const head = [[
+      "Surat",
+      "Juz",
+      "LJ",
+      "LK",
+      "W",
+      "S",
+      "Lancar",
+      "Nilai"
+    ]];
 
-  if (bodyData.length > 0) {
-    y = sectionTitle(doc, "DETAIL TAHSIN LANJUTAN", margin, y) || y;
+    const body: RowInput[] =
+      data.tahfizhEntries.map((e) => [
+        e.surah,
+        String(e.juz),
+        String(e.lahn_jali),
+        String(e.lahn_khofi),
+        String(e.waqaf_ibtida ?? 0),
+        String(e.salah_sambung_ayat ?? 0),
+        String(e.kelancaran),
+        String(
+          calculateNilaiSurahWithRumus(
+            e,
+            "baru"
+          )
+        ),
+      ]);
+
     autoTable(doc, {
-      startY: y + 1,
-      margin: { left: margin, right: margin },
+      startY: y,
+
+      margin: {
+        left: margin,
+        right: margin,
+      },
+
+      head,
+      body,
+
       theme: "grid",
-      head: [["Surat", "Ayat", "S.Huruf", "S.Harkat", "S.Makhraj", "Mad", "Qolqolah", "Tajwid", "Waqaf", "Lancar", "Nilai"]],
-      body: bodyData,
-      styles: tableStyles,
-      headStyles: { fillColor: EMERALD_RGB, textColor: [255, 255, 255], fontSize: 7, fontStyle: "bold" },
+
+      styles: {
+        font: "helvetica",
+        fontSize: 6.3,
+        cellPadding: 0.8,
+        lineColor: GRAY_LINE,
+        lineWidth: 0.12,
+        halign: "center",
+      },
+
+      headStyles: {
+        fillColor: EMERALD,
+        textColor: 255,
+        fontStyle: "bold",
+      },
+
+      alternateRowStyles: {
+        fillColor: [247, 254, 250],
+      },
+
+      columnStyles: {
+        0: {
+          halign: "left",
+          fontStyle: "bold",
+        },
+
+        7: {
+          fontStyle: "bold",
+          textColor: EMERALD as any,
+        },
+      },
     });
-    y = (doc as any).lastAutoTable.finalY + 2;
-    doc.setFontSize(6);
-    doc.text("*Rumus: Kelancaran - (2x Jali) - (1x Khofi) - (2x Waqaf)", margin, y);
-    y += 4;
+
+    y =
+      (doc as any)
+        .lastAutoTable.finalY + 2;
   }
 
-  // 2. TES SIMBOL WAQAF (Lebih Rapat)
-  if (data.waqafTest) {
-    y = sectionTitle(doc, "TES SIMBOL WAQAF", margin, y) || y;
-    const entries = Object.entries(data.waqafTest);
-    const cardW = (pageW - margin * 2 - (entries.length - 1) * 2) / (entries.length || 1);
-    const cardH = 9; // Tinggi kartu diperkecil
+  if (
+    data.mode === "Tahsin Dasar" &&
+    data.dasarEntries
+  ) {
+    const cfg =
+      data.dasarConfig || {
+        penalti_lahn_jali: 2,
+        penalti_lahn_khofi: 1,
+        bobot_kelancaran: 40,
+      };
 
-    const waqafArabic: any = { waqaf_lazim: "م", waqaf_mustahab: "قلى", waqaf_jaiz: "ج", waqaf_mujawwaz: "ص", waqaf_mamnu: "لا", waqaf_muanaqah: "ۛ", washol_lazim: "ۛ", washal_lazim: "ۛ", washol_lazim: "ۛ" };
-    const labels: any = { waqaf_lazim: "Lazim", waqaf_mustahab: "Mustahab", waqaf_jaiz: "Jaiz", waqaf_mujawwaz: "Mujawwaz", waqaf_mamnu: "Mamnu'", waqaf_muanaqah: "Muanaqah", washol_lazim: "Muanaqah", washal_lazim: "Muanaqah", wasol_lazim: "Muanaqah" };
+    y =
+      sectionTitle(
+        doc,
+        "DETAIL UJIAN TAHSIN DASAR",
+        margin,
+        y
+      ) || y;
+
+    const head = [[
+      "EBTA",
+      "Huruf",
+      "Harakat",
+      "Tasydid",
+      "Mad",
+      "Qalqalah",
+      "Tajwid",
+      "Waqaf",
+      "Lancar",
+      "Nilai"
+    ]];
+
+    const body: RowInput[] =
+      data.dasarEntries.map((e) => [
+        e.nama_ebta,
+        String(e.salah_huruf),
+        String(e.salah_harakat),
+        String(e.salah_makhraj),
+        String(e.kesalahan_mad),
+        String(e.kesalahan_qalqalah),
+        String(e.kesalahan_tajwid),
+        String(e.kesalahan_waqaf),
+        String(e.kelancaran),
+        String(
+          calculateNilaiTahsinDasar(
+            e,
+            cfg
+          )
+        ),
+      ]);
+
+    autoTable(doc, {
+      startY: y,
+
+      margin: {
+        left: margin,
+        right: margin,
+      },
+
+      head,
+      body,
+
+      theme: "grid",
+
+      styles: {
+        font: "helvetica",
+        fontSize: 6,
+        cellPadding: 0.8,
+        lineColor: GRAY_LINE,
+        lineWidth: 0.12,
+        halign: "center",
+      },
+
+      headStyles: {
+        fillColor: EMERALD,
+        textColor: 255,
+        fontStyle: "bold",
+      },
+
+      alternateRowStyles: {
+        fillColor: [247, 254, 250],
+      },
+
+      columnStyles: {
+        0: {
+          halign: "left",
+          fontStyle: "bold",
+        },
+
+        9: {
+          fontStyle: "bold",
+          textColor: EMERALD as any,
+        },
+      },
+    });
+
+    y =
+      (doc as any)
+        .lastAutoTable.finalY + 2;
+  }
+
+  if (
+    data.mode === "Tahsin Lanjutan" &&
+    data.lanjutanEntries
+  ) {
+    const cfg =
+      data.lanjutanConfig || {
+        penalti_lahn_jali: 2,
+        penalti_lahn_khofi: 1,
+        bobot_kelancaran: 40,
+      };
+
+    const pw =
+      data.penaltiWaqaf ?? 2;
+
+    y =
+      sectionTitle(
+        doc,
+        "DETAIL UJIAN TAHSIN LANJUTAN",
+        margin,
+        y
+      ) || y;
+
+    const head = [[
+      "Surat",
+      "Ayat",
+      "Huruf",
+      "Harakat",
+      "Tasydid",
+      "Mad",
+      "Qalqalah",
+      "Tajwid",
+      "Waqaf",
+      "Lancar",
+      "Nilai"
+    ]];
+
+    const body: RowInput[] =
+      data.lanjutanEntries.map((e) => [
+        e.surah,
+        e.ayat,
+        String(e.salah_huruf),
+        String(e.salah_harakat),
+        String(e.salah_makhraj),
+        String(e.kesalahan_mad),
+        String(e.kesalahan_qalqalah),
+        String(e.kesalahan_tajwid),
+        String(e.waqaf_ibtida),
+        String(e.kelancaran),
+        String(
+          calculateNilaiTahsinLanjutan(
+            e,
+            cfg,
+            pw
+          )
+        ),
+      ]);
+
+    autoTable(doc, {
+      startY: y,
+
+      margin: {
+        left: margin,
+        right: margin,
+      },
+
+      head,
+      body,
+
+      theme: "grid",
+
+      styles: {
+        font: "helvetica",
+        fontSize: 5.8,
+        cellPadding: 0.7,
+        lineColor: GRAY_LINE,
+        lineWidth: 0.12,
+        halign: "center",
+      },
+
+      headStyles: {
+        fillColor: EMERALD,
+        textColor: 255,
+        fontStyle: "bold",
+      },
+
+      alternateRowStyles: {
+        fillColor: [247, 254, 250],
+      },
+
+      columnStyles: {
+        0: {
+          halign: "left",
+          fontStyle: "bold",
+        },
+
+        10: {
+          fontStyle: "bold",
+          textColor: EMERALD as any,
+        },
+      },
+    });
+
+    y =
+      (doc as any)
+        .lastAutoTable.finalY + 2;
+  }
+
+  if (data.waqafTest) {
+    y =
+      sectionTitle(
+        doc,
+        "TES SIMBOL WAQAF",
+        margin,
+        y
+      ) || y;
+
+    const entries =
+      Object.entries(data.waqafTest);
+
+    const cols = entries.length;
+
+    const gap = 2;
+
+    const cardW =
+      (
+        pageW -
+        margin * 2 -
+        (cols - 1) * gap
+      ) / (cols || 1);
+
+    const cardH = 10;
+
+    const waqafArabic: any = {
+      waqaf_lazim: "م",
+      waqaf_mustahab: "قلى",
+      waqaf_jaiz: "ج",
+      waqaf_mujawwaz: "ص",
+      waqaf_mamnu: "لا",
+      waqaf_muanaqah: "ۛ",
+      washol_lazim: "ۛ",
+      washal_lazim: "ۛ",
+      wasol_lazim: "ۛ"
+    };
+
+    const labels: any = {
+      waqaf_lazim: "Lazim",
+      waqaf_mustahab: "Mustahab",
+      waqaf_jaiz: "Jaiz",
+      waqaf_mujawwaz: "Mujawwaz",
+      waqaf_mamnu: "Mamnu'",
+      waqaf_muanaqah: "Muanaqah",
+      washol_lazim: "Muanaqah",
+      washal_lazim: "Muanaqah",
+      wasol_lazim: "Muanaqah"
+    };
 
     entries.forEach(([key, val], index) => {
-      const x = margin + index * (cardW + 2);
-      const color: [number, number, number] = val ? [22, 163, 74] : [220, 38, 38];
-      doc.setDrawColor(color[0], color[1], color[2]);
-      doc.roundedRect(x, y, cardW, cardH, 1, 1, "D");
+      const x =
+        margin +
+        index * (cardW + gap);
 
-      const k = key.toLowerCase();
-      let lText = labels[k] || key.replace(/_/g, ' ').toUpperCase();
-      let sText = waqafArabic[k] || " ";
-      if (k.includes("wasol") || k.includes("washol")) { lText = "Muanaqah"; sText = "ۛ"; }
+      const color:
+        [number, number, number] =
+        val
+          ? [22, 163, 74]
+          : [220, 38, 38];
 
-      doc.setFont("Amiri", "normal").setFontSize(8).setTextColor(color[0], color[1], color[2]);
-      doc.text(String(sText), x + 2, y + 6);
-      doc.setFont("helvetica", "bold").setFontSize(6).setTextColor(40, 40, 40);
-      doc.text(String(lText), x + 7, y + 3.5);
-      doc.setFont("helvetica", "normal").setFontSize(5.5).text(val ? "Benar" : "Salah", x + 7, y + 7.5);
+      doc.setDrawColor(
+        color[0],
+        color[1],
+        color[2]
+      );
+
+      doc.roundedRect(
+        x,
+        y,
+        cardW,
+        cardH,
+        1,
+        1,
+        "D"
+      );
+
+      const k =
+        key.toLowerCase();
+
+      let labelText =
+        labels[key] ||
+        labels[k] ||
+        key
+          .replace(/_/g, " ")
+          .toUpperCase();
+
+      let symbolText =
+        waqafArabic[key] ||
+        waqafArabic[k] ||
+        " ";
+
+      if (
+        k.includes("wasol") ||
+        k.includes("washol") ||
+        k.includes("washal")
+      ) {
+        labelText = "Muanaqah";
+        symbolText = "ۛ";
+      }
+
+      doc.setFont("Amiri", "normal");
+      doc.setFontSize(9);
+
+      doc.setTextColor(
+        color[0],
+        color[1],
+        color[2]
+      );
+
+      doc.text(
+        String(symbolText),
+        x + 2.5,
+        y + 6.5
+      );
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(6.2);
+
+      doc.setTextColor(
+        40,
+        40,
+        40
+      );
+
+      doc.text(
+        String(labelText),
+        x + 8,
+        y + 4
+      );
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(5.8);
+
+      doc.text(
+        val
+          ? "Benar"
+          : "Salah",
+        x + 8,
+        y + 8
+      );
     });
+
     y += cardH + 4;
   }
+
   return y;
 }
+
 function drawCatatan(
   doc: jsPDF,
   catatan: string,
@@ -699,24 +1000,31 @@ function drawCatatan(
     margin,
     startY,
     pageW - margin * 2,
-    5,
+    4,
     "F"
   );
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(7);
 
-  doc.text(
-    "CATATAN GURU / PENGUJI",
-    margin + 2,
-    startY + 3.5
+  doc.setTextColor(
+    255,
+    255,
+    255
   );
 
-  const text = catatan || "—";
+  doc.text(
+    "CATATAN",
+    margin + 2,
+    startY + 2.8
+  );
+
+  const text =
+    catatan || "—";
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(opts.fontSize);
+  doc.setFontSize(6.8);
+
   doc.setTextColor(...GRAY_TEXT);
 
   const lines =
@@ -727,32 +1035,27 @@ function drawCatatan(
 
   const blockH =
     Math.max(
-      14,
-      lines.length *
-        (opts.fontSize * 0.45) +
-        6
+      10,
+      lines.length * 2.8 + 4
     );
 
   doc.setDrawColor(...GRAY_LINE);
-  doc.setLineWidth(0.2);
 
   doc.rect(
     margin,
-    startY + 5,
+    startY + 4,
     pageW - margin * 2,
-    blockH,
-    "S"
+    blockH
   );
 
   doc.text(
     lines,
     margin + 2,
-    startY + 10
+    startY + 8
   );
 
   return (
     startY +
-    5 +
     blockH +
     5
   );
@@ -762,74 +1065,143 @@ function drawSignatures(
   doc: jsPDF,
   data: RaportData,
   header: RaportHeader,
+  assets: RaportAssets,
+  opts: RaportPdfOptions,
   pageW: number,
   margin: number,
-  startY: number,
-  opts: RaportPdfOptions
+  startY: number
 ) {
-  const colW = (pageW - margin * 2) / 3;
-  const fontSize = opts.fontSize - 1;
-  
+  const colW =
+    (pageW - margin * 2) / 3;
+
   const positions = [
     {
-      line1: "Mengetahui,",
-      line2: "Orang Tua / Wali",
-      name: "( ................................. )",
-      isParent: true
+      title1: "Mengetahui,",
+      title2: "Orang Tua/Wali",
+      name: "(........................)"
     },
+
     {
-      line1: "", // Kosongkan baris pertama agar "Penguji" sejajar dengan "Orang Tua"
-      line2: "Penguji,",
-      name: data.assessorName || "( ................................. )",
+      title1: "Penguji,",
+      name:
+        data.assessorName ||
+        "(........................)",
       sub: header.examinerTitle,
+      sig: assets.sigExaminer,
     },
+
     {
-      line1: `${header.city}, ${fmtTanggal(data.tanggal)}`,
-      line2: header.headmasterTitle || "Kepala Sekolah,",
-      name: header.headmaster,
-      sub: `NIP: ${header.nip}`,
+      title1:
+        `${header.city}, ${fmtTanggal(data.tanggal)}`,
+
+      title2:
+        `${header.headmasterTitle},`,
+
+      name:
+        header.headmaster,
+
+      sub:
+        `NIP: ${header.nip}`,
+
+      sig:
+        assets.sigHeadmaster,
     },
   ];
 
-  positions.forEach((item, i) => {
-    const x = margin + colW * i + colW / 2;
-    let y = startY + 5;
+  positions.forEach((cell, i) => {
+    const x =
+      margin +
+      colW * i +
+      colW / 2;
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(fontSize);
-    doc.setTextColor(0, 0, 0); // Pastikan warna hitam, atau gunakan GRAY_TEXT jika perlu
+    let y = startY + 3;
 
-    // Baris 1: Mengetahui / (Kosong) / Kota, Tanggal
-    if (item.line1) {
-      doc.text(item.line1, x, y, { align: "center" });
-    }
+    doc.setFont(
+      "helvetica",
+      "normal"
+    );
 
-    // Baris 2: Jabatan (Orang Tua / Penguji / Kepala Sekolah)
-    y += 5;
-    if (item.line2) {
-      doc.text(item.line2, x, y, { align: "center" });
-    }
+    doc.setFontSize(6.8);
 
-    // Nama Terang
-    const signY = y + 25; // Jarak untuk tanda tangan
-    
-    if (item.isParent) {
-      // Orang tua biasanya menggunakan tanda kurung tanpa garis bawah
-      doc.text(item.name, x, signY, { align: "center" });
-    } else {
-      // Penguji & Kepsek biasanya Bold + Garis Bawah
-      doc.setFont("helvetica", "bold");
-      doc.text(item.name, x, signY, { align: "center" });
-      
-      const nameWidth = doc.getTextWidth(item.name);
-      doc.line(x - nameWidth / 2, signY + 1, x + nameWidth / 2, signY + 1);
-      
-      // NIP atau Sub-keterangan
-      if (item.sub) {
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(fontSize - 1);
-        doc.text(item.sub, x, signY + 5, { align: "center" });
+    doc.setTextColor(
+      ...GRAY_TEXT
+    );
+
+    doc.text(
+      cell.title1,
+      x,
+      y,
+      {
+        align: "center",
       }
+    );
+
+    if (cell.title2) {
+      y += 3.5;
+
+      doc.text(
+        cell.title2,
+        x,
+        y,
+        {
+          align: "center",
+        }
+      );
+    }
+
+    const signY =
+      y + 12;
+
+    if (cell.sig) {
+      safeAddImage(
+        doc,
+        cell.sig,
+        x - 10,
+        signY - 9,
+        20,
+        10
+      );
+    }
+
+    doc.setFont(
+      "helvetica",
+      "bold"
+    );
+
+    doc.text(
+      cell.name,
+      x,
+      signY,
+      {
+        align: "center",
+      }
+    );
+
+    doc.setLineWidth(0.2);
+
+    doc.line(
+      x - 18,
+      signY + 0.7,
+      x + 18,
+      signY + 0.7
+    );
+
+    if (cell.sub) {
+      doc.setFont(
+        "helvetica",
+        "normal"
+      );
+
+      doc.setFontSize(6);
+
+      doc.text(
+        cell.sub,
+        x,
+        signY + 4,
+        {
+          align: "center",
+        }
+      );
     }
   });
 }
@@ -838,13 +1210,15 @@ export async function generateRaportPDF(
   data: RaportData,
   header: RaportHeader,
   assets: RaportAssets,
-  opts: RaportPdfOptions
+  opts: RaportPdfOptions,
 ): Promise<jsPDF> {
-  const doc = new jsPDF({
-    orientation: "landscape",
-    unit: "mm",
-    format: "a4",
-  });
+
+  const doc =
+    new jsPDF({
+      orientation: "landscape",
+      unit: "mm",
+      format: "a4",
+    });
 
   await loadArabicFont(doc);
 
@@ -891,7 +1265,8 @@ export async function generateRaportPDF(
     nomor
   );
 
-  let y = 54;
+  let y =
+    margin + 26;
 
   drawStudentInfo(
     doc,
@@ -903,7 +1278,8 @@ export async function generateRaportPDF(
   );
 
   y =
-    (doc as any).lastAutoTable.finalY + 5;
+    (doc as any)
+      .lastAutoTable.finalY + 3;
 
   drawScoreSummary(
     doc,
@@ -913,7 +1289,7 @@ export async function generateRaportPDF(
     y
   );
 
-  y += 30;
+  y += 22;
 
   y = drawDetail(
     doc,
@@ -933,29 +1309,15 @@ export async function generateRaportPDF(
     opts
   );
 
-  if (y > pageH - 42) {
-    doc.addPage();
-
-    drawWatermark(
-      doc,
-      header,
-      assets,
-      opts,
-      pageW,
-      pageH
-    );
-
-    y = 18;
-  }
-
   drawSignatures(
     doc,
     data,
     header,
+    assets,
+    opts,
     pageW,
     margin,
-    y,
-    opts
+    y
   );
 
   const totalPages =
@@ -968,23 +1330,32 @@ export async function generateRaportPDF(
   ) {
     doc.setPage(i);
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.setTextColor(140, 140, 140);
+    doc.setFont(
+      "helvetica",
+      "normal"
+    );
+
+    doc.setFontSize(6);
+
+    doc.setTextColor(
+      140,
+      140,
+      140
+    );
 
     doc.text(
       `${header.schoolName} — ${header.programName}`,
       pageW / 2,
-      pageH - 5,
+      pageH - 4,
       {
         align: "center",
       }
     );
 
     doc.text(
-      `Hal ${i} / ${totalPages}`,
+      `Hal ${i}/${totalPages}`,
       pageW - margin,
-      pageH - 5,
+      pageH - 4,
       {
         align: "right",
       }
@@ -993,7 +1364,7 @@ export async function generateRaportPDF(
     doc.text(
       nomor,
       margin,
-      pageH - 5
+      pageH - 4
     );
   }
 
@@ -1001,9 +1372,7 @@ export async function generateRaportPDF(
 }
 
 export async function downloadRaportPDF(
-  ...args: Parameters<
-    typeof generateRaportPDF
-  >
+  ...args: Parameters<typeof generateRaportPDF>
 ) {
   const data = args[0];
 
@@ -1016,9 +1385,7 @@ export async function downloadRaportPDF(
 }
 
 export async function printRaportPDF(
-  ...args: Parameters<
-    typeof generateRaportPDF
-  >
+  ...args: Parameters<typeof generateRaportPDF>
 ) {
   const doc =
     await generateRaportPDF(...args);
@@ -1026,10 +1393,11 @@ export async function printRaportPDF(
   const url =
     doc.output("bloburl");
 
-  const w = window.open(
-    url as any,
-    "_blank"
-  );
+  const w =
+    window.open(
+      url as any,
+      "_blank"
+    );
 
   if (w) {
     setTimeout(() => {
@@ -1037,6 +1405,6 @@ export async function printRaportPDF(
         w.focus();
         w.print();
       } catch {}
-    }, 700);
+    }, 600);
   }
 }

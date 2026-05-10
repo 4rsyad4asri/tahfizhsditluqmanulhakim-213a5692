@@ -1064,51 +1064,51 @@ function drawSignatures(
   startY: number,
   opts: RaportPdfOptions
 ) {
-  const colW =
-    (pageW - margin * 2) / 3;
+const colW = (pageW - margin * 2) / 3;
 
-  const positions = [
-    {
-      title1: "Mengetahui,",
-      title2: "Orang Tua / Wali",
-      name: "(.................................)",
-    },
-    {
-      title1: "Penguji,",
-      name:
-        data.assessorName ||
-        "(.................................)",
-      sub: header.examinerTitle,
-    },
-    {
-      title1: `${header.city}, ${fmtTanggal(
-        data.tanggal
-      )}`,
-      title2: header.headmasterTitle,
-      name: header.headmaster,
-      sub: `NIP: ${header.nip}`,
-    },
-  ];
+const positions = [
+  {
+    title1: "Mengetahui,",
+    title2: "Orang Tua / Wali",
+    name: "(.................................)",
+  },
+  {
+    title1: "Penguji,",
+    name: data.assessorName || "(.................................)",
+    sub: header.examinerTitle,
+  },
+  {
+    title1: `${header.city}, ${fmtTanggal(data.tanggal)}`,
+    title2: header.headmasterTitle,
+    name: header.headmaster,
+    sub: `NIP: ${header.nip}`,
+  },
+];
 
-  positions.forEach((item, i) => {
-    const x =
-      margin +
-      colW * i +
-      colW / 2;
+positions.forEach((item, i) => {
+  const x = margin + colW * i + colW / 2;
 
-    let y = startY + 5;
-let y = baseY + 5;
+  let y = startY + 5;
 
-// KHUSUS PENGUJI TURUN 1 BARIS
-if (cell.title1 === "Penguji,") {
-  y += 4;
-}
+  // ✅ KHUSUS PENGUJI TURUN 1 BARIS
+  if (item.title1 === "Penguji,") {
+    y += 6; // bisa 4–8 tergantung tampilan
+  }
 
-doc.setFont("helvetica", "normal");
-doc.setFontSize(opts.fontSize - 1);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(opts.fontSize - 1);
 
-doc.text(cell.title1, x, y, {
-  align: "center",
+  doc.text(item.title1, x, y, { align: "center" });
+
+  if (item.title2) {
+    doc.text(item.title2, x, y + 5, { align: "center" });
+  }
+
+  if (item.sub) {
+    doc.text(item.sub, x, y + 10, { align: "center" });
+  }
+
+  doc.text(item.name, x, y + 18, { align: "center" });
 });
     
     doc.setFont("helvetica", "normal");

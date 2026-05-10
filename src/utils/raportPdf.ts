@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable, { type RowInput } from "jspdf-autotable";
 import QRCode from "qrcode";
+import { loadArabicFont } from "@/utils/loadArabicFont";
 import {
   calculateNilaiTahsinDasar,
   calculateNilaiTahsinLanjutan,
@@ -81,12 +82,38 @@ async function makeQR(text: string): Promise<string> {
   return await QRCode.toDataURL(text, { margin: 0, width: 240, color: { dark: "#065f46", light: "#ffffff" } });
 }
 
-function safeAddImage(doc: jsPDF, dataUrl: string | undefined, x: number, y: number, w: number, h: number) {
+function safeAddImage(
+  doc: jsPDF,
+  dataUrl: string | undefined,
+  x: number,
+  y: number,
+  w: number,
+  h: number
+) {
   if (!dataUrl) return;
+
   try {
-    const fmt = dataUrl.includes("image/png") ? "PNG" : "JPEG";
-    doc.addImage(dataUrl, fmt, x, y, w, h, undefined, "FAST");
-  } catch {}
+
+    let fmt: "PNG" | "JPEG" = "JPEG";
+
+    if (dataUrl.startsWith("data:image/png")) {
+      fmt = "PNG";
+    }
+
+    doc.addImage(
+      dataUrl,
+      fmt,
+      x,
+      y,
+      w,
+      h,
+      undefined,
+      "FAST"
+    );
+
+  } catch (err) {
+    console.error("Gagal add image:", err);
+  }
 }
 
 function generateNomorDokumen(mode: string, ujianId?: string) {
@@ -584,7 +611,7 @@ waqafEntries.forEach(([key, val], index) => {
   );
 
   // ARABIC
-  doc.setFont("helvetica", "bold");
+  doc.setFont("Amiri", "normal");
   doc.setFontSize(10);
 
   doc.setTextColor(255, 255, 255);
@@ -812,6 +839,10 @@ export async function generateRaportPDF(
   opts: RaportPdfOptions,
 ): Promise<jsPDF> {
   const doc = new jsPDF({ orientation: opts.orientation, unit: "mm", format: "a4" });
+
+  // LOAD FONT ARAB
+await loadArabicFont(doc);
+  
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 12;

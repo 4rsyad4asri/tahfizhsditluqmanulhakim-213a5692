@@ -614,64 +614,109 @@ function drawDetail(
   opts: RaportPdfOptions
 ): number {
   let y = startY;
-  // Kurangi font sedikit untuk menghemat ruang
-  const formulaFontSize = 6; 
+  const formulaFontSize = 7;
   const EMERALD_RGB = [16, 185, 129]; 
 
   const tableStyles: any = { 
     font: "helvetica", 
-    fontSize: opts.tableFontSize - 1.5, // Font lebih kecil (misal 7.5)
+    fontSize: opts.tableFontSize - 1, 
     halign: "center",
     textColor: [50, 50, 50],
     lineColor: [220, 220, 220],
     lineWidth: 0.1,
-    cellPadding: 1 // Padding sel lebih rapat
+    cellPadding: 1.5 // Sedikit diperketat agar tidak terlalu tinggi
+  };
+  const headStyles: any = { 
+    fillColor: EMERALD_RGB, 
+    textColor: [255, 255, 255], 
+    fontStyle: "bold",
+    lineColor: [255, 255, 255],
+    lineWidth: 0.3
   };
 
-  // 1. DETAIL TABEL (Hanya menampilkan baris berisi data)
+  // 1. DETAIL TAHSIN LANJUTAN
   if (data.mode === "Tahsin Lanjutan" && data.lanjutanEntries) {
     y = sectionTitle(doc, "DETAIL TAHSIN LANJUTAN", margin, y) || y;
     
-    // Filter baris kosong agar tidak makan tempat
-    const validEntries = data.lanjutanEntries.filter(e => e.surah || e.ayat);
+    // Filter hanya baris yang ada datanya agar tidak ada baris kosong mubazir
+    const cleanEntries = data.lanjutanEntries.filter(e => e.surah || e.ayat);
 
     autoTable(doc, {
       startY: y + 1,
       margin: { left: margin, right: margin },
       theme: "grid",
-      head: [["Surat", "Ayat", "S.Huruf", "S.Harakat", "S.Makhraj", "Mad", "Qalqalah", "Tajwid", "Waqaf", "Lancar", "Nilai"]],
-      body: validEntries.map((e) => [
-        e.surah || "-", e.ayat || "-", e.salah_huruf ?? 0, e.salah_harakat ?? 0, e.salah_makhraj ?? 0,
-        e.kesalahan_mad ?? 0, e.kesalahan_qalqalah ?? 0, e.kesalahan_tajwid ?? 0, e.waqaf_ibtida ?? 0,
-        e.kelancaran ?? 0,
+      head: [["Surat", "Ayat", "S.Huruf", "S.Harokat", "S.Makhraj", "Mad", "Qalqalah", "Tajwid", "Waqaf", "Lancar", "Nilai"]],
+      body: cleanEntries.map((e) => [
+        e.surah || "-", e.ayat || "-", e.salah_huruf ?? 0, e.salah_harakat ?? 0, e.salah_makhraj ?? 0, 
+        e.kesalahan_mad ?? 0, e.kesalahan_qalqalah ?? 0, e.kesalahan_tajwid ?? 0, 
+        e.waqaf_ibtida ?? 0, e.kelancaran ?? 0,
         calculateNilaiTahsinLanjutan(e, data.lanjutanConfig || { penalti_lahn_jali: 2, penalti_lahn_khofi: 1, bobot_kelancaran: 40 }, data.penaltiWaqaf ?? 2),
       ]),
       styles: tableStyles,
-      headStyles: { fillColor: EMERALD_RGB, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7 },
+      headStyles: headStyles,
+      alternateRowStyles: { fillColor: [250, 250, 250] }
     });
 
     y = (doc as any).lastAutoTable.finalY + 2;
     doc.setFontSize(formulaFontSize);
-    doc.text("*Rumus: Kelancaran - (2x Jali) - (1x Khofi) - (2x Waqaf)", margin, y);
-    y += 4; // Jarak lebih pendek
+    doc.setTextColor(100, 100, 100);
+    doc.text("*Rumus: Kelancaran - (2 x Lahn Jali) - (1 x Lahn Khofi) - (2 x Waqaf)", margin, y);
+    y += 5;
+
+    // 2. TES SIMBOL WAQAF (KODE ASLI DENGAN FIX WASHOL)
+    if (data.waqafTest && typeof data.waqafTest === 'object') {
+      const entries = Object.entries(data.waqafTest);
+      if (entries.length > 0) {
+        y = sectionTitle(doc, "TES SIMBOL WAQAF", margin, y) || y;
+        const cols = entries.length; 
+        const gap = 2;
+        const cardW = (pageW - margin * 2 - (cols - 1) * gap) / cols;
+        const cardH = 10; // Sedikit lebih pendek dari 11
+
+        const waqafArabic: Record<string, string> = { 
+          waqaf_lazim: "م", waqaf_mustahab: "قلى", waqaf_jaiz: "ج", 
+          waqaf_mujawwaz: "ص", waqaf_mamnu: "لا", waqaf_muanaqah: "ۛ", 
+          washol_lazim: "ۛ", washal_lazim: "ۛ", wasol_lazim: "ۛ"
+        };
+        const labels: Record<string, string> = { 
+          waqaf_lazim: "Lazim", waqaf_mustahab: "Mustahab", waqaf_jaiz: "Jaiz", 
+          waqaf_mujawwaz: "Mujawwaz", waqaf_mamnu: "Mamnu'", waqaf_muanaqah: "Muanaqah", 
+          washol_lazim: "Muanaqah", washal_lazim: "Muanaqah", wasol_lazim: "Muanaqah"
+        };
+
+        entries.forEach(([key, val], index) => {
+          const x = margin + index * (cardW + gap);
+          const color: [number, number, number] = val ? [22, 163, 74] : [220, 38, 38];
+          doc.setDrawColor(color[0], color[1], color[2]);
+          doc.roundedRect(x, y, cardW, cardH, 1, 1, "D");
+
+          const k = String(key).toLowerCase();
+          let fLabel = labels[k] || k.replace(/_/g, ' ').toUpperCase();
+          let fSymbol = waqafArabic[k] || " ";
+
+          if (k.includes("wasol") || k.includes("washol")) {
+            fLabel = "Muanaqah"; fSymbol = "ۛ";
+          }
+
+          doc.setFont("Amiri", "normal");
+          doc.setFontSize(9);
+          doc.setTextColor(color[0], color[1], color[2]);
+          doc.text(String(fSymbol), x + 2.5, y + 6.5);
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(6.5);
+          doc.setTextColor(40, 40, 40);
+          doc.text(String(fLabel), x + 8, y + 4);
+          
+          doc.setFont("helvetica", "normal"); doc.setFontSize(6);
+          doc.text(val ? "Benar" : "Salah", x + 8, y + 8);
+        });
+        y += cardH + 4;
+      }
+    }
   }
 
-  // 2. TES SIMBOL WAQAF (Dibuat Lebih Pendek)
-  if (data.waqafTest) {
-    y = sectionTitle(doc, "TES SIMBOL WAQAF", margin, y) || y;
-    const entries = Object.entries(data.waqafTest);
-    const cardH = 9; // Tinggi kartu dikurangi dari 11 ke 9
-    // ... (logika drawing kartu sama, gunakan y + 6 untuk teks agar tetap center)
-    // Gunakan y += cardH + 3; di akhir
-  }
-
-  // 3. CATATAN GURU (Dibuat satu baris saja jika pendek)
-  y = sectionTitle(doc, "CATATAN GURU / PENGUJI", margin, y) || y;
-  doc.setFontSize(8);
-  doc.text(data.catatan || "-", margin + 2, y + 4);
-  y += 8;
-
-  return y;
+  return y; 
 }
 function drawCatatan(
   doc: jsPDF,

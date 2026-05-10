@@ -615,7 +615,27 @@ function drawDetail(
 ): number {
   let y = startY;
   const formulaFontSize = 7;
-  const EMERALD_RGB = [16, 185, 129]; // Definisi manual jika variabel EMERALD tidak terbaca
+  const EMERALD_RGB = [16, 185, 129]; 
+
+  // --- STYLING GLOBAL UNTUK TABEL ---
+  const tableStyles = { 
+    font: "helvetica", 
+    fontSize: opts.tableFontSize - 0.5, 
+    halign: "center" as const, // agar typescript tidak komplain
+    textColor: [50, 50, 50],   // Teks abu-abu gelap agar lebih nyaman di mata
+    lineColor: [220, 220, 220], // Garis body tabel abu-abu lembut
+    lineWidth: 0.1
+  };
+  const headStyles = { 
+    fillColor: EMERALD_RGB, 
+    textColor: [255, 255, 255], // Teks putih
+    fontStyle: "bold" as const,
+    lineColor: [255, 255, 255], // Garis pemisah antar kolom header berwarna putih (Tampilan Profesional)
+    lineWidth: 0.3              // Ketebalan garis putih header
+  };
+  const alternateRowStyles = {
+    fillColor: [249, 250, 251]  // Efek zebra (belang-belang) sangat tipis agar mudah dibaca
+  };
 
   if (data.mode === "Tahfizh" && data.tahfizhEntries) {
     y = sectionTitle(doc, "DETAIL UJIAN TAHFIZH", margin, y);
@@ -628,8 +648,9 @@ function drawDetail(
         e.surah || "", e.juz || "", e.lahn_jali, e.lahn_khofi, e.waqaf_ibtida ?? 0, e.salah_sambung_ayat ?? 0, e.kelancaran,
         calculateNilaiSurahWithRumus(e, "baru"),
       ]),
-      styles: { font: "helvetica", fontSize: opts.tableFontSize - 0.5, halign: "center" },
-      headStyles: { fillColor: EMERALD_RGB, fontStyle: "bold" },
+      styles: tableStyles,
+      headStyles: headStyles,
+      alternateRowStyles: alternateRowStyles,
     });
     y = (doc as any).lastAutoTable.finalY + 3;
     doc.setFontSize(formulaFontSize);
@@ -649,8 +670,9 @@ function drawDetail(
         e.nama_ebta || "", e.salah_huruf, e.salah_harakat, e.salah_makhraj, e.kesalahan_mad, e.kesalahan_qalqalah, e.kesalahan_tajwid, e.kesalahan_waqaf, e.kelancaran,
         calculateNilaiTahsinDasar(e, data.dasarConfig || { penalti_lahn_jali: 2, penalti_lahn_khofi: 1, bobot_kelancaran: 40 }),
       ]),
-      styles: { font: "helvetica", fontSize: opts.tableFontSize - 1, halign: "center" },
-      headStyles: { fillColor: EMERALD_RGB, fontStyle: "bold" },
+      styles: { ...tableStyles, fontSize: opts.tableFontSize - 1 }, // Font sedikit lebih kecil untuk tabel ini
+      headStyles: headStyles,
+      alternateRowStyles: alternateRowStyles,
     });
     y = (doc as any).lastAutoTable.finalY + 3;
     doc.setFontSize(formulaFontSize);
@@ -670,8 +692,9 @@ function drawDetail(
         e.surah || "", e.ayat || "", e.salah_huruf, e.salah_harakat, e.salah_makhraj, e.kesalahan_mad, e.kesalahan_qalqalah, e.kesalahan_tajwid, e.waqaf_ibtida, e.kelancaran,
         calculateNilaiTahsinLanjutan(e, data.lanjutanConfig || { penalti_lahn_jali: 2, penalti_lahn_khofi: 1, bobot_kelancaran: 40 }, data.penaltiWaqaf ?? 2),
       ]),
-      styles: { font: "helvetica", fontSize: opts.tableFontSize - 1, halign: "center" },
-      headStyles: { fillColor: EMERALD_RGB, fontStyle: "bold" },
+      styles: { ...tableStyles, fontSize: opts.tableFontSize - 1 },
+      headStyles: headStyles,
+      alternateRowStyles: alternateRowStyles,
     });
     y = (doc as any).lastAutoTable.finalY + 3;
     doc.setFontSize(formulaFontSize);
@@ -679,20 +702,22 @@ function drawDetail(
     doc.text("*Rumus: Kelancaran - (2 x Lahn Jali) - (1 x Lahn Khofi) - (2 x Waqaf & Ibtida)", margin, y);
     y += 5;
 
+    // --- BAGIAN TES SIMBOL WAQAF ---
     if (data.waqafTest) {
       y = sectionTitle(doc, "TES SIMBOL WAQAF", margin, y);
       const entries = Object.entries(data.waqafTest);
-      const columns = 4;
-      const cardW = (pageW - margin * 2 - (columns - 1) * 4) / columns;
-      const cardH = 12;
+      
+      const cols = entries.length > 0 ? entries.length : 6; 
+      const gap = 2.5; 
+      const cardW = (pageW - margin * 2 - (cols - 1) * gap) / cols;
+      const cardH = 10; 
 
       entries.forEach(([key, val], index) => {
-        const col = index % columns;
-        const row = Math.floor(index / columns);
-        const x = margin + col * (cardW + 4);
-        const cardY = y + row * (cardH + 3);
+        const col = index % cols;
+        const row = Math.floor(index / cols); 
+        const x = margin + col * (cardW + gap);
+        const cardY = y + row * (cardH + gap);
 
-        // Perbaikan: Hindari spread operator yang menyebabkan error argumen
         const r = val ? 22 : 220;
         const g = val ? 163 : 38;
         const b = val ? 74 : 38;
@@ -701,24 +726,32 @@ function drawDetail(
         doc.setFillColor(255, 255, 255);
         doc.roundedRect(x, cardY, cardW, cardH, 1, 1, "D");
 
-        const waqafArabic: any = { waqaf_lazim: "م", waqaf_mustahab: "قلى", waqaf_jaiz: "ج", waqaf_mujawwaz: "ص", waqaf_mamnu: "لا", waqaf_muanaqah: "ۛ" };
-        const labels: any = { waqaf_lazim: "Lazim", waqaf_mustahab: "Mustahab", waqaf_jaiz: "Jaiz", waqaf_mujawwaz: "Mujawwaz", waqaf_mamnu: "Mamnu'", waqaf_muanaqah: "Muanaqah" };
+        const waqafArabic: any = { 
+          waqaf_lazim: "م", waqaf_mustahab: "قلى", waqaf_jaiz: "ج", 
+          waqaf_mujawwaz: "ص", waqaf_mamnu: "لا", waqaf_muanaqah: "ۛ", 
+          washal_lazim: "ۛ" 
+        };
+        const labels: any = { 
+          waqaf_lazim: "Lazim", waqaf_mustahab: "Mustahab", waqaf_jaiz: "Jaiz", 
+          waqaf_mujawwaz: "Mujawwaz", waqaf_mamnu: "Mamnu'", waqaf_muanaqah: "Muanaqah", 
+          washal_lazim: "Muanaqah" 
+        };
 
         doc.setFont("Amiri", "normal");
-        doc.setFontSize(9);
+        doc.setFontSize(8.5);
         doc.setTextColor(r, g, b);
-        doc.text(waqafArabic[key] || "", x + 4, cardY + 7.5);
+        doc.text(waqafArabic[key] || "", x + 2.5, cardY + 6.5);
 
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(7);
+        doc.setFontSize(6.5);
         doc.setTextColor(40, 40, 40);
-        doc.text(labels[key] || "", x + 12, cardY + 5);
+        doc.text(labels[key] || "", x + 8, cardY + 4);
         
         doc.setFont("helvetica", "normal");
         doc.setFontSize(6);
-        doc.text(val ? "Benar" : "Salah", x + 12, cardY + 9);
+        doc.text(val ? "Benar" : "Salah", x + 8, cardY + 8);
       });
-      y += Math.ceil(entries.length / columns) * (cardH + 3) + 5;
+      y += Math.ceil(entries.length / cols) * (cardH + gap) + 3;
     }
   }
   return y;

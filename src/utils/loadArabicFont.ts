@@ -1,22 +1,33 @@
 import { jsPDF } from "jspdf";
 
-let loaded = false;
+let fontBase64Cache: string | null = null;
 
 export const loadArabicFont = async (doc: jsPDF) => {
-  if (loaded) return;
 
-  const response = await fetch("/fonts/Amiri-Regular.ttf");
+  // LOAD FONT SEKALI SAJA
+  if (!fontBase64Cache) {
 
-  const fontBlob = await response.arrayBuffer();
+    const response = await fetch(
+      "/fonts/Amiri-Regular.ttf"
+    );
 
-  const fontBase64 = btoa(
-    new Uint8Array(fontBlob)
-      .reduce((data, byte) => data + String.fromCharCode(byte), "")
-  );
+    const fontBlob =
+      await response.arrayBuffer();
 
+    fontBase64Cache = btoa(
+      new Uint8Array(fontBlob)
+        .reduce(
+          (data, byte) =>
+            data + String.fromCharCode(byte),
+          ""
+        )
+    );
+  }
+
+  // REGISTER KE DOC BARU
   doc.addFileToVFS(
     "Amiri-Regular.ttf",
-    fontBase64
+    fontBase64Cache
   );
 
   doc.addFont(
@@ -24,6 +35,4 @@ export const loadArabicFont = async (doc: jsPDF) => {
     "Amiri",
     "normal"
   );
-
-  loaded = true;
 };

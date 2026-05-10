@@ -234,7 +234,7 @@ function drawHeader(
   );
 
   const titleY =
-    margin + headerH + 5;
+    margin + headerH + 10;
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
@@ -1268,7 +1268,7 @@ function drawSignatures(
       doc.text(
         p.sub,
         x,
-        signY + 5,
+        signY + 3,
         {
           align: "center"
         }

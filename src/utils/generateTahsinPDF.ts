@@ -2,7 +2,7 @@ import { loadArabicFont } from "@/utils/loadArabicFont";
 import jsPDF from "jspdf";
 import type { TahsinDasarEntry, TahsinLanjutanEntry, TahsinPenaltyConfig, WaqafSymbolTest } from "@/data/tahsinScoring";
 import { calculateNilaiTahsinDasar, calculateNilaiTahsinLanjutan } from "@/data/tahsinScoring";
-import { generateCatatanOtomatis } from "@/utils/generateCatatan";
+import { generateCatatanOtomatis } from "@/utils/catatanOtomatis";
 
 interface TahsinExamData {
   studentName: string;

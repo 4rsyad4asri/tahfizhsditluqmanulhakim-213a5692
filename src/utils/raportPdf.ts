@@ -438,7 +438,7 @@ function drawScoreSummary(
   const boxW =
     (pageW - margin * 2 - gap * 2) / 3;
 
-  const h = 22;
+  const h = 18;
 
   const drawCard = (
     x: number,
@@ -475,7 +475,7 @@ function drawScoreSummary(
     );
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(17);
+    doc.setFontSize(15);
 
     doc.setTextColor(...color);
 
@@ -545,7 +545,7 @@ function drawScoreSummary(
   doc.text(
     data.status.toUpperCase(),
     statusX + boxW / 2,
-    startY + 14,
+    startY + 12.5,
     {
       align: "center"
     }
@@ -580,7 +580,7 @@ function drawScoreSummary(
   doc.text(
     label,
     startX,
-    startY + 22
+    startY +16
   );
 
   doc.setFont("helvetica", "bold");

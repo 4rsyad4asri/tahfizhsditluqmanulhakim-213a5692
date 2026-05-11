@@ -2,6 +2,7 @@ import { loadArabicFont } from "@/utils/loadArabicFont";
 import jsPDF from "jspdf";
 import type { TahsinDasarEntry, TahsinLanjutanEntry, TahsinPenaltyConfig, WaqafSymbolTest } from "@/data/tahsinScoring";
 import { calculateNilaiTahsinDasar, calculateNilaiTahsinLanjutan } from "@/data/tahsinScoring";
+import { generateCatatanOtomatis } from "@/utils/generateCatatan";
 
 interface TahsinExamData {
   studentName: string;
@@ -472,20 +473,61 @@ y +=
   }
 
   // Catatan
-  if (data.catatanGuru) {
-    y += 5;
-    if (y > 270) { doc.addPage(); y = 20; }
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(22, 22, 22);
-    doc.text("Catatan & Evaluasi:", margin, y);
-    y += 5;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(60, 60, 60);
-    const lines = doc.splitTextToSize(data.catatanGuru, w - margin * 2);
-    doc.text(lines, margin, y);
+  const catatan =
+  data.catatanGuru ||
+  generateCatatanOtomatis(
+    data.mode,
+    data.nilaiAkhir,
+    data.studentName
+  );
+if (catatan) {
+
+  y += 5;
+
+  if (y > 270) {
+    doc.addPage();
+    y = 20;
   }
+
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(22, 22, 22);
+
+  doc.text("Catatan & Evaluasi:", margin, y);
+
+  y += 5;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(60, 60, 60);
+
+  const lines = doc.splitTextToSize(
+    catatan,
+    w - margin * 2 - 4
+  );
+
+  // BOX CATATAN
+  doc.setDrawColor(200, 200, 200);
+
+  doc.roundedRect(
+    margin,
+    y - 4,
+    w - margin * 2,
+    lines.length * 4 + 8,
+    2,
+    2,
+    "S"
+  );
+
+  // ISI CATATAN
+  doc.text(
+    lines,
+    margin + 2,
+    y
+  );
+
+  y += lines.length * 4 + 10;
+}
 
   // Footer
   const h = doc.internal.pageSize.getHeight();

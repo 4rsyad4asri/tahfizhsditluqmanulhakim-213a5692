@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Download, Printer, Settings2, Loader2, Upload, X, ImageIcon, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { generateCatatanOtomatis } from "@/utils/generateCatatan";
 import {
   generateRaportPDF, downloadRaportPDF, printRaportPDF,
   type RaportData, type RaportHeader, type RaportAssets, type RaportPdfOptions, type Orientation,
@@ -54,7 +55,14 @@ export default function RaportPreviewDialog({ open, onClose, ujian, studentName,
   const [loadingPreview, setLoadingPreview] = useState(false);
   const previewSeqRef = useRef(0);
 
-  const [catatan, setCatatan] = useState<string>(ujian?.nilai_aspek?.catatanGuru || "");
+  const [catatan, setCatatan] = useState<string>(
+  ujian?.nilai_aspek?.catatanGuru ||
+  generateCatatanOtomatis(
+    ujian?.mode,
+    ujian?.nilai_akhir ?? 0,
+    studentName
+  )
+);
   const [tanggal, setTanggal] = useState<string>(ujian?.tanggal || new Date().toISOString().split("T")[0]);
 
   // Load persisted
@@ -73,12 +81,24 @@ export default function RaportPreviewDialog({ open, onClose, ujian, studentName,
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ header, assets, opts })); } catch {}
   }, [header, assets, opts]);
 
-  useEffect(() => {
-    if (open) {
-      setCatatan(ujian?.nilai_aspek?.catatanGuru || "");
-      setTanggal(ujian?.tanggal || new Date().toISOString().split("T")[0]);
-    }
-  }, [open, ujian]);
+useEffect(() => {
+  if (open) {
+
+    setCatatan(
+      ujian?.nilai_aspek?.catatanGuru ||
+      generateCatatanOtomatis(
+        ujian?.mode,
+        ujian?.nilai_akhir ?? 0,
+        studentName
+      )
+    );
+
+    setTanggal(
+      ujian?.tanggal ||
+      new Date().toISOString().split("T")[0]
+    );
+  }
+}, [open, ujian, studentName]);
 
   const data: RaportData = useMemo(() => {
     const aspek = ujian?.nilai_aspek || {};
@@ -214,7 +234,7 @@ export default function RaportPreviewDialog({ open, onClose, ujian, studentName,
               <div className="space-y-1"><Label className="text-xs">Tanggal Raport</Label>
                 <Input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} /></div>
               <div className="space-y-1 md:col-span-2"><Label className="text-xs">Catatan Guru</Label>
-                <Textarea rows={3} value={catatan} onChange={(e) => setCatatan(e.target.value)} /></div>
+                <Textarea rows={3} value={catatan} onChange={(e) => setCatatan(e.target.value)} placeholder="Catatan otomatis akan muncul berdasarkan nilai siswa"/></div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 pt-2 border-t">

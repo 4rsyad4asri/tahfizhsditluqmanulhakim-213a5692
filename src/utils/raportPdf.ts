@@ -578,18 +578,20 @@ function drawScoreSummary(
 
   doc.setFont("helvetica", "normal");
 
+const predY = startY + 15;
+
 doc.text(
   label,
   startX,
-  const predY = startY + 15;
+  predY
 );
-
+  
 doc.text(
   data.predikat,
   startX + labelWidth,
-  const predY = startY + 15;
+  predY
 );
-
+}  
 function sectionTitle(
   doc: jsPDF,
   text: string,

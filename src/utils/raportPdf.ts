@@ -438,7 +438,7 @@ function drawScoreSummary(
   const boxW =
     (pageW - margin * 2 - gap * 2) / 3;
 
-  const h = 26;
+  const h = 22;
 
   const drawCard = (
     x: number,
@@ -527,7 +527,7 @@ function drawScoreSummary(
   doc.text(
     "STATUS",
     statusX + boxW / 2,
-    startY + 6,
+    startY + 9.5,
     {
       align: "center"
     }

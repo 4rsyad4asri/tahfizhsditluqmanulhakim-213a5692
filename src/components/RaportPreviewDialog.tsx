@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Download, Printer, Settings2, Loader2, Upload, X, ImageIcon, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { generateCatatanOtomatis } from "@/utils/generateCatatan";
+import { generateCatatanOtomatis } from "@/utils/catatanOtomatis";
 import {
   generateRaportPDF, downloadRaportPDF, printRaportPDF,
   type RaportData, type RaportHeader, type RaportAssets, type RaportPdfOptions, type Orientation,

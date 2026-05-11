@@ -871,7 +871,7 @@ function drawDetail(
         String(e.kesalahan_mad),
         String(e.kesalahan_qalqalah),
         String(e.kesalahan_tajwid),
-        String(e.waqaf_ibtida),
+        String(e.waqaf_ibtida ?? 0),
         String(e.kelancaran),
         String(
           calculateNilaiTahsinLanjutan(

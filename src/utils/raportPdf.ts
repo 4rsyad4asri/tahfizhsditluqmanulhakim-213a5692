@@ -955,7 +955,7 @@ function drawDetail(
         (cols - 1) * gap
       ) / (cols || 1);
 
-    const cardH = 9;
+    const cardH = 10;
 
     const waqafArabic: any = {
       waqaf_lazim: "م",

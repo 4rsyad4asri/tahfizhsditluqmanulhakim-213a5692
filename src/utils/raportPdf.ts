@@ -439,7 +439,8 @@ function drawScoreSummary(
     (pageW - margin * 2 - gap * 2) / 3;
 
   const h = 18;
-
+  const centerY = startY + (h / 2);
+  
   const drawCard = (
     x: number,
     title: string,
@@ -527,7 +528,7 @@ function drawScoreSummary(
   doc.text(
     "STATUS",
     statusX + boxW / 2,
-    startY + 9.5,
+    centerY - 2,
     {
       align: "center"
     }
@@ -545,7 +546,7 @@ function drawScoreSummary(
   doc.text(
     data.status.toUpperCase(),
     statusX + boxW / 2,
-    startY + 12.5,
+    centerY + 2,
     {
       align: "center"
     }
@@ -590,7 +591,7 @@ function drawScoreSummary(
   doc.text(
     data.predikat,
     startX + labelWidth,
-    startY + 22
+    centerY + 6.5
   );
 }
 

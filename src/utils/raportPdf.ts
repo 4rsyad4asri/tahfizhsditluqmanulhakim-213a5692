@@ -483,7 +483,7 @@ function drawScoreSummary(
     doc.text(
       value,
       x + boxW / 2,
-      centerY + 1.5,
+      centerY + 3,
       {
         align: "center"
       }
@@ -578,22 +578,17 @@ function drawScoreSummary(
 
   doc.setFont("helvetica", "normal");
 
-  doc.text(
-    label,
-    startX,
-    startY +16
-  );
+doc.text(
+  label,
+  startX,
+  const predY = startY + 15;
+);
 
-  doc.setFont("helvetica", "bold");
-
-  doc.setTextColor(...EMERALD);
-
-  doc.text(
-    data.predikat,
-    startX + labelWidth,
-    centerY + 4.5
-  );
-}
+doc.text(
+  data.predikat,
+  startX + labelWidth,
+  const predY = startY + 15;
+);
 
 function sectionTitle(
   doc: jsPDF,

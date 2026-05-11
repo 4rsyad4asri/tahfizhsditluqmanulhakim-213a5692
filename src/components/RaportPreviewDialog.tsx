@@ -55,15 +55,20 @@ export default function RaportPreviewDialog({ open, onClose, ujian, studentName,
   const [loadingPreview, setLoadingPreview] = useState(false);
   const previewSeqRef = useRef(0);
 
-  const [catatan, setCatatan] = useState<string>(
-  ujian?.nilai_aspek?.catatanGuru ||
-  generateCatatanOtomatis(
+const generatedCatatan = useMemo(() => {
+  return generateCatatanOtomatis(
     ujian?.mode,
     ujian?.nilai_akhir ?? 0,
     studentName
-  )
+  );
+}, [ujian, studentName]);
+
+const [catatan, setCatatan] = useState("");
+
+const [tanggal, setTanggal] = useState<string>(
+  ujian?.tanggal ||
+  new Date().toISOString().split("T")[0]
 );
-  const [tanggal, setTanggal] = useState<string>(ujian?.tanggal || new Date().toISOString().split("T")[0]);
 
   // Load persisted
   useEffect(() => {
@@ -85,12 +90,7 @@ useEffect(() => {
   if (open) {
 
     setCatatan(
-      ujian?.nilai_aspek?.catatanGuru ||
-      generateCatatanOtomatis(
-        ujian?.mode,
-        ujian?.nilai_akhir ?? 0,
-        studentName
-      )
+      ujian?.nilai_aspek?.catatanGuru || generatedCatatan
     );
 
     setTanggal(
@@ -98,7 +98,7 @@ useEffect(() => {
       new Date().toISOString().split("T")[0]
     );
   }
-}, [open, ujian, studentName]);
+}, [open, ujian, generatedCatatan]);
 
   const data: RaportData = useMemo(() => {
     const aspek = ujian?.nilai_aspek || {};

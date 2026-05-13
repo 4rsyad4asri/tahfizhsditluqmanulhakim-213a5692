@@ -65,6 +65,9 @@ const generatedCatatan = useMemo(() => {
 
 const [catatan, setCatatan] = useState("");
 
+const finalCatatan =
+  catatan.trim() || generatedCatatan;
+
 const [tanggal, setTanggal] = useState<string>(
   ujian?.tanggal ||
   new Date().toISOString().split("T")[0]
@@ -113,7 +116,7 @@ setCatatan(generatedCatatan);
       status: ujian?.status ?? "-",
       grade: ujian?.grade ?? "-",
       predikat,
-      catatanGuru: catatan,
+      catatanGuru: finalCatatan,
       tahfizhEntries: aspek.surahEntries as TahfizhSurahEntry[] | undefined,
       dasarEntries: aspek.entries as TahsinDasarEntry[] | undefined,
       dasarConfig: aspek.config as TahsinPenaltyConfig | undefined,

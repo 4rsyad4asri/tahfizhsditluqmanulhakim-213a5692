@@ -1270,7 +1270,7 @@ function drawSignatures(
       );
     }
 
-    const signY = y + 20;
+    const signY = y + 16;
 
     doc.setFont("helvetica", "bold");
 

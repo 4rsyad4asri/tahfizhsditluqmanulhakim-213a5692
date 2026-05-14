@@ -1123,7 +1123,7 @@ doc.setFontSize(6.8);
 
 doc.setCharSpace(0);
 
-doc.setLineHeightFactor(1.15);
+doc.setLineHeightFactor(1.3);
 
 doc.setTextColor(...GRAY_TEXT);
 

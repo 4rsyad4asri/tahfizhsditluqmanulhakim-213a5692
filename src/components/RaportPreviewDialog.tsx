@@ -38,7 +38,7 @@ const DEFAULT_HEADER: RaportHeader = {
 };
 
 const DEFAULT_OPTS: RaportPdfOptions = {
-  orientation: "portrait",
+  orientation: "landscape",
   fontSize: 9,
   tableFontSize: 8,
   showWatermark: false,
@@ -92,14 +92,16 @@ const [tanggal, setTanggal] = useState<string>(
 useEffect(() => {
   if (open) {
 
-setCatatan(generatedCatatan);
+    setCatatan(
+      ujian?.nilai_aspek?.catatanGuru ?? ""
+    );
 
     setTanggal(
       ujian?.tanggal ||
       new Date().toISOString().split("T")[0]
     );
   }
-}, [open, ujian, generatedCatatan]);
+}, [open, ujian]);
 
   const data: RaportData = useMemo(() => {
     const aspek = ujian?.nilai_aspek || {};
@@ -126,7 +128,7 @@ setCatatan(generatedCatatan);
       waqafTest: aspek.waqafTest as WaqafSymbolTest | undefined,
       ujianId: ujian?.id,
     };
-  }, [ujian, studentName, className, assessorName, tanggal, catatan]);
+  }, [ujian, studentName, className, assessorName, tanggal, finalCatatan]);
 
   // Generate preview (single source = jsPDF). Debounced.
   useEffect(() => {

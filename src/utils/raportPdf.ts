@@ -1160,7 +1160,7 @@ doc.rect(
 
 doc.text(
   lines,
-  margin + 3,
+  margin - 3,
   startY + 10,
   {
     align: isArabicText

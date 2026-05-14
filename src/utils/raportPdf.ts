@@ -1193,14 +1193,6 @@ return (
 );
 }
 
-y = drawCatatan(
-  doc,
-  data.catatanGuru,
-  y,
-  pageW,
-  margin
-);
-
 function drawSignatures(
   doc: jsPDF,
   data: RaportData,

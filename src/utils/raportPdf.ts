@@ -1182,7 +1182,7 @@ return (
   blockH +
   5
 );
-
+}
 function drawSignatures(
   doc: jsPDF,
   data: RaportData,

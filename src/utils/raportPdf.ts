@@ -1123,7 +1123,7 @@ doc.setFontSize(6.8);
 
 doc.setCharSpace(0);
 
-doc.setLineHeightFactor(1.5);
+doc.setLineHeightFactor(1.15);
 
 doc.setTextColor(...GRAY_TEXT);
 
@@ -1139,7 +1139,7 @@ const lines =
 const blockH =
   Math.max(
     10,
-    lines.length * 2.8 + 6
+    lines.length * 3 + 2
   );
 
 doc.setDrawColor(...GRAY_LINE);
@@ -1150,13 +1150,16 @@ doc.rect(
   pageW - margin * 2,
   blockH
 );
-
+  
+const centerX =
+  margin + (pageW - margin * 2) / 2;
+  
 if (isArabicText) {
 
   doc.text(
     text,
     pageW / 2,
-    startY + 10,
+    startY + 8.5,
     {
       align: "center",
       maxWidth: textWidth,
@@ -1167,8 +1170,12 @@ if (isArabicText) {
 
   doc.text(
     lines,
-    margin + 3,
-    startY + 10
+    pageW / 2,
+    startY + 8.5,
+    {
+      align: "center",
+      maxWidth: textWidth,
+    }
   );
 
 }

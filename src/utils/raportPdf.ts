@@ -1155,10 +1155,10 @@ if (isArabicText) {
 
   doc.text(
     text,
-    pageW - margin - 3,
+    pageW / 2,
     startY + 10,
     {
-      align: "right",
+      align: "center",
       maxWidth: textWidth,
     }
   );

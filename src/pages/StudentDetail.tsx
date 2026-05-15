@@ -284,7 +284,7 @@ const StudentDetail = () => {
             </div>
 
             {showSetoranForm && (
-              <div className="bg-card rounded-lg border border-border p-5 shadow-card animate-scale-in space-y-4">
+               <div className="bg-card rounded-lg border border-border p-5 shadow-card animate-scale-in space-y-4">
                 <h4 className="font-semibold text-foreground flex items-center gap-2">
                   <FileText className="w-4 h-4 text-primary" />
                   Form Input Setoran Hafalan

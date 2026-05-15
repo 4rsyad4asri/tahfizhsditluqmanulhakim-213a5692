@@ -93,11 +93,17 @@ if (aspek.catatanGuru) {
   }, [mode, tahfizhEntries, dasarEntries, dasarConfig, lanjutanEntries, lanjutanConfig, penaltiWaqaf, waqafTest, rumus]);
 
   // Auto-update catatan when in auto mode
-  useEffect(() => {
-    if (catatanMode === 'auto') {
-      setCatatanGuru(generateCatatanOtomatis(computed.nilai_akhir, studentName));
-    }
-  }, [computed.nilai_akhir, catatanMode, studentName]);
+useEffect(() => {
+  if (catatanMode === 'auto') {
+    setCatatanGuru(
+      generateCatatanOtomatis(
+        mode,
+        computed.nilai_akhir,
+        studentName
+      )
+    );
+  }
+}, [mode, computed.nilai_akhir, catatanMode, studentName]);
 
   if (!ujian) return null;
 
@@ -118,12 +124,14 @@ await supabase
     status_sertifikasi: computed.status
   })
   .eq("id", ujian.student_id);
-      
-      onSave({ nilai_aspek, nilai_akhir: computed.nilai_akhir, status: computed.status, grade: computed.grade, tanggal });
-    } catch (e) {
-      toast.error(getSafeErrorMessage(e));
-    }
-  };
+
+onSave({
+  nilai_aspek,
+  nilai_akhir: computed.nilai_akhir,
+  status: computed.status,
+  grade: computed.grade,
+  tanggal,
+});
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>

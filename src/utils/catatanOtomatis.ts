@@ -1,4 +1,3 @@
-```ts
 export type RaportMode =
   | "Tahfizh"
   | "Tahsin Dasar"

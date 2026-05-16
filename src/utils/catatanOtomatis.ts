@@ -77,22 +77,22 @@ export default function generateCatatanOtomatis({
   if (mode === "Tahfizh") {
 
     // LAHN JALI
-    if (lahnJali >= 5) {
+    if (lahnJali >= 8) {
       catatan.push(
         "Perlu meningkatkan ketepatan makhraj huruf dan mengurangi kesalahan bacaan yang dapat mengubah lafazh Al-Qur'an"
       );
-    } else if (lahnJali >= 2) {
+    } else if (lahnJali >= 5) {
       catatan.push(
         "Masih terdapat beberapa kesalahan pada pengucapan huruf tertentu yang perlu diperbaiki"
       );
     }
 
     // LAHN KHOFI
-    if (lahnKhofi >= 8) {
+    if (lahnKhofi >= 12) {
       catatan.push(
         "Perlu meningkatkan ketelitian dalam penerapan tajwid terutama pada mad, ghunnah, dan panjang pendek bacaan"
       );
-    } else if (lahnKhofi >= 4) {
+    } else if (lahnKhofi >= 6) {
       catatan.push(
         "Masih perlu meningkatkan ketelitian dalam penerapan hukum tajwid pada beberapa bagian bacaan"
       );
@@ -145,22 +145,22 @@ export default function generateCatatanOtomatis({
   if (mode === "Tahsin Dasar") {
 
     // MAKHRAJ
-    if (makhraj >= 5) {
+    if (makhraj >= 8) {
       catatan.push(
         "Perlu meningkatkan ketepatan pengucapan makhraj huruf hijaiyah"
       );
-    } else if (makhraj >= 2) {
+    } else if (makhraj >= 4) {
       catatan.push(
         "Masih terdapat beberapa kesalahan kecil pada pengucapan huruf hijaiyah"
       );
     }
 
     // TAJWID
-    if (tajwid >= 5) {
+    if (tajwid >= 8) {
       catatan.push(
         "Perlu meningkatkan pemahaman tajwid dasar dan penerapan hukum bacaan"
       );
-    } else if (tajwid >= 2) {
+    } else if (tajwid >= 4) {
       catatan.push(
         "Masih perlu meningkatkan ketelitian dalam penerapan tajwid dasar"
       );

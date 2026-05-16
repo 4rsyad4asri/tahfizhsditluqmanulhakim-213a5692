@@ -2,7 +2,7 @@ import jsPDF from "jspdf";
 import autoTable, { type RowInput } from "jspdf-autotable";
 import QRCode from "qrcode";
 import { loadArabicFont } from "@/utils/loadArabicFont";
-import { generateCatatanOtomatis } from "@/utils/catatanOtomatis";
+import generateCatatanOtomatis from "@/utils/catatanOtomatis";
 import {
   calculateNilaiTahsinDasar,
   calculateNilaiTahsinLanjutan,

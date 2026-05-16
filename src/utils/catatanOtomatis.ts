@@ -1,4 +1,3 @@
-```ts
 export type RaportMode =
   | "Tahfizh"
   | "Tahsin Dasar"
@@ -15,17 +14,22 @@ export default function generateCatatanOtomatis(
 
   let pembuka = "";
 
-if (nilaiAkhir >= 90) {
-    pembuka = ${ananda} menunjukkan hasil yang sangat Mumtaz dengan penguasaan materi yang sangat baik.;
+  // =========================
+  // PEMBUKA
+  // =========================
+
+  if (nilaiAkhir >= 90) {
+    pembuka = `${ananda} menunjukkan hasil yang sangat Mumtaz dengan penguasaan materi yang sangat baik. `;
   } else if (nilaiAkhir >= 85) {
-    pembuka = ${ananda} menunjukkan hasil yang baik dan memiliki kemampuan yang sudah berkembang dengan sangat baik.;
+    pembuka = `${ananda} menunjukkan hasil yang baik dan memiliki kemampuan yang sudah berkembang dengan sangat baik. `;
   } else if (nilaiAkhir >= 76) {
-    pembuka = ${ananda} memiliki kemampuan yang cukup baik, namun masih terdapat beberapa aspek yang perlu ditingkatkan.;
+    pembuka = `${ananda} memiliki kemampuan yang cukup baik, namun masih terdapat beberapa aspek yang perlu ditingkatkan. `;
   } else if (nilaiAkhir >= 70) {
-    pembuka = ${ananda} telah berusaha dengan baik, namun masih memerlukan latihan dan pembinaan yang lebih intensif.;
+    pembuka = `${ananda} telah berusaha dengan baik, namun masih memerlukan latihan dan pembinaan yang lebih intensif. `;
   } else {
-    pembuka = ${ananda} masih memerlukan bimbingan dan latihan yang lebih rutin agar kemampuan membaca dan hafalan Al-Qur'an dapat meningkat dengan baik.;
+    pembuka = `${ananda} masih memerlukan bimbingan dan latihan yang lebih rutin agar kemampuan membaca dan hafalan Al-Qur'an dapat meningkat dengan baik. `;
   }
+
   // =========================
   // TAHSIN DASAR
   // =========================
@@ -110,37 +114,41 @@ if (nilaiAkhir >= 90) {
   // TAHFIZH
   // =========================
 
-  if (nilaiAkhir >= 90) {
+  if (mode === "Tahfizh") {
+
+    if (nilaiAkhir >= 90) {
+      return (
+        pembuka +
+        "Hafalan Al-Qur'an sangat baik dengan kelancaran, ketepatan tajwid, dan sambungan ayat yang sangat bagus. Semoga senantiasa menjaga hafalan Al-Qur'an dengan istiqamah. Barakallahu fiikum."
+      );
+    }
+
+    if (nilaiAkhir >= 85) {
+      return (
+        pembuka +
+        "Hafalan Al-Qur'an sudah baik, namun masih perlu meningkatkan muroja’ah dan ketelitian pada beberapa bagian ayat. Barakallahu fiikum."
+      );
+    }
+
+    if (nilaiAkhir >= 76) {
+      return (
+        pembuka +
+        "Masih perlu meningkatkan kekuatan hafalan, kelancaran muroja’ah, dan ketepatan sambungan ayat. Barakallahu fiikum."
+      );
+    }
+
+    if (nilaiAkhir >= 70) {
+      return (
+        pembuka +
+        "Perlu meningkatkan intensitas muroja’ah agar hafalan lebih kuat, lancar, dan tidak mudah lupa. Barakallahu fiikum."
+      );
+    }
+
     return (
       pembuka +
-      "Hafalan Al-Qur'an sangat baik dengan kelancaran, ketepatan tajwid, dan sambungan ayat yang sangat bagus. Semoga senantiasa menjaga hafalan Al-Qur'an dengan istiqamah. Barakallahu fiikum."
+      "Diperlukan pembiasaan muroja’ah dan pendampingan yang lebih intensif agar kualitas hafalan semakin meningkat. Barakallahu fiikum."
     );
   }
 
-  if (nilaiAkhir >= 85) {
-    return (
-      pembuka +
-      "Hafalan Al-Qur'an sudah baik, namun masih perlu meningkatkan muroja’ah dan ketelitian pada beberapa bagian ayat. Barakallahu fiikum."
-    );
-  }
-
-  if (nilaiAkhir >= 76) {
-    return (
-      pembuka +
-      "Masih perlu meningkatkan kekuatan hafalan, kelancaran muroja’ah, dan ketepatan sambungan ayat. Barakallahu fiikum."
-    );
-  }
-
-  if (nilaiAkhir >= 70) {
-    return (
-      pembuka +
-      "Perlu meningkatkan intensitas muroja’ah agar hafalan lebih kuat, lancar, dan tidak mudah lupa. Barakallahu fiikum."
-    );
-  }
-
-  return (
-    pembuka +
-    "Diperlukan pembiasaan muroja’ah dan pendampingan yang lebih intensif agar kualitas hafalan semakin meningkat. Barakallahu fiikum."
-  );
+  return pembuka;
 }
-```

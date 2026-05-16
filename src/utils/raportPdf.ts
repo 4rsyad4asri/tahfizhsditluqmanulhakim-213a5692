@@ -1108,11 +1108,7 @@ doc.text(
   startY + 2.8
 );
 
-const text = generateCatatanOtomatis(
-  data.mode,
-  data.nilaiAkhir,
-  data.studentName
-);
+const text = const text = catatan || "—";
 
 const isArabicText =
   /[\u0600-\u06FF]/.test(text);

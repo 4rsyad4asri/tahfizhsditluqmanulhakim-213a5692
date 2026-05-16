@@ -60,7 +60,7 @@ export default function UjianTahsinLanjutanForm({ onSubmit, onCancel, isPending 
   };
 
   const result = calculateTahsinLanjutanResult(entries, config, penaltiWaqaf, waqafTest);
-  const waqafPassed = isWaqafTestPassed(waqafTest);
+  const waqafPassed = Object.values(waqafTest).filter(Boolean).length >=3;
 
   const handleSubmit = () => {
     onSubmit({ entries, config, penaltiWaqaf, waqafTest, catatan_guru: catatanGuru, ...result, tanggal, waktu });

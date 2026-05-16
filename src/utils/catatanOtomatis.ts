@@ -4,7 +4,7 @@ export type RaportMode =
   | "Tahsin Dasar"
   | "Tahsin Lanjutan";
 
-export function generateCatatanOtomatis(
+export default function generateCatatanOtomatis(
   mode: RaportMode,
   nilai: number,
   namaSiswa?: string

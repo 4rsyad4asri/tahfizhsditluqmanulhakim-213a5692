@@ -2,8 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { calculateNilaiSurahWithRumus, calculateNilaiTahfizh, type TahfizhSurahEntry, type TahfizhRumus } from "@/data/mockData";
-import {
-  calculateNilaiTahsinDasar,
+import {calculateNilaiTahsinDasar,
   calculateNilaiTahsinLanjutan,
   calculateTahsinDasarResult,
   calculateTahsinLanjutanResult,
@@ -11,8 +10,8 @@ import {
   type TahsinLanjutanEntry,
   type TahsinPenaltyConfig,
   type WaqafSymbolTest,
-  type RumusVersion,
-} from "@/data/tahsinScoring";
+  type RumusVersion,}
+  from "@/data/tahsinScoring";
 import { generateCatatanOtomatis } from "@/utils/catatanOtomatis";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -125,7 +124,7 @@ useEffect(() => {
     try {
    // otomatis update status siswa
 await supabase
-  .from("students")
+  .from("ujian")
   .update({
     status_sertifikasi: computed.status
   })

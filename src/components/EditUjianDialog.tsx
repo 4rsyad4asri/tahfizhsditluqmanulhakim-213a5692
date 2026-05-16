@@ -6,7 +6,7 @@ import {
   calculateNilaiTahsinDasar, calculateNilaiTahsinLanjutan,
   calculateTahsinDasarResult, calculateTahsinLanjutanResult,
   type TahsinDasarEntry, type TahsinLanjutanEntry, type TahsinPenaltyConfig, type WaqafSymbolTest, type RumusVersion,
-} from "@/data/mockData";
+} from "@/data/tahsinScoring";
 import { generateCatatanOtomatis } from "@/utils/catatanOtomatis";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";

@@ -8,7 +8,7 @@ import {
   type TahsinDasarEntry, type TahsinLanjutanEntry, type TahsinPenaltyConfig, type WaqafSymbolTest, type RumusVersion,
 } from "@/data/tahsinScoring";
 import { generateCatatanOtomatis } from "@/utils/catatanOtomatis";
-import { Loader2, Calculator } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getSafeErrorMessage } from "@/utils/errorMessages";
 
@@ -136,7 +136,6 @@ await supabase
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-primary">
-            <Calculator className="w-5 h-5" /> Edit Hasil Ujian {mode}
           </DialogTitle>
         </DialogHeader>
 

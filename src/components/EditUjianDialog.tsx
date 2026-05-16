@@ -8,7 +8,7 @@ import {
   type TahsinDasarEntry, type TahsinLanjutanEntry, type TahsinPenaltyConfig, type WaqafSymbolTest, type RumusVersion,
 } from "@/data/tahsinScoring";
 import { generateCatatanOtomatis } from "@/utils/catatanOtomatis";
-import { Loader2, Calculator, RotateCcw } from "lucide-react";
+import { Loader2, Calculator } from "lucide-react";
 import { toast } from "sonner";
 import { getSafeErrorMessage } from "@/utils/errorMessages";
 
@@ -298,7 +298,7 @@ await supabase
                 {catatanMode === 'manual' && (
                   <button onClick={() => { setCatatanMode('auto'); setCatatanGuru(generateCatatanOtomatis(computed.nilai_akhir, studentName)); }}
                     className="flex items-center gap-1 text-[10px] text-primary hover:underline">
-                    <RotateCcw className="w-3 h-3" /> Kembali ke Auto
+                
                   </button>
                 )}
               </div>

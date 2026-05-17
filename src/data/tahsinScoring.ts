@@ -119,8 +119,15 @@ export function isWaqafTestPassed(test: WaqafSymbolTest): boolean {
 }
 
 export function calculateNilaiTahsinDasar(entry: TahsinDasarEntry, config: TahsinPenaltyConfig, rumus: RumusVersion = 'baru'): number {
-  const totalLahnJali = entry.salah_huruf + entry.salah_harakat + entry.salah_makhraj;
-  const totalLahnKhofi = entry.kesalahan_mad + entry.kesalahan_ghunnah + entry.kesalahan_tajwid + entry.kesalahan_waqaf;
+  const totalLahnJali =
+  Number(entry.salah_huruf || 0) +
+  Number(entry.salah_harakat || 0) +
+  Number(entry.salah_makhraj || 0);
+  const totalLahnKhofi =
+  Number(entry.kesalahan_mad || 0) +
+  Number(entry.kesalahan_qalqalah || 0) +
+  Number(entry.kesalahan_tajwid || 0) +
+  Number(entry.kesalahan_waqaf || 0);
   if (rumus === 'baru') {
     // Nilai = Kelancaran − (LJ × penaltiLJ) − (LK × penaltiLK)
     const nilai = entry.kelancaran - (totalLahnJali * config.penalti_lahn_jali) - (totalLahnKhofi * config.penalti_lahn_khofi);
@@ -134,10 +141,20 @@ export function calculateNilaiTahsinDasar(entry: TahsinDasarEntry, config: Tahsi
 }
 
 export function calculateNilaiTahsinLanjutan(entry: TahsinLanjutanEntry, config: TahsinPenaltyConfig, penaltiWaqaf: number = 2, rumus: RumusVersion = 'baru'): number {
-  const totalLahnJali = entry.salah_huruf + entry.salah_harakat + entry.salah_makhraj;
-  const totalLahnKhofi = entry.kesalahan_mad + entry.kesalahan_ghunnah + entry.kesalahan_tajwid;
+  const totalLahnJali =
+  Number(entry.salah_huruf || 0) +
+  Number(entry.salah_harakat || 0) +
+  Number(entry.salah_makhraj || 0);
+  const totalLahnKhofi =
+  Number(entry.kesalahan_mad || 0) +
+  Number(entry.kesalahan_qalqalah || 0) +
+  Number(entry.kesalahan_tajwid || 0);
   if (rumus === 'baru') {
-    const nilai = entry.kelancaran - (totalLahnJali * config.penalti_lahn_jali) - (totalLahnKhofi * config.penalti_lahn_khofi) - (entry.waqaf_ibtida * penaltiWaqaf);
+    const nilai =
+  Number(entry.kelancaran || 0) -
+  totalLahnJali * Number(config.penalti_lahn_jali || 0) -
+  totalLahnKhofi * Number(config.penalti_lahn_khofi || 0) -
+  Number(entry.waqaf_ibtida || 0) * Number(penaltiWaqaf || 0);
     return Math.round(Math.max(0, Math.min(100, nilai)));
   }
   const bobotKoreksi = (100 - config.bobot_kelancaran) / 100;

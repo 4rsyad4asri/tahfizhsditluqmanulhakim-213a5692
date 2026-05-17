@@ -81,17 +81,27 @@ export const EBTA_ITEMS = [
 export function createEmptyTahsinDasarEntry(nama: string): TahsinDasarEntry {
   return {
     nama_ebta: nama,
-    salah_huruf: 0, salah_harakat: 0, salah_makhraj: 0,
-    kesalahan_mad: 0, kesalahan_ghunnah: 0, kesalahan_tajwid: 0, kesalahan_waqaf: 0,
+    salah_huruf: 0,
+    salah_harakat: 0,
+    salah_makhraj: 0,
+    kesalahan_mad: 0,
+    kesalahan_qalqalah: 0,
+    kesalahan_tajwid: 0,
+    kesalahan_waqaf: 0,
     kelancaran: 90,
   };
 }
 
 export function createEmptyTahsinLanjutanEntry(): TahsinLanjutanEntry {
   return {
-    surah: '', ayat: '',
-    salah_huruf: 0, salah_harakat: 0, salah_makhraj: 0,
-    kesalahan_mad: 0, kesalahan_ghunnah: 0, kesalahan_tajwid: 0,
+    surah: "",
+    ayat: "",
+    salah_huruf: 0,
+    salah_harakat: 0,
+    salah_makhraj: 0,
+    kesalahan_mad: 0,
+    kesalahan_qalqalah: 0,
+    kesalahan_tajwid: 0,
     waqaf_ibtida: 0,
     kelancaran: 90,
   };

@@ -154,7 +154,7 @@ export const generateTahsinPDF = async (data: TahsinExamData) => {
       const vals = [
         entry.nama_ebta.replace('Iqra 6 - ', 'I6-'),
         String(entry.salah_huruf), String(entry.salah_harakat), String(entry.salah_makhraj),
-        String(entry.kesalahan_mad), String(entry.kesalahan_ghunnah), String(entry.kesalahan_tajwid), String(entry.kesalahan_waqaf),
+        String(entry.kesalahan_mad), String(entry.kesalahan_qalqalah ?? 0), String(entry.kesalahan_tajwid), String(entry.kesalahan_waqaf),
         String(entry.kelancaran), String(nilai),
       ];
 
@@ -196,7 +196,7 @@ export const generateTahsinPDF = async (data: TahsinExamData) => {
       const vals = [
         entry.surah.slice(0, 12), entry.ayat.slice(0, 6),
         String(entry.salah_huruf), String(entry.salah_harakat), String(entry.salah_makhraj),
-        String(entry.kesalahan_mad), String(entry.kesalahan_ghunnah), String(entry.kesalahan_tajwid),
+        String(entry.kesalahan_mad), String(entry.kesalahan_qalqalah ?? 0), String(entry.kesalahan_tajwid),
         String(entry.waqaf_ibtida), String(entry.kelancaran), String(nilai),
       ];
 
@@ -472,56 +472,96 @@ y +=
     }
   }
 
-  // Catatan
-  
-const entries =
-  data?.nilai_aspek?.entries ||
-  data?.nilai_aspek?.surahEntries ||
-  [];
+// Catatan
 
-const totalLahnJali = entries.reduce(
-  (a: number, b: any) =>
-    a + (b.lahn_jali || 0),
-  0
-);
+const getRataKelancaran = (
+  entries: { kelancaran?: number }[]
+) => {
+  if (!entries.length) return 90;
 
-const totalLahnKhofi = entries.reduce(
-  (a: number, b: any) =>
-    a + (b.lahn_khofi || 0),
-  0
-);
+  const total = entries.reduce(
+    (a, b) => a + Number(b.kelancaran || 0),
+    0
+  );
 
-const totalWaqaf = entries.reduce(
-  (a: number, b: any) =>
-    a + (b.waqaf_ibtida || 0),
-  0
-);
+  return Math.round(total / entries.length);
+};
 
-const totalSambung = entries.reduce(
-  (a: number, b: any) =>
-    a + (b.salah_sambung_ayat || 0),
-  0
-);
+let catatan = data.catatanGuru?.trim() || "";
 
-const catatan =
-  data.catatanGuru ||
-  generateCatatanOtomatis({
-    mode: data.mode as any,
+if (!catatan) {
+  if (data.mode === "Tahsin Dasar") {
+    const entries = data.dasarEntries || [];
 
-    nilaiAkhir: Number(data.nilaiAkhir || 0),
+    const totalHarakat = entries.reduce(
+      (a, b) => a + Number(b.salah_harakat || 0),
+      0
+    );
 
-    namaSiswa: data.studentName || "Ananda",
+    const totalTajwid = entries.reduce(
+      (a, b) => a + Number(b.kesalahan_tajwid || 0),
+      0
+    );
 
-    lahnJali: totalLahnJali,
+    const totalMad = entries.reduce(
+      (a, b) => a + Number(b.kesalahan_mad || 0),
+      0
+    );
 
-    lahnKhofi: totalLahnKhofi,
+    const totalQalqalah = entries.reduce(
+      (a, b) => a + Number(b.kesalahan_qalqalah || 0),
+      0
+    );
 
-    waqaf: totalWaqaf,
+    catatan = generateCatatanOtomatis({
+      mode: "Tahsin Dasar",
+      nilaiAkhir: data.nilaiAkhir,
+      namaSiswa: data.studentName,
+      harakat: totalHarakat,
+      tajwid: totalTajwid,
+      mad: totalMad,
+      qalqalah: totalQalqalah,
+      kelancaran: getRataKelancaran(entries),
+    });
+  }
 
-    sambung: totalSambung,
+  if (data.mode === "Tahsin Lanjutan") {
+    const entries = data.lanjutanEntries || [];
 
-    kelancaran: Number(data.nilaiAkhir || 0),
-  });
+    const totalLahnJali = entries.reduce(
+      (a, b) =>
+        a +
+        Number(b.salah_huruf || 0) +
+        Number(b.salah_harakat || 0) +
+        Number(b.salah_makhraj || 0),
+      0
+    );
+
+    const totalLahnKhofi = entries.reduce(
+      (a, b) =>
+        a +
+        Number(b.kesalahan_tajwid || 0) +
+        Number(b.kesalahan_mad || 0) +
+        Number(b.kesalahan_qalqalah || 0),
+      0
+    );
+
+    const totalWaqaf = entries.reduce(
+      (a, b) => a + Number(b.waqaf_ibtida || 0),
+      0
+    );
+
+    catatan = generateCatatanOtomatis({
+      mode: "Tahsin Lanjutan",
+      nilaiAkhir: data.nilaiAkhir,
+      namaSiswa: data.studentName,
+      lahnJali: totalLahnJali,
+      lahnKhofi: totalLahnKhofi,
+      waqaf: totalWaqaf,
+      kelancaran: getRataKelancaran(entries),
+    });
+  }
+}
 
 if (catatan) {
 

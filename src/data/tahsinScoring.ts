@@ -144,12 +144,16 @@ export function createEmptyWaqafTest(): WaqafSymbolTest {
   };
 }
 
-export function isWaqfTestPassed(
-  test: WaqafSymbolTest
+export function isWaqafTestPassed(
+  test?: WaqafSymbolTest | null
 ): boolean {
 
+  if (!test) return false;
+
   const benar =
-    Object.values(test).filter((v) => v === true).length;
+    Object.values(test)
+      .filter(Boolean)
+      .length;
 
   return benar >= 3;
 }

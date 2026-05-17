@@ -1096,8 +1096,24 @@ const StudentDetail = () => {
                             <div key={i} className="p-2 rounded-md bg-muted text-xs">
                               <p className="font-semibold text-foreground mb-1">{entry.nama_ebta}</p>
                               <div className="grid grid-cols-4 gap-2 text-center">
-                                <div><p className="text-muted-foreground">LJ</p><p className="font-bold text-foreground">{entry.salah_huruf + entry.salah_harakat + entry.salah_makhraj}</p></div>
-                                <div><p className="text-muted-foreground">LK</p><p className="font-bold text-foreground">{entry.kesalahan_mad + entry.kesalahan_ghunnah + entry.kesalahan_tajwid + entry.kesalahan_waqaf}</p></div>
+                                <div>
+  <p className="text-muted-foreground">LJ</p>
+  <p className="font-bold text-foreground">
+    {Number(entry.salah_huruf || 0) +
+      Number(entry.salah_harakat || 0) +
+      Number((entry as any).salah_tasydid ?? (entry as any).salah_makhraj ?? 0)}
+  </p>
+</div>
+
+<div>
+  <p className="text-muted-foreground">LK</p>
+  <p className="font-bold text-foreground">
+    {Number(entry.kesalahan_mad || 0) +
+      Number((entry as any).kesalahan_qalqalah ?? (entry as any).kesalahan_ghunnah ?? 0) +
+      Number(entry.kesalahan_tajwid || 0) +
+      Number(entry.kesalahan_waqaf || 0)}
+  </p>
+</div>
                                 <div><p className="text-muted-foreground">Lancar</p><p className="font-bold text-foreground">{entry.kelancaran}</p></div>
                                 <div><p className="text-muted-foreground">Nilai</p><p className="font-bold text-primary">{calculateNilaiTahsinDasar(entry, cfg)}</p></div>
                               </div>
@@ -1117,8 +1133,23 @@ const StudentDetail = () => {
                             <div key={i} className="p-2 rounded-md bg-muted text-xs">
                               <p className="font-semibold text-foreground mb-1">{entry.surah} {entry.ayat ? `(${entry.ayat})` : ''}</p>
                               <div className="grid grid-cols-5 gap-2 text-center">
-                                <div><p className="text-muted-foreground">LJ</p><p className="font-bold text-foreground">{entry.salah_huruf + entry.salah_harakat + entry.salah_makhraj}</p></div>
-                                <div><p className="text-muted-foreground">LK</p><p className="font-bold text-foreground">{entry.kesalahan_mad + entry.kesalahan_ghunnah + entry.kesalahan_tajwid}</p></div>
+<div>
+  <p className="text-muted-foreground">LJ</p>
+  <p className="font-bold text-foreground">
+    {Number(entry.salah_huruf || 0) +
+      Number(entry.salah_harakat || 0) +
+      Number((entry as any).salah_tasydid ?? (entry as any).salah_makhraj ?? 0)}
+  </p>
+</div>
+
+<div>
+  <p className="text-muted-foreground">LK</p>
+  <p className="font-bold text-foreground">
+    {Number(entry.kesalahan_mad || 0) +
+      Number((entry as any).kesalahan_qalqalah ?? (entry as any).kesalahan_ghunnah ?? 0) +
+      Number(entry.kesalahan_tajwid || 0)}
+  </p>
+</div>
                                 <div><p className="text-muted-foreground">Waqaf</p><p className="font-bold text-foreground">{entry.waqaf_ibtida}</p></div>
                                 <div><p className="text-muted-foreground">Lancar</p><p className="font-bold text-foreground">{entry.kelancaran}</p></div>
                                 <div><p className="text-muted-foreground">Nilai</p><p className="font-bold text-primary">{calculateNilaiTahsinLanjutan(entry, cfg, pw)}</p></div>

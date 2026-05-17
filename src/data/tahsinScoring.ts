@@ -144,8 +144,14 @@ export function createEmptyWaqafTest(): WaqafSymbolTest {
   };
 }
 
-export function isWaqafTestPassed(test: WaqafSymbolTest): boolean {
-  return Object.values(test).every((v) => v === true);
+export function isWaqfTestPassed(
+  test: WaqafSymbolTest
+): boolean {
+
+  const benar =
+    Object.values(test).filter((v) => v === true).length;
+
+  return benar >= 3;
 }
 
 export function calculateNilaiTahsinDasar(
@@ -304,7 +310,7 @@ export function calculateTahsinLanjutanResult(
   );
 
   if (!isWaqafTestPassed(waqafTest)) {
-    nilaiAkhir = Math.min(nilaiAkhir, 69);
+    nilaiAkhir = Math.min(nilaiAkhir, 70);
   }
 
   return getGrading(nilaiAkhir);

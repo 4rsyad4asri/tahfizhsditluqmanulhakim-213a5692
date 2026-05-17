@@ -71,6 +71,22 @@ function getRataKelancaran(entries: { kelancaran?: number }[]) {
   return Math.round(total / entries.length);
 }
 
+function getSalahTasydid(entry: any) {
+  return Number(entry.salah_tasydid ?? entry.salah_makhraj ?? 0);
+}
+
+function getKesalahanQalqalah(entry: any) {
+  return Number(entry.kesalahan_qalqalah ?? entry.kesalahan_ghunnah ?? 0);
+}
+
+function normalizeTahsinEntry<T extends Record<string, any>>(entry: T): T {
+  return {
+    ...entry,
+    salah_tasydid: getSalahTasydid(entry),
+    kesalahan_qalqalah: getKesalahanQalqalah(entry),
+  };
+}
+
 export default function EditUjianDialog({
   open,
   onClose,
@@ -98,14 +114,14 @@ export default function EditUjianDialog({
   );
 
   const [dasarEntries, setDasarEntries] = useState<TahsinDasarEntry[]>(
-    aspek.entries || []
+    (aspek.entries || []).map(normalizeTahsinEntry)
   );
   const [dasarConfig, setDasarConfig] = useState<TahsinPenaltyConfig>(
     aspek.config || DEFAULT_TAHSIN_CONFIG
   );
 
   const [lanjutanEntries, setLanjutanEntries] = useState<TahsinLanjutanEntry[]>(
-    aspek.entries || []
+    (aspek.entries || []).map(normalizeTahsinEntry)
   );
   const [lanjutanConfig, setLanjutanConfig] = useState<TahsinPenaltyConfig>(
     aspek.config || DEFAULT_TAHSIN_CONFIG
@@ -117,32 +133,35 @@ export default function EditUjianDialog({
     aspek.waqafTest || DEFAULT_WAQAF_TEST
   );
 
-useEffect(() => {
-  if (!open) return;
+  useEffect(() => {
+    if (!open) return;
 
-  const currentAspek = ujian?.nilai_aspek || {};
+    const currentAspek = ujian?.nilai_aspek || {};
+    const normalizedEntries = (currentAspek.entries || []).map(
+      normalizeTahsinEntry
+    );
 
-  setTanggal(ujian?.tanggal || "");
-  setRumus(currentAspek.rumus || "baru");
+    setTanggal(ujian?.tanggal || "");
+    setRumus(currentAspek.rumus || "baru");
 
-  const savedCatatanMode = currentAspek.catatanMode || "auto";
+    const savedCatatanMode = currentAspek.catatanMode || "auto";
 
-  setCatatanMode(savedCatatanMode);
+    setCatatanMode(savedCatatanMode);
 
-  setCatatanGuru(
-    savedCatatanMode === "manual"
-      ? currentAspek.catatanGuru || ""
-      : ""
-  );
+    setCatatanGuru(
+      savedCatatanMode === "manual"
+        ? currentAspek.catatanGuru || ""
+        : ""
+    );
 
-  setTahfizhEntries(currentAspek.surahEntries || []);
-  setDasarEntries(currentAspek.entries || []);
-  setDasarConfig(currentAspek.config || DEFAULT_TAHSIN_CONFIG);
-  setLanjutanEntries(currentAspek.entries || []);
-  setLanjutanConfig(currentAspek.config || DEFAULT_TAHSIN_CONFIG);
-  setPenaltiWaqaf(currentAspek.penaltiWaqaf || 2);
-  setWaqafTest(currentAspek.waqafTest || DEFAULT_WAQAF_TEST);
-}, [open, ujian]);
+    setTahfizhEntries(currentAspek.surahEntries || []);
+    setDasarEntries(normalizedEntries);
+    setDasarConfig(currentAspek.config || DEFAULT_TAHSIN_CONFIG);
+    setLanjutanEntries(normalizedEntries);
+    setLanjutanConfig(currentAspek.config || DEFAULT_TAHSIN_CONFIG);
+    setPenaltiWaqaf(currentAspek.penaltiWaqaf || 2);
+    setWaqafTest(currentAspek.waqafTest || DEFAULT_WAQAF_TEST);
+  }, [open, ujian]);
 
   const computed = useMemo(() => {
     if (mode === "Tahfizh") {
@@ -251,7 +270,7 @@ useEffect(() => {
       );
 
       const totalQalqalah = dasarEntries.reduce(
-        (a, b) => a + Number(b.kesalahan_qalqalah || 0),
+        (a, b) => a + getKesalahanQalqalah(b),
         0
       );
 
@@ -273,7 +292,7 @@ useEffect(() => {
           a +
           Number(b.salah_huruf || 0) +
           Number(b.salah_harakat || 0) +
-          Number(b.salah_makhraj || 0),
+          getSalahTasydid(b),
         0
       );
 
@@ -282,7 +301,7 @@ useEffect(() => {
           a +
           Number(b.kesalahan_tajwid || 0) +
           Number(b.kesalahan_mad || 0) +
-          Number(b.kesalahan_qalqalah || 0),
+          getKesalahanQalqalah(b),
         0
       );
 
@@ -335,7 +354,7 @@ useEffect(() => {
     } else if (mode === "Tahsin Dasar") {
       nilai_aspek = {
         ...aspek,
-        entries: dasarEntries,
+        entries: dasarEntries.map(normalizeTahsinEntry),
         config: dasarConfig,
         rumus,
         catatanGuru,
@@ -345,7 +364,7 @@ useEffect(() => {
     } else {
       nilai_aspek = {
         ...aspek,
-        entries: lanjutanEntries,
+        entries: lanjutanEntries.map(normalizeTahsinEntry),
         config: lanjutanConfig,
         penaltiWaqaf,
         waqafTest,
@@ -408,7 +427,9 @@ useEffect(() => {
                 onChange={(e) => setRumus(e.target.value as any)}
                 className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm"
               >
-                <option value="baru">Rumus Baru: Nilai = Kelancaran - Penalti</option>
+                <option value="baru">
+                  Rumus Baru: Nilai = Kelancaran - Penalti
+                </option>
                 <option value="lama">Rumus Lama (Bobot 60/40)</option>
               </select>
             </div>
@@ -417,7 +438,10 @@ useEffect(() => {
           {mode === "Tahfizh" && (
             <div className="space-y-3">
               {tahfizhEntries.map((e, i) => (
-                <div key={i} className="p-3 rounded-md border border-border bg-muted/30">
+                <div
+                  key={i}
+                  className="p-3 rounded-md border border-border bg-muted/30"
+                >
                   <p className="text-sm font-semibold text-foreground mb-2">
                     Surat #{i + 1}: {e.surah} (Juz {e.juz})
                   </p>
@@ -441,7 +465,8 @@ useEffect(() => {
                           value={(e as any)[f.k] ?? 0}
                           onChange={(ev) => {
                             const updated = [...tahfizhEntries];
-                            (updated[i] as any)[f.k] = parseInt(ev.target.value) || 0;
+                            (updated[i] as any)[f.k] =
+                              parseInt(ev.target.value) || 0;
                             setTahfizhEntries(updated);
                           }}
                           className="w-full px-2 py-1.5 rounded-md border border-input bg-background text-foreground text-sm"
@@ -451,7 +476,8 @@ useEffect(() => {
                   </div>
 
                   <p className="text-xs text-right mt-2 text-primary font-bold">
-                    Nilai: {calculateNilaiSurahWithRumus(e, rumus as TahfizhRumus)}
+                    Nilai:{" "}
+                    {calculateNilaiSurahWithRumus(e, rumus as TahfizhRumus)}
                   </p>
                 </div>
               ))}
@@ -461,7 +487,10 @@ useEffect(() => {
           {mode === "Tahsin Dasar" && (
             <div className="space-y-3">
               {dasarEntries.map((e, i) => (
-                <div key={i} className="p-3 rounded-md border border-border bg-muted/30">
+                <div
+                  key={i}
+                  className="p-3 rounded-md border border-border bg-muted/30"
+                >
                   <p className="text-sm font-semibold text-foreground mb-2">
                     {e.nama_ebta}
                   </p>
@@ -470,7 +499,7 @@ useEffect(() => {
                     {[
                       "salah_huruf",
                       "salah_harakat",
-                      "salah_makhraj",
+                      "salah_tasydid",
                       "kesalahan_mad",
                       "kesalahan_qalqalah",
                       "kesalahan_tajwid",
@@ -488,7 +517,8 @@ useEffect(() => {
                           value={(e as any)[k] ?? 0}
                           onChange={(ev) => {
                             const updated = [...dasarEntries];
-                            (updated[i] as any)[k] = parseInt(ev.target.value) || 0;
+                            (updated[i] as any)[k] =
+                              parseInt(ev.target.value) || 0;
                             setDasarEntries(updated);
                           }}
                           className="w-full px-2 py-1.5 rounded-md border border-input bg-background text-sm"
@@ -498,7 +528,12 @@ useEffect(() => {
                   </div>
 
                   <p className="text-xs text-right mt-2 text-primary font-bold">
-                    Nilai: {calculateNilaiTahsinDasar(e, dasarConfig, rumus as RumusVersion)}
+                    Nilai:{" "}
+                    {calculateNilaiTahsinDasar(
+                      e,
+                      dasarConfig,
+                      rumus as RumusVersion
+                    )}
                   </p>
                 </div>
               ))}
@@ -508,7 +543,10 @@ useEffect(() => {
           {mode === "Tahsin Lanjutan" && (
             <div className="space-y-3">
               {lanjutanEntries.map((e, i) => (
-                <div key={i} className="p-3 rounded-md border border-border bg-muted/30">
+                <div
+                  key={i}
+                  className="p-3 rounded-md border border-border bg-muted/30"
+                >
                   <div className="flex gap-2 mb-2">
                     <input
                       type="text"
@@ -538,7 +576,7 @@ useEffect(() => {
                     {[
                       "salah_huruf",
                       "salah_harakat",
-                      "salah_makhraj",
+                      "salah_tasydid",
                       "kesalahan_mad",
                       "kesalahan_qalqalah",
                       "kesalahan_tajwid",
@@ -556,7 +594,8 @@ useEffect(() => {
                           value={(e as any)[k] ?? 0}
                           onChange={(ev) => {
                             const updated = [...lanjutanEntries];
-                            (updated[i] as any)[k] = parseInt(ev.target.value) || 0;
+                            (updated[i] as any)[k] =
+                              parseInt(ev.target.value) || 0;
                             setLanjutanEntries(updated);
                           }}
                           className="w-full px-2 py-1.5 rounded-md border border-input bg-background text-sm"
@@ -640,8 +679,8 @@ useEffect(() => {
                   {computed.predikat}
                 </p>
                 <p className="text-sm font-medium">
-                  {computed.status === "Lulus" ? "LULUS" : "TIDAK LULUS"} · Grade{" "}
-                  {computed.grade}
+                  {computed.status === "Lulus" ? "LULUS" : "TIDAK LULUS"} ·
+                  Grade {computed.grade}
                 </p>
                 <p className="text-[10px] text-muted-foreground">
                   Ambang: {computed.threshold}

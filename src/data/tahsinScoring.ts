@@ -1,16 +1,28 @@
 // Tahsin Dasar & Lanjutan scoring logic
 
-export type RumusVersion = 'baru' | 'lama';
+export type RumusVersion = "baru" | "lama";
 
-export const RUMUS_OPTIONS: { value: RumusVersion; label: string; desc: string }[] = [
-  { value: 'baru', label: 'Rumus Baru (Direkomendasikan)', desc: 'Nilai = Kelancaran − ΣPenalty (langsung)' },
-  { value: 'lama', label: 'Rumus Lama (Bobot 60/40)', desc: 'Nilai = (Koreksi × bobot) + (Kelancaran × bobot)' },
+export const RUMUS_OPTIONS: {
+  value: RumusVersion;
+  label: string;
+  desc: string;
+}[] = [
+  {
+    value: "baru",
+    label: "Rumus Baru (Direkomendasikan)",
+    desc: "Nilai = Kelancaran - ΣPenalty (langsung)",
+  },
+  {
+    value: "lama",
+    label: "Rumus Lama (Bobot 60/40)",
+    desc: "Nilai = (Koreksi × bobot) + (Kelancaran × bobot)",
+  },
 ];
 
 export interface TahsinPenaltyConfig {
-  penalti_lahn_jali: number; // default -2 for Dasar
-  penalti_lahn_khofi: number; // default -1 for Dasar
-  bobot_kelancaran: number; // default 40 (%)
+  penalti_lahn_jali: number;
+  penalti_lahn_khofi: number;
+  bobot_kelancaran: number;
 }
 
 export const DEFAULT_TAHSIN_DASAR_CONFIG: TahsinPenaltyConfig = {
@@ -29,12 +41,12 @@ export interface TahsinDasarEntry {
   nama_ebta: string;
   salah_huruf: number;
   salah_harakat: number;
-  salah_makhraj: number;
+  salah_tasydid: number;
   kesalahan_mad: number;
   kesalahan_qalqalah: number;
   kesalahan_tajwid: number;
   kesalahan_waqaf: number;
-  kelancaran: number; // 60-100
+  kelancaran: number;
 }
 
 export interface TahsinLanjutanEntry {
@@ -42,12 +54,12 @@ export interface TahsinLanjutanEntry {
   ayat: string;
   salah_huruf: number;
   salah_harakat: number;
-  salah_makhraj: number;
+  salah_tasydid: number;
   kesalahan_mad: number;
   kesalahan_qalqalah: number;
   kesalahan_tajwid: number;
   waqaf_ibtida: number;
-  kelancaran: number; // 60-100
+  kelancaran: number;
 }
 
 export interface WaqafSymbolTest {
@@ -60,30 +72,44 @@ export interface WaqafSymbolTest {
 }
 
 export const WAQAF_SYMBOLS = [
-  { key: 'waqaf_lazim', label: 'Waqaf Lazim (مـ)', desc: 'Wajib berhenti' },
-  { key: 'waqaf_mustahab', label: 'Waqaf Mustahab (قلى)', desc: 'Lebih baik berhenti' },
-  { key: 'waqaf_jaiz', label: 'Waqaf Jaiz (ج)', desc: 'Boleh berhenti atau lanjut' },
-  { key: 'waqaf_mujawwaz', label: 'Waqaf Mujawwaz (صلى)', desc: 'Lebih baik lanjut' },
-  { key: 'waqaf_mamnu', label: 'Waqaf Mamnu\' (لا)', desc: 'Tidak boleh berhenti' },
-  { key: 'waqaf_muanaqah', label: 'Waqaf Muanaqah (∴)', desc: 'Berhenti di salah satu tanda' },
+  { key: "waqaf_lazim", label: "Waqaf Lazim (مـ)", desc: "Wajib berhenti" },
+  { key: "waqaf_mustahab", label: "Waqaf Mustahab (قلى)", desc: "Lebih baik berhenti" },
+  { key: "waqaf_jaiz", label: "Waqaf Jaiz (ج)", desc: "Boleh berhenti atau lanjut" },
+  { key: "waqaf_mujawwaz", label: "Waqaf Mujawwaz (صلى)", desc: "Lebih baik lanjut" },
+  { key: "waqaf_mamnu", label: "Waqaf Mamnu' (لا)", desc: "Tidak boleh berhenti" },
+  { key: "waqaf_muanaqah", label: "Waqaf Muanaqah (∴)", desc: "Berhenti di salah satu tanda" },
 ];
 
 export const EBTA_ITEMS = [
-  'EBTA 1',
-  'EBTA 2',
-  'EBTA 3',
-  'EBTA 4',
-  'EBTA 5',
-  'Iqra 6 - Halaman Acak 1',
-  'Iqra 6 - Halaman Acak 2',
+  "EBTA 1",
+  "EBTA 2",
+  "EBTA 3",
+  "EBTA 4",
+  "EBTA 5",
+  "Iqra 6 - Halaman Acak 1",
+  "Iqra 6 - Halaman Acak 2",
 ];
 
-export function createEmptyTahsinDasarEntry(nama: string): TahsinDasarEntry {
+function numberOrZero(value: unknown): number {
+  return Number(value || 0);
+}
+
+function getSalahTasydid(entry: any): number {
+  return Number(entry.salah_tasydid ?? entry.salah_makhraj ?? 0);
+}
+
+function getKesalahanQalqalah(entry: any): number {
+  return Number(entry.kesalahan_qalqalah ?? entry.kesalahan_ghunnah ?? 0);
+}
+
+export function createEmptyTahsinDasarEntry(
+  nama: string
+): TahsinDasarEntry {
   return {
     nama_ebta: nama,
     salah_huruf: 0,
     salah_harakat: 0,
-    salah_makhraj: 0,
+    salah_tasydid: 0,
     kesalahan_mad: 0,
     kesalahan_qalqalah: 0,
     kesalahan_tajwid: 0,
@@ -98,7 +124,7 @@ export function createEmptyTahsinLanjutanEntry(): TahsinLanjutanEntry {
     ayat: "",
     salah_huruf: 0,
     salah_harakat: 0,
-    salah_makhraj: 0,
+    salah_tasydid: 0,
     kesalahan_mad: 0,
     kesalahan_qalqalah: 0,
     kesalahan_tajwid: 0,
@@ -109,88 +135,207 @@ export function createEmptyTahsinLanjutanEntry(): TahsinLanjutanEntry {
 
 export function createEmptyWaqafTest(): WaqafSymbolTest {
   return {
-    waqaf_lazim: false, waqaf_mustahab: false, waqaf_jaiz: false,
-    waqaf_mujawwaz: false, waqaf_mamnu: false, waqaf_muanaqah: false,
+    waqaf_lazim: false,
+    waqaf_mustahab: false,
+    waqaf_jaiz: false,
+    waqaf_mujawwaz: false,
+    waqaf_mamnu: false,
+    waqaf_muanaqah: false,
   };
 }
 
 export function isWaqafTestPassed(test: WaqafSymbolTest): boolean {
-  return Object.values(test).every(v => v === true);
+  return Object.values(test).every((v) => v === true);
 }
 
-export function calculateNilaiTahsinDasar(entry: TahsinDasarEntry, config: TahsinPenaltyConfig, rumus: RumusVersion = 'baru'): number {
+export function calculateNilaiTahsinDasar(
+  entry: TahsinDasarEntry,
+  config: TahsinPenaltyConfig,
+  rumus: RumusVersion = "baru"
+): number {
   const totalLahnJali =
-  Number(entry.salah_huruf || 0) +
-  Number(entry.salah_harakat || 0) +
-  Number(entry.salah_makhraj || 0);
-  const totalLahnKhofi =
-  Number(entry.kesalahan_mad || 0) +
-  Number(entry.kesalahan_qalqalah || 0) +
-  Number(entry.kesalahan_tajwid || 0) +
-  Number(entry.kesalahan_waqaf || 0);
-  if (rumus === 'baru') {
-    // Nilai = Kelancaran − (LJ × penaltiLJ) − (LK × penaltiLK)
-    const nilai = entry.kelancaran - (totalLahnJali * config.penalti_lahn_jali) - (totalLahnKhofi * config.penalti_lahn_khofi);
-    return Math.round(Math.max(0, Math.min(100, nilai)));
-  }
-  const bobotKoreksi = (100 - config.bobot_kelancaran) / 100;
-  const bobotKelancaran = config.bobot_kelancaran / 100;
-  const nilaiKoreksi = Math.max(0, 100 - (totalLahnJali * config.penalti_lahn_jali) - (totalLahnKhofi * config.penalti_lahn_khofi));
-  const nilaiAkhir = (nilaiKoreksi * bobotKoreksi) + (entry.kelancaran * bobotKelancaran);
-  return Math.round(Math.max(0, Math.min(100, nilaiAkhir)));
-}
+    numberOrZero(entry.salah_huruf) +
+    numberOrZero(entry.salah_harakat) +
+    getSalahTasydid(entry);
 
-export function calculateNilaiTahsinLanjutan(entry: TahsinLanjutanEntry, config: TahsinPenaltyConfig, penaltiWaqaf: number = 2, rumus: RumusVersion = 'baru'): number {
-  const totalLahnJali =
-  Number(entry.salah_huruf || 0) +
-  Number(entry.salah_harakat || 0) +
-  Number(entry.salah_makhraj || 0);
   const totalLahnKhofi =
-  Number(entry.kesalahan_mad || 0) +
-  Number(entry.kesalahan_qalqalah || 0) +
-  Number(entry.kesalahan_tajwid || 0);
-  if (rumus === 'baru') {
+    numberOrZero(entry.kesalahan_mad) +
+    getKesalahanQalqalah(entry) +
+    numberOrZero(entry.kesalahan_tajwid) +
+    numberOrZero(entry.kesalahan_waqaf);
+
+  const kelancaran = numberOrZero(entry.kelancaran);
+  const penaltiLahnJali = numberOrZero(config.penalti_lahn_jali);
+  const penaltiLahnKhofi = numberOrZero(config.penalti_lahn_khofi);
+  const bobotKelancaranConfig = numberOrZero(config.bobot_kelancaran);
+
+  if (rumus === "baru") {
     const nilai =
-  Number(entry.kelancaran || 0) -
-  totalLahnJali * Number(config.penalti_lahn_jali || 0) -
-  totalLahnKhofi * Number(config.penalti_lahn_khofi || 0) -
-  Number(entry.waqaf_ibtida || 0) * Number(penaltiWaqaf || 0);
+      kelancaran -
+      totalLahnJali * penaltiLahnJali -
+      totalLahnKhofi * penaltiLahnKhofi;
+
     return Math.round(Math.max(0, Math.min(100, nilai)));
   }
-  const bobotKoreksi = (100 - config.bobot_kelancaran) / 100;
-  const bobotKelancaran = config.bobot_kelancaran / 100;
-  const nilaiKoreksi = Math.max(0, 100 - (totalLahnJali * config.penalti_lahn_jali) - (totalLahnKhofi * config.penalti_lahn_khofi) - (entry.waqaf_ibtida * penaltiWaqaf));
-  const nilaiAkhir = (nilaiKoreksi * bobotKoreksi) + (entry.kelancaran * bobotKelancaran);
+
+  const bobotKoreksi = (100 - bobotKelancaranConfig) / 100;
+  const bobotKelancaran = bobotKelancaranConfig / 100;
+
+  const nilaiKoreksi = Math.max(
+    0,
+    100 -
+      totalLahnJali * penaltiLahnJali -
+      totalLahnKhofi * penaltiLahnKhofi
+  );
+
+  const nilaiAkhir =
+    nilaiKoreksi * bobotKoreksi + kelancaran * bobotKelancaran;
+
   return Math.round(Math.max(0, Math.min(100, nilaiAkhir)));
 }
 
-export function calculateTahsinDasarResult(entries: TahsinDasarEntry[], config: TahsinPenaltyConfig, rumus: RumusVersion = 'baru'): {
-  nilaiAkhir: number; status: 'Lulus' | 'Tidak Lulus'; grade: string; predikat: string;
-} {
-  if (entries.length === 0) return { nilaiAkhir: 0, status: 'Tidak Lulus', grade: 'D', predikat: 'Perlu Perbaikan' };
-  const scores = entries.map(e => calculateNilaiTahsinDasar(e, config, rumus));
-  const nilaiAkhir = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-  return getGrading(nilaiAkhir);
-}
+export function calculateNilaiTahsinLanjutan(
+  entry: TahsinLanjutanEntry,
+  config: TahsinPenaltyConfig,
+  penaltiWaqaf: number = 2,
+  rumus: RumusVersion = "baru"
+): number {
+  const totalLahnJali =
+    numberOrZero(entry.salah_huruf) +
+    numberOrZero(entry.salah_harakat) +
+    getSalahTasydid(entry);
 
-export function calculateTahsinLanjutanResult(entries: TahsinLanjutanEntry[], config: TahsinPenaltyConfig, penaltiWaqaf: number, waqafTest: WaqafSymbolTest, rumus: RumusVersion = 'baru'): {
-  nilaiAkhir: number; status: 'Lulus' | 'Tidak Lulus'; grade: string; predikat: string;
-} {
-  if (entries.length === 0) return { nilaiAkhir: 0, status: 'Tidak Lulus', grade: 'D', predikat: 'Perlu Perbaikan' };
-  const scores = entries.map(e => calculateNilaiTahsinLanjutan(e, config, penaltiWaqaf, rumus));
-  let nilaiAkhir = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-  // Waqaf symbol test: if not all passed, cap grade
-  if (!isWaqafTestPassed(waqafTest)) {
-    nilaiAkhir = Math.min(nilaiAkhir, 69); // auto fail
+  const totalLahnKhofi =
+    numberOrZero(entry.kesalahan_mad) +
+    getKesalahanQalqalah(entry) +
+    numberOrZero(entry.kesalahan_tajwid);
+
+  const kelancaran = numberOrZero(entry.kelancaran);
+  const waqaf = numberOrZero(entry.waqaf_ibtida);
+  const penaltiLahnJali = numberOrZero(config.penalti_lahn_jali);
+  const penaltiLahnKhofi = numberOrZero(config.penalti_lahn_khofi);
+  const penaltiWaqafAman = numberOrZero(penaltiWaqaf);
+  const bobotKelancaranConfig = numberOrZero(config.bobot_kelancaran);
+
+  if (rumus === "baru") {
+    const nilai =
+      kelancaran -
+      totalLahnJali * penaltiLahnJali -
+      totalLahnKhofi * penaltiLahnKhofi -
+      waqaf * penaltiWaqafAman;
+
+    return Math.round(Math.max(0, Math.min(100, nilai)));
   }
+
+  const bobotKoreksi = (100 - bobotKelancaranConfig) / 100;
+  const bobotKelancaran = bobotKelancaranConfig / 100;
+
+  const nilaiKoreksi = Math.max(
+    0,
+    100 -
+      totalLahnJali * penaltiLahnJali -
+      totalLahnKhofi * penaltiLahnKhofi -
+      waqaf * penaltiWaqafAman
+  );
+
+  const nilaiAkhir =
+    nilaiKoreksi * bobotKoreksi + kelancaran * bobotKelancaran;
+
+  return Math.round(Math.max(0, Math.min(100, nilaiAkhir)));
+}
+
+export function calculateTahsinDasarResult(
+  entries: TahsinDasarEntry[],
+  config: TahsinPenaltyConfig,
+  rumus: RumusVersion = "baru"
+): {
+  nilaiAkhir: number;
+  status: "Lulus" | "Tidak Lulus";
+  grade: string;
+  predikat: string;
+} {
+  if (entries.length === 0) {
+    return {
+      nilaiAkhir: 0,
+      status: "Tidak Lulus",
+      grade: "D",
+      predikat: "Perlu Perbaikan",
+    };
+  }
+
+  const scores = entries.map((e) =>
+    calculateNilaiTahsinDasar(e, config, rumus)
+  );
+
+  const nilaiAkhir = Math.round(
+    scores.reduce((a, b) => a + b, 0) / scores.length
+  );
+
   return getGrading(nilaiAkhir);
 }
 
-function getGrading(nilaiAkhir: number): { nilaiAkhir: number; status: 'Lulus' | 'Tidak Lulus'; grade: string; predikat: string } {
-  const status = nilaiAkhir >= 70 ? 'Lulus' : 'Tidak Lulus';
-  let grade = 'D', predikat = 'Perlu Perbaikan';
-  if (nilaiAkhir >= 90) { grade = 'A'; predikat = 'Mumtaz'; }
-  else if (nilaiAkhir >= 80) { grade = 'B'; predikat = 'Jayyid Jiddan'; }
-  else if (nilaiAkhir >= 70) { grade = 'C'; predikat = 'Jayyid'; }
-  return { nilaiAkhir, status, grade, predikat };
+export function calculateTahsinLanjutanResult(
+  entries: TahsinLanjutanEntry[],
+  config: TahsinPenaltyConfig,
+  penaltiWaqaf: number,
+  waqafTest: WaqafSymbolTest,
+  rumus: RumusVersion = "baru"
+): {
+  nilaiAkhir: number;
+  status: "Lulus" | "Tidak Lulus";
+  grade: string;
+  predikat: string;
+} {
+  if (entries.length === 0) {
+    return {
+      nilaiAkhir: 0,
+      status: "Tidak Lulus",
+      grade: "D",
+      predikat: "Perlu Perbaikan",
+    };
+  }
+
+  const scores = entries.map((e) =>
+    calculateNilaiTahsinLanjutan(e, config, penaltiWaqaf, rumus)
+  );
+
+  let nilaiAkhir = Math.round(
+    scores.reduce((a, b) => a + b, 0) / scores.length
+  );
+
+  if (!isWaqafTestPassed(waqafTest)) {
+    nilaiAkhir = Math.min(nilaiAkhir, 69);
+  }
+
+  return getGrading(nilaiAkhir);
+}
+
+function getGrading(nilaiAkhir: number): {
+  nilaiAkhir: number;
+  status: "Lulus" | "Tidak Lulus";
+  grade: string;
+  predikat: string;
+} {
+  const status = nilaiAkhir >= 70 ? "Lulus" : "Tidak Lulus";
+
+  let grade = "D";
+  let predikat = "Perlu Perbaikan";
+
+  if (nilaiAkhir >= 90) {
+    grade = "A";
+    predikat = "Mumtaz";
+  } else if (nilaiAkhir >= 80) {
+    grade = "B";
+    predikat = "Jayyid Jiddan";
+  } else if (nilaiAkhir >= 70) {
+    grade = "C";
+    predikat = "Jayyid";
+  }
+
+  return {
+    nilaiAkhir,
+    status,
+    grade,
+    predikat,
+  };
 }

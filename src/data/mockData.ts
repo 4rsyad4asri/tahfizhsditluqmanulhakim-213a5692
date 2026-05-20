@@ -205,26 +205,44 @@ export function calculateNilaiTahfizh(entries: TahfizhSurahEntry[], rumus: Tahfi
   else if (nilaiAkhir >= 70) { grade = 'C'; predikat = 'Jayyid'; }
   return { nilaiAkhir, status, grade, predikat };
 }
-export function calculateNilaiUjian(
-  nilaiAspek: Record<string, number>
-): {
+
+type HasilUjian = {
   nilaiAkhir: number;
   status: "Lulus" | "Tidak Lulus";
-  grade: string;
+  grade: "A" | "B" | "C" | "D";
   predikat: string;
-} {
+};
+
+export function calculateNilaiUjian(
+  nilaiAspek: Record<string, number>
+): HasilUjian {
   const values = Object.values(nilaiAspek);
 
-  const nilaiAkhir = Math.round(
-    values.reduce((a, b) => a + b, 0) / values.length
+  // Antisipasi data kosong
+  if (values.length === 0) {
+    return {
+      nilaiAkhir: 0,
+      status: "Tidak Lulus",
+      grade: "D",
+      predikat: "Belum Ada Nilai",
+    };
+  }
+
+  // Hitung rata-rata
+  const totalNilai = values.reduce(
+    (total, nilai) => total + nilai,
+    0
   );
 
-  const status =
-    nilaiAkhir >= 70 ? "Lulus" : "Tidak Lulus";
+  const nilaiAkhir = Math.round(
+    totalNilai / values.length
+  );
 
-  let grade = "D";
+  // Default
+  let grade: HasilUjian["grade"] = "D";
   let predikat = "Kurang";
 
+  // Penentuan grade & predikat
   if (nilaiAkhir >= 90) {
     grade = "A";
     predikat = "Mumtaz";
@@ -235,6 +253,12 @@ export function calculateNilaiUjian(
     grade = "C";
     predikat = "Jayyid";
   }
+
+  // Status kelulusan
+  const status: HasilUjian["status"] =
+    nilaiAkhir >= 70
+      ? "Lulus"
+      : "Tidak Lulus";
 
   return {
     nilaiAkhir,

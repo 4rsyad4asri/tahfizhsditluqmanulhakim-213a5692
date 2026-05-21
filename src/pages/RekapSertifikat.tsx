@@ -24,10 +24,10 @@ interface RekapItem {
 }
 
 const generateNomorSertifikat = (tanggal: string, index: number): string => {
-  const date = new Date(tanggal);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  return `SDIT-TH/${year}${month}/${String(index + 1).padStart(4, "0")}`;
+  // Format baru: 134/SDITLH/STQ/2526/III/2026
+  // index dimulai dari 0, jadi nomor urut dimulai dari 134 (15-1 = 14, tapi disini sudah dihitung dari 0, maka tambah 134)
+  const nomorUrut = index + 134;
+  return `${nomorUrut}/SDITLH/STQ/2526/III/2026`;
 };
 
 const RekapSertifikat = () => {

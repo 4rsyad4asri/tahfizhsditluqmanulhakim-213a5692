@@ -23,11 +23,15 @@ interface RekapItem {
   status: string;
 }
 
+const BULAN_ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
+
 const generateNomorSertifikat = (tanggal: string, index: number): string => {
-  // Format baru: 134/SDITLH/STQ/2526/III/2026
-  // index dimulai dari 0, jadi nomor urut dimulai dari 134 (15-1 = 14, tapi disini sudah dihitung dari 0, maka tambah 134)
-  const nomorUrut = index + 134;
-  return `${nomorUrut}/SDITLH/STQ/2526/III/2026`;
+  const date = new Date(tanggal);
+  const month = date.getMonth() + 1;
+  const bulanRoman = BULAN_ROMAN[month];
+  const nomorUrut = index + 134; // Mulai dari 134
+  
+  return `${nomorUrut}/SDITLH/STQ/2526/${bulanRoman}/2026`;
 };
 
 const RekapSertifikat = () => {
@@ -47,7 +51,7 @@ const RekapSertifikat = () => {
         .from("ujian")
         .select("*")
         .eq("mode", "Tahfizh")
-        .order("tanggal", { ascending: false });
+        .order("tanggal", { ascending: true }); // Ascending untuk mendapatkan urutan input awal
 
       if (!showAll) {
         query = query.eq("status", "Lulus");
@@ -73,15 +77,17 @@ const RekapSertifikat = () => {
       const studentMap = new Map((students || []).map((s) => [s.id, s]));
       const classMap = new Map((classes || []).map((c) => [c.id, c]));
 
-      // For certificate numbering, only count "Lulus" items
+      // Buat array dengan nomor urut berdasarkan urutan input
       let lulusIndex = 0;
-      const items: RekapItem[] = (ujianData || []).map((u) => {
+      const itemsWithSequence: Array<any> = (ujianData || []).map((u) => {
         const student = studentMap.get(u.student_id);
         const cls = student ? classMap.get(student.class_id) : null;
         const aspek = u.nilai_aspek as any;
         const entries = aspek?.surahEntries || [];
         const juzList = [...new Set(entries.map((e: any) => e.juz))].sort((a: number, b: number) => a - b);
         const isLulus = u.status === "Lulus";
+
+        const sequenceNumber = isLulus ? lulusIndex++ : -1;
 
         const item: RekapItem = {
           id: u.id,
@@ -93,11 +99,14 @@ const RekapSertifikat = () => {
           nilaiAkhir: u.nilai_akhir,
           predikat: aspek?.predikat || (u.nilai_akhir >= 90 ? "Mumtaz" : u.nilai_akhir >= 80 ? "Jayyid Jiddan" : u.nilai_akhir >= 70 ? "Jayyid" : "Perlu Perbaikan"),
           tanggal: u.tanggal,
-          nomorSertifikat: isLulus ? generateNomorSertifikat(u.tanggal, lulusIndex++) : "-",
+          nomorSertifikat: isLulus ? generateNomorSertifikat(u.tanggal, sequenceNumber) : "-",
           status: u.status,
         };
         return item;
       });
+
+      // Reverse untuk menampilkan yang terakhir diinput di atas
+      const items = itemsWithSequence.reverse();
 
       const uniqueClasses = [...new Set(items.map((i) => i.className))].sort();
       return { items, classes: uniqueClasses };

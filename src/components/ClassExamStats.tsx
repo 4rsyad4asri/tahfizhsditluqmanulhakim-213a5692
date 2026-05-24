@@ -1,3 +1,4 @@
+const { data: ujianData, error: ujianError } = await supabase
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
@@ -18,21 +19,26 @@ export default function ClassExamStats({ classId }: Props) {
       if (!students || students.length === 0) return null;
 
       const studentIds = students.map(s => s.id);
-      const { data: ujianData } = await supabase
-        .from("ujian")
-        .select("mode, status, nilai_akhir, student_id")
-        .in("student_id", studentIds);
+const { data: ujianData, error: ujianError } = await supabase
+  .from("ujian")
+  .select("mode, status, nilai_akhir, student_id")
+  .in("student_id", studentIds);
 
-      if (!ujianData) return null;
+if (ujianError) throw ujianError;
+if (!ujianData) return null;
 
       const modes = ['Tahsin Dasar', 'Tahsin Lanjutan', 'Tahfizh'] as const;
       const stats = modes.map(mode => {
         const exams = ujianData.filter(u => u.mode === mode);
         const lulus = exams.filter(u => u.status === 'Lulus').length;
         const tidakLulus = exams.filter(u => u.status === 'Tidak Lulus').length;
-        const avgNilai = exams.length > 0
-          ? Math.round(exams.reduce((s, u) => s + u.nilai_akhir, 0) / exams.length)
-          : 0;
+        const validScores = exams
+  .map(u => Number(u.nilai_akhir))
+  .filter((score) => Number.isFinite(score));
+
+const avgNilai = exams.length > 0
+  ? Math.round(validScores.reduce((s, score) => s + score, 0) / Math.max(validScores.length, 1))
+  : 0;
         const uniqueStudents = new Set(exams.map(e => e.student_id)).size;
         return { mode, total: exams.length, lulus, tidakLulus, avgNilai, uniqueStudents };
       });
@@ -51,7 +57,7 @@ export default function ClassExamStats({ classId }: Props) {
 
   const chartData = data.stats.filter(s => s.total > 0).map(s => ({
     name: s.mode.replace('Tahsin ', 'T.'),
-    'Rata-rata': s.avgNilai,
+    'Rata-rata': Number.isFinite(s.avgNilai) ? s.avgNilai : 0,
   }));
 
   return (

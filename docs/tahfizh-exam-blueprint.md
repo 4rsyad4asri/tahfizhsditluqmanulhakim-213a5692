@@ -20,8 +20,8 @@ Migration `20260524090000_tahfizh_modes_verification_lock.sql` menambahkan kolom
 
 File utama: `src/data/tahfizhSystem.ts`.
 
-- Mode Sertifikat memakai `JUZ_30_CERTIFICATE_SEQUENCE` berisi 13 baris gabungan Juz 30.
-- Mode Reguler memuat semua surat dari `quranData.ts` untuk juz yang dipilih, namun penguji tetap bisa mengetik surat/ayat custom.
+- Mode Sertifikat memakai `JUZ_30_CERTIFICATE_SEQUENCE` berisi 13 baris gabungan Juz 30, tetapi bisa diganti ke Juz 29/28/dll. Untuk selain Juz 30, urutan sertifikat mengikuti daftar surat pada `quranData.ts`.
+- Mode Reguler berisi 5 soal bebas secara default. Penguji bisa mengetik surat/ayat custom atau menambah baris jika diperlukan.
 - Nilai per juz dihitung dari rata-rata kelancaran dikurangi akumulasi penalti.
 - Summary Sertifikat menampilkan total `Lahn Jali`, `Lahn Khofi`, `Waqaf`, `Salah Sambung`, dan rata-rata kelancaran.
 - Auto-gagal terjadi jika `Lahn Jali + Salah Sambung Ayat >= 10`, dengan log posisi soal.
@@ -32,8 +32,8 @@ File utama: `src/data/tahfizhSystem.ts`.
 Komponen utama: `src/components/UjianTahfizhForm.tsx`.
 
 - Tombol di halaman siswa dipisah menjadi `Tahfizh Sertifikat` dan `Tahfizh Reguler`.
-- Sertifikat: baris muncul satu per satu lewat tombol tambah, dengan progress bar.
-- Reguler: semua soal satu juz langsung tampil, bisa diedit manual, dan punya catatan per baris.
+- Sertifikat: baris muncul satu per satu lewat tombol tambah, dengan progress bar dan pilihan juz.
+- Reguler: 5 soal bebas tampil dalam tabel ringkas, bisa diedit manual, dan punya catatan per baris.
 - Form menyediakan `Simpan Draft` dan `Publish & Kunci`.
 - Daftar ujian menampilkan status dokumen dan menonaktifkan edit/hapus saat published.
 

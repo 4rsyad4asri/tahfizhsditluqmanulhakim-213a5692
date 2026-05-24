@@ -88,6 +88,24 @@ export const JUZ_30_CERTIFICATE_SEQUENCE: TahfizhSurahAssessment[] = [
   { surah: "Al-Kafirun s.d Al-Ikhlas", juz: 30, kelancaran: 90, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
 ];
 
+export function getCertificateSequenceForJuz(juz = 30): TahfizhSurahAssessment[] {
+  if (juz === 30) {
+    return JUZ_30_CERTIFICATE_SEQUENCE.map((item) => ({ ...item }));
+  }
+
+  return getSurahsForJuz(juz).map((item) => ({
+    surah: item.name,
+    juz,
+    ayatRange: item.ayatRange,
+    kelancaran: 90,
+    lahnJali: 0,
+    lahnKhofi: 0,
+    waqaf: 0,
+    salahSambung: 0,
+    catatan: "",
+  }));
+}
+
 export function createEmptyTahfizhAssessment(juz = 30): TahfizhSurahAssessment {
   const firstSurah = getSurahsForJuz(juz)[0];
 
@@ -104,8 +122,8 @@ export function createEmptyTahfizhAssessment(juz = 30): TahfizhSurahAssessment {
   };
 }
 
-export function createCertificateAssessment(index = 0): TahfizhSurahAssessment {
-  return { ...JUZ_30_CERTIFICATE_SEQUENCE[index] };
+export function createCertificateAssessment(index = 0, juz = 30): TahfizhSurahAssessment {
+  return { ...getCertificateSequenceForJuz(juz)[index] };
 }
 
 export function normalizeTahfizhAssessment(entry: any): TahfizhSurahAssessment {

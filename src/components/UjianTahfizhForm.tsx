@@ -1,13 +1,13 @@
-import { useMemo, useState, type ReactNode } from "react";
-import { AlertTriangle, CheckCircle2, Lock, Plus, Square, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { AlertTriangle, Lock, Plus, Square, Trash2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import {
   DEFAULT_TAHFIZH_PENALTY,
-  JUZ_30_CERTIFICATE_SEQUENCE,
   calculateTahfizhExamResult,
   calculateTahfizhSurahScore,
   createCertificateAssessment,
   createEmptyTahfizhAssessment,
+  getCertificateSequenceForJuz,
   normalizeTahfizhAssessment,
   type TahfizhExamMode,
   type TahfizhPenaltyConfig,
@@ -39,15 +39,29 @@ interface UjianTahfizhFormProps {
 }
 
 const KELANCARAN_OPTIONS = [100, 90, 80, 70, 60];
+const NUMBER_FIELDS = [
+  { key: "lahnJali", label: "LJ" },
+  { key: "lahnKhofi", label: "LK" },
+  { key: "waqaf", label: "Waqaf" },
+  { key: "salahSambung", label: "Sambung" },
+] as const;
+
+function createRegularRows(juz = 30) {
+  return Array.from({ length: 5 }, () => ({
+    ...createEmptyTahfizhAssessment(juz),
+    surah: "",
+    ayatRange: "",
+  }));
+}
+
+function getInitialJuz(initialAssessments?: TahfizhSurahAssessment[]) {
+  return initialAssessments?.[0]?.juz || 30;
+}
 
 function initialRows(mode: TahfizhExamMode, initialAssessments?: TahfizhSurahAssessment[]) {
   if (initialAssessments?.length) return initialAssessments.map(normalizeTahfizhAssessment);
-  if (mode === "Sertifikat") return [createCertificateAssessment(0)];
-  return getSurahsForJuz(30).map((item) => ({
-    ...createEmptyTahfizhAssessment(30),
-    surah: item.name,
-    ayatRange: item.ayatRange,
-  }));
+  if (mode === "Sertifikat") return [createCertificateAssessment(0, 30)];
+  return createRegularRows(30);
 }
 
 export default function UjianTahfizhForm({
@@ -58,6 +72,7 @@ export default function UjianTahfizhForm({
   onSubmit,
   onCancel,
 }: UjianTahfizhFormProps) {
+  const [selectedJuz, setSelectedJuz] = useState(getInitialJuz(initialAssessments));
   const [assessments, setAssessments] = useState<TahfizhSurahAssessment[]>(
     initialRows(mode, initialAssessments)
   );
@@ -68,41 +83,79 @@ export default function UjianTahfizhForm({
   const [manualStopReason, setManualStopReason] = useState("");
   const [isManualStopped, setIsManualStopped] = useState(false);
 
+  const isCertificate = mode === "Sertifikat";
+  const certificateSequence = useMemo(
+    () => getCertificateSequenceForJuz(selectedJuz),
+    [selectedJuz]
+  );
   const examResult = useMemo(
-    () => calculateTahfizhExamResult(assessments, mode, penaltyConfig, isManualStopped ? manualStopReason || "Dihentikan manual" : ""),
+    () =>
+      calculateTahfizhExamResult(
+        assessments,
+        mode,
+        penaltyConfig,
+        isManualStopped ? manualStopReason || "Dihentikan manual" : ""
+      ),
     [assessments, mode, penaltyConfig, isManualStopped, manualStopReason]
   );
-
-  const isCertificate = mode === "Sertifikat";
   const isStopped = isManualStopped || examResult.autoFail.isFailed;
   const progress = isCertificate
-    ? Math.round((assessments.length / JUZ_30_CERTIFICATE_SEQUENCE.length) * 100)
+    ? Math.round((assessments.length / Math.max(1, certificateSequence.length)) * 100)
     : 100;
+
+  const changeJuz = (juz: number) => {
+    setSelectedJuz(juz);
+    setIsManualStopped(false);
+    setManualStopReason("");
+    if (isCertificate) {
+      setAssessments([createCertificateAssessment(0, juz)]);
+    } else {
+      setAssessments((current) =>
+        current.map((item) => ({ ...item, juz }))
+      );
+    }
+  };
 
   const updateAssessment = (index: number, field: keyof TahfizhSurahAssessment, value: any) => {
     setAssessments((current) =>
       current.map((item, itemIndex) => {
         if (itemIndex !== index) return item;
-
         if (field === "juz") {
-          const juz = Number(value);
-          const first = getSurahsForJuz(juz)[0];
-          return { ...item, juz, surah: first?.name || "", ayatRange: first?.ayatRange };
+          return { ...item, juz: Number(value) };
         }
-
         return { ...item, [field]: value };
       })
     );
   };
 
+  const quickPickSurah = (index: number, value: string) => {
+    const selected = getSurahsForJuz(assessments[index]?.juz || selectedJuz).find(
+      (item) => item.name === value
+    );
+
+    setAssessments((current) =>
+      current.map((item, itemIndex) =>
+        itemIndex === index
+          ? {
+              ...item,
+              surah: value,
+              ayatRange: selected?.ayatRange || "",
+              ayatAwal: "",
+              ayatAkhir: "",
+            }
+          : item
+      )
+    );
+  };
+
   const addAssessment = () => {
     if (isCertificate) {
-      if (assessments.length >= JUZ_30_CERTIFICATE_SEQUENCE.length) return;
-      setAssessments((current) => [...current, createCertificateAssessment(current.length)]);
+      if (assessments.length >= certificateSequence.length) return;
+      setAssessments((current) => [...current, createCertificateAssessment(current.length, selectedJuz)]);
       return;
     }
 
-    setAssessments((current) => [...current, createEmptyTahfizhAssessment(current[0]?.juz || 30)]);
+    setAssessments((current) => [...current, { ...createEmptyTahfizhAssessment(selectedJuz), surah: "" }]);
   };
 
   const removeAssessment = (index: number) => {
@@ -110,14 +163,8 @@ export default function UjianTahfizhForm({
     setAssessments((current) => current.filter((_, itemIndex) => itemIndex !== index));
   };
 
-  const hydrateRegularRows = (juz: number) => {
-    setAssessments(
-      getSurahsForJuz(juz).map((item) => ({
-        ...createEmptyTahfizhAssessment(juz),
-        surah: item.name,
-        ayatRange: item.ayatRange,
-      }))
-    );
+  const resetRegularRows = () => {
+    setAssessments(createRegularRows(selectedJuz));
   };
 
   const handleSubmit = (publish: boolean) => {
@@ -148,162 +195,180 @@ export default function UjianTahfizhForm({
   };
 
   return (
-    <div className="space-y-5 rounded-lg border border-border bg-card p-5 shadow-sm">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div>
-          <h4 className="text-base font-semibold text-foreground">Form Ujian Tahfizh - Mode {mode}</h4>
-          <p className="text-xs text-muted-foreground">
-            {isCertificate
-              ? `Surat ke-${assessments.length} dari ${JUZ_30_CERTIFICATE_SEQUENCE.length} urutan sertifikat Juz 30`
-              : "Semua soal tampil sekaligus dan bisa diedit manual."}
-          </p>
-        </div>
-        <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-right">
-          <p className="text-xs text-muted-foreground">Status</p>
-          <p className="text-sm font-semibold text-foreground">{examResult.statusLabel}</p>
-        </div>
-      </div>
-
-      {isCertificate && (
-        <div className="space-y-2 rounded-md border border-border bg-muted/30 p-3">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-medium text-foreground">Progress urutan Juz 30</span>
-            <span className="text-muted-foreground">{progress}%</span>
+    <div className="rounded-lg border border-border bg-card shadow-sm">
+      <div className="border-b border-border px-4 py-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h4 className="text-base font-semibold text-foreground">Form Ujian Tahfizh - Mode {mode}</h4>
+            <p className="text-xs text-muted-foreground">
+              {isCertificate
+                ? `Urutan sertifikat Juz ${selectedJuz}: baris ${assessments.length} dari ${certificateSequence.length}`
+                : "Mode reguler memakai 5 soal bebas. Tambah baris hanya bila diperlukan."}
+            </p>
           </div>
-          <Progress value={progress} />
-        </div>
-      )}
 
-      <div className="grid gap-3 md:grid-cols-3">
-        <Field label="Tanggal">
-          <input type="date" value={tanggal} onChange={(event) => setTanggal(event.target.value)} className="field-input" />
-        </Field>
-        <Field label="Waktu">
-          <input type="time" value={waktu} onChange={(event) => setWaktu(event.target.value)} className="field-input" />
-        </Field>
-        {!isCertificate && (
-          <Field label="Tampilkan Juz">
-            <select
-              value={assessments[0]?.juz || 30}
-              onChange={(event) => hydrateRegularRows(Number(event.target.value))}
-              className="field-input"
-            >
-              {Array.from({ length: 30 }, (_, index) => index + 1).map((juz) => (
-                <option key={juz} value={juz}>Juz {juz}</option>
-              ))}
-            </select>
-          </Field>
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+            <MiniField label="Tanggal">
+              <input type="date" value={tanggal} onChange={(event) => setTanggal(event.target.value)} className="sheet-input h-8" />
+            </MiniField>
+            <MiniField label="Waktu">
+              <input type="time" value={waktu} onChange={(event) => setWaktu(event.target.value)} className="sheet-input h-8" />
+            </MiniField>
+            <MiniField label="Juz">
+              <select value={selectedJuz} onChange={(event) => changeJuz(Number(event.target.value))} className="sheet-input h-8">
+                {Array.from({ length: 30 }, (_, index) => index + 1).map((juz) => (
+                  <option key={juz} value={juz}>Juz {juz}</option>
+                ))}
+              </select>
+            </MiniField>
+            <Metric label="Nilai" value={String(examResult.nilaiAkhir)} />
+            <Metric label="Status" value={examResult.statusLabel} compact />
+          </div>
+        </div>
+
+        {isCertificate && (
+          <div className="mt-3 grid gap-2 md:grid-cols-[1fr_150px] md:items-center">
+            <Progress value={progress} className="h-2" />
+            <div className="text-xs font-medium text-muted-foreground">{progress}% selesai</div>
+          </div>
         )}
       </div>
 
-      <div className="rounded-md border border-border bg-muted/20 p-3">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h5 className="text-sm font-semibold text-foreground">Rumus Penalti</h5>
-            <p className="text-xs text-muted-foreground">Nilai = rata kelancaran - akumulasi penalti per juz.</p>
-          </div>
+      <div className="grid gap-3 border-b border-border bg-muted/20 px-4 py-3 xl:grid-cols-[1fr_360px]">
+        <div className="flex flex-wrap items-end gap-2">
           <div className="grid grid-cols-4 gap-2">
-            {(["lahnJali", "lahnKhofi", "waqaf", "salahSambung"] as const).map((key) => (
-              <input
-                key={key}
-                type="number"
-                min={0}
-                value={penaltyConfig[key]}
-                title={`Penalti ${key}`}
-                onChange={(event) => setPenaltyConfig((current) => ({ ...current, [key]: Number(event.target.value) || 0 }))}
-                className="h-8 w-14 rounded-md border border-input bg-background px-2 text-xs"
-              />
+            {NUMBER_FIELDS.map((field) => (
+              <MiniField key={field.key} label={`P ${field.label}`}>
+                <input
+                  type="number"
+                  min={0}
+                  value={penaltyConfig[field.key]}
+                  onChange={(event) =>
+                    setPenaltyConfig((current) => ({
+                      ...current,
+                      [field.key]: Number(event.target.value) || 0,
+                    }))
+                  }
+                  className="sheet-input h-8 w-16"
+                />
+              </MiniField>
             ))}
           </div>
-        </div>
-      </div>
 
-      {examResult.autoFail.isFailed && (
-        <div className="flex gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{examResult.autoFail.log} Ujian otomatis ditandai gagal dan siap disimpan.</span>
-        </div>
-      )}
+          <button
+            type="button"
+            onClick={addAssessment}
+            disabled={isStopped || (isCertificate && assessments.length >= certificateSequence.length)}
+            className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            {isCertificate ? "Tambah Urutan" : "Tambah Soal"}
+          </button>
 
-      {isManualStopped && (
-        <div className="flex gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
-          <Square className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>Ujian dihentikan manual. Data akan tersimpan sebagai ujian diulang/gagal.</span>
-        </div>
-      )}
+          {!isCertificate && (
+            <button
+              type="button"
+              onClick={resetRegularRows}
+              disabled={isStopped}
+              className="h-8 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
+            >
+              Reset 5 Soal
+            </button>
+          )}
 
-      <div className="space-y-3">
-        {assessments.map((assessment, index) => (
-          <TahfizhAssessmentInput
-            key={`${assessment.surah}-${index}`}
-            assessment={assessment}
-            index={index}
-            mode={mode}
-            penaltyConfig={penaltyConfig}
+          <button
+            type="button"
+            onClick={() => setIsManualStopped(true)}
             disabled={isStopped}
-            onUpdate={updateAssessment}
-            onRemove={removeAssessment}
-            showRemove={!isCertificate && assessments.length > 1}
-          />
-        ))}
-
-        <button
-          type="button"
-          onClick={addAssessment}
-          disabled={isStopped || (isCertificate && assessments.length >= JUZ_30_CERTIFICATE_SEQUENCE.length)}
-          className="flex w-full items-center justify-center gap-2 rounded-md border-2 border-dashed border-border py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <Plus className="h-4 w-4" />
-          {isCertificate ? "Tambah Surat Berikutnya" : "Tambah Baris Soal"}
-        </button>
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-[1fr_260px]">
-        <Field label="Catatan Guru">
-          <textarea
-            value={catatanGuru}
-            onChange={(event) => setCatatanGuru(event.target.value)}
-            placeholder="Catatan otomatis lama tetap digunakan saat kolom ini dikosongkan di rapor."
-            className="min-h-[86px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-          />
-        </Field>
-
-        <div className="rounded-md border border-border bg-muted/30 p-3">
-          <p className="text-xs text-muted-foreground">Preview Hasil</p>
-          <p className="text-3xl font-bold text-foreground">{examResult.nilaiAkhir}</p>
-          <p className="text-sm font-semibold text-primary">{examResult.predikat} - Grade {examResult.grade}</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            LJ+Sambung: {examResult.autoFail.totalBlockingErrors}/10
-          </p>
+            className="inline-flex h-8 items-center gap-1 rounded-md bg-destructive/10 px-3 text-xs font-medium text-destructive hover:bg-destructive/20 disabled:opacity-50"
+          >
+            <Square className="h-3.5 w-3.5" />
+            Hentikan Manual
+          </button>
         </div>
-      </div>
 
-      <div className="rounded-md border border-border bg-muted/20 p-3">
-        <button
-          type="button"
-          onClick={() => setIsManualStopped(true)}
-          disabled={isStopped}
-          className="mb-2 flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/20 disabled:opacity-50"
-        >
-          <Square className="h-3.5 w-3.5" /> Hentikan Ujian Manual
-        </button>
         <input
           value={manualStopReason}
           onChange={(event) => setManualStopReason(event.target.value)}
-          placeholder="Alasan opsional penghentian manual"
-          className="field-input"
+          placeholder="Alasan penghentian manual"
+          className="sheet-input h-8"
         />
       </div>
 
-      <div className="flex flex-wrap justify-end gap-2">
-        <button type="button" onClick={onCancel} className="rounded-md border border-input px-4 py-2 text-sm font-medium">
+      {(examResult.autoFail.isFailed || isManualStopped) && (
+        <div className="border-b border-border px-4 py-2">
+          <div className="flex gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              {examResult.autoFail.log ||
+                "Ujian dihentikan manual. Data akan tersimpan sebagai ujian diulang/gagal."}
+            </span>
+          </div>
+        </div>
+      )}
+
+      <div className="max-h-[430px] overflow-auto">
+        <table className="w-full min-w-[1120px] border-collapse text-xs">
+          <thead className="sticky top-0 z-10 bg-muted text-muted-foreground">
+            <tr className="border-b border-border">
+              <SheetTh className="w-10">No</SheetTh>
+              <SheetTh className="w-20">Juz</SheetTh>
+              <SheetTh className="w-56">Surat / Grup</SheetTh>
+              <SheetTh className="w-44">Pilih Cepat</SheetTh>
+              <SheetTh className="w-24">Ayat Awal</SheetTh>
+              <SheetTh className="w-24">Ayat Akhir</SheetTh>
+              <SheetTh className="w-24">Lancar</SheetTh>
+              <SheetTh className="w-20">LJ</SheetTh>
+              <SheetTh className="w-20">LK</SheetTh>
+              <SheetTh className="w-20">Waqaf</SheetTh>
+              <SheetTh className="w-20">Sambung</SheetTh>
+              <SheetTh className="w-56">Catatan</SheetTh>
+              <SheetTh className="w-20">Nilai</SheetTh>
+              <SheetTh className="w-12"></SheetTh>
+            </tr>
+          </thead>
+          <tbody>
+            {assessments.map((assessment, index) => (
+              <SheetRow
+                key={`${assessment.surah}-${index}`}
+                assessment={assessment}
+                index={index}
+                mode={mode}
+                penaltyConfig={penaltyConfig}
+                disabled={isStopped}
+                onUpdate={updateAssessment}
+                onQuickPick={quickPickSurah}
+                onRemove={removeAssessment}
+                showRemove={!isCertificate && assessments.length > 1}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="grid gap-3 border-t border-border px-4 py-3 lg:grid-cols-[1fr_280px]">
+        <textarea
+          value={catatanGuru}
+          onChange={(event) => setCatatanGuru(event.target.value)}
+          placeholder="Catatan guru umum. Jika kosong, rapor tetap memakai catatan otomatis lama."
+          className="min-h-[68px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+        />
+        <div className="grid grid-cols-3 gap-2">
+          <Metric label="Predikat" value={examResult.predikat} />
+          <Metric label="Grade" value={examResult.grade} />
+          <Metric label="LJ+S" value={`${examResult.autoFail.totalBlockingErrors}/10`} />
+        </div>
+      </div>
+
+      <div className="flex flex-wrap justify-end gap-2 border-t border-border px-4 py-3">
+        <button type="button" onClick={onCancel} className="h-9 rounded-md border border-input px-4 text-sm font-medium">
           Batal
         </button>
         <button
           type="button"
           onClick={() => handleSubmit(false)}
           disabled={isPending}
-          className="rounded-md bg-muted px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/80 disabled:opacity-50"
+          className="h-9 rounded-md bg-muted px-4 text-sm font-medium text-foreground hover:bg-muted/80 disabled:opacity-50"
         >
           Simpan Draft
         </button>
@@ -311,7 +376,7 @@ export default function UjianTahfizhForm({
           type="button"
           onClick={() => handleSubmit(true)}
           disabled={isPending}
-          className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           <Lock className="h-4 w-4" /> Publish & Kunci
         </button>
@@ -327,22 +392,42 @@ function validateRow(assessment: TahfizhSurahAssessment) {
   return "";
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function MiniField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="block text-xs font-medium text-muted-foreground">
+    <label className="block text-[11px] font-medium text-muted-foreground">
       <span className="mb-1 block">{label}</span>
       {children}
     </label>
   );
 }
 
-function TahfizhAssessmentInput({
+function Metric({ label, value, compact = false }: { label: string; value: string; compact?: boolean }) {
+  return (
+    <div className="rounded-md border border-border bg-background px-3 py-2">
+      <p className="text-[10px] font-medium text-muted-foreground">{label}</p>
+      <p className={compact ? "truncate text-xs font-semibold text-foreground" : "truncate text-lg font-bold text-foreground"}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function SheetTh({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <th className={`border-r border-border px-2 py-2 text-left font-semibold ${className}`}>{children}</th>;
+}
+
+function SheetTd({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <td className={`border-r border-border px-1.5 py-1.5 align-top ${className}`}>{children}</td>;
+}
+
+function SheetRow({
   assessment,
   index,
   mode,
   penaltyConfig,
   disabled,
   onUpdate,
+  onQuickPick,
   onRemove,
   showRemove,
 }: {
@@ -352,164 +437,116 @@ function TahfizhAssessmentInput({
   penaltyConfig: TahfizhPenaltyConfig;
   disabled: boolean;
   onUpdate: (index: number, field: keyof TahfizhSurahAssessment, value: any) => void;
+  onQuickPick: (index: number, value: string) => void;
   onRemove: (index: number) => void;
   showRemove: boolean;
 }) {
   const nilaiSurah = calculateTahfizhSurahScore(assessment, penaltyConfig);
-  const regularMode = mode === "Reguler";
+  const isCertificate = mode === "Sertifikat";
+  const quickOptions = getSurahsForJuz(assessment.juz);
 
   return (
-    <div className="rounded-lg border border-border bg-background p-3">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <div>
-          <p className="text-sm font-semibold text-foreground">Soal #{index + 1}</p>
-          <p className="text-xs text-muted-foreground">{assessment.surah || "Belum ada surat"}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
-            <CheckCircle2 className="h-3 w-3" /> {nilaiSurah}
-          </span>
-          {showRemove && (
-            <button type="button" onClick={() => onRemove(index)} className="rounded-md p-1 text-destructive hover:bg-destructive/10">
-              <Trash2 className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="grid gap-2 md:grid-cols-4">
-        <Field label="Juz">
-          <select
-            value={assessment.juz}
-            disabled={disabled || mode === "Sertifikat"}
-            onChange={(event) => onUpdate(index, "juz", Number(event.target.value))}
-            className="field-input"
-          >
-            {Array.from({ length: 30 }, (_, itemIndex) => itemIndex + 1).map((juz) => (
-              <option key={juz} value={juz}>Juz {juz}</option>
-            ))}
-          </select>
-        </Field>
-
-        <Field label="Surat / Grup Surat">
-          {regularMode ? (
-            <input
-              value={assessment.surah}
-              disabled={disabled}
-              onChange={(event) => onUpdate(index, "surah", event.target.value)}
-              className="field-input"
-            />
-          ) : (
-            <select value={assessment.surah} disabled className="field-input">
-              <option value={assessment.surah}>{assessment.surah}</option>
-            </select>
-          )}
-        </Field>
-
-        <Field label="Ayat Awal">
+    <tr className="border-b border-border odd:bg-background even:bg-muted/20 hover:bg-primary/5">
+      <SheetTd className="text-center font-semibold text-muted-foreground">{index + 1}</SheetTd>
+      <SheetTd>
+        <select
+          value={assessment.juz}
+          disabled={disabled || isCertificate}
+          onChange={(event) => onUpdate(index, "juz", Number(event.target.value))}
+          className="sheet-cell"
+        >
+          {Array.from({ length: 30 }, (_, itemIndex) => itemIndex + 1).map((juz) => (
+            <option key={juz} value={juz}>{juz}</option>
+          ))}
+        </select>
+      </SheetTd>
+      <SheetTd>
+        <input
+          value={assessment.surah}
+          disabled={disabled || isCertificate}
+          onChange={(event) => onUpdate(index, "surah", event.target.value)}
+          className="sheet-cell font-medium"
+          placeholder="Nama surat"
+        />
+      </SheetTd>
+      <SheetTd>
+        <select
+          value={quickOptions.some((item) => item.name === assessment.surah) ? assessment.surah : ""}
+          disabled={disabled || isCertificate}
+          onChange={(event) => onQuickPick(index, event.target.value)}
+          className="sheet-cell"
+        >
+          <option value="">Custom</option>
+          {quickOptions.map((item) => (
+            <option key={`${item.name}-${item.ayatRange || "full"}`} value={item.name}>
+              {getSurahLabel(item)}
+            </option>
+          ))}
+        </select>
+      </SheetTd>
+      <SheetTd>
+        <input
+          value={assessment.ayatAwal ?? ""}
+          disabled={disabled || isCertificate}
+          onChange={(event) => onUpdate(index, "ayatAwal", event.target.value)}
+          className="sheet-cell"
+          placeholder={assessment.ayatRange || "-"}
+        />
+      </SheetTd>
+      <SheetTd>
+        <input
+          value={assessment.ayatAkhir ?? ""}
+          disabled={disabled || isCertificate}
+          onChange={(event) => onUpdate(index, "ayatAkhir", event.target.value)}
+          className="sheet-cell"
+          placeholder={assessment.ayatRange || "-"}
+        />
+      </SheetTd>
+      <SheetTd>
+        <select
+          value={assessment.kelancaran}
+          disabled={disabled}
+          onChange={(event) => onUpdate(index, "kelancaran", Number(event.target.value))}
+          className="sheet-cell"
+        >
+          {KELANCARAN_OPTIONS.map((value) => (
+            <option key={value} value={value}>{value}</option>
+          ))}
+        </select>
+      </SheetTd>
+      {NUMBER_FIELDS.map((field) => (
+        <SheetTd key={field.key}>
           <input
-            value={assessment.ayatAwal ?? ""}
-            disabled={disabled || mode === "Sertifikat"}
-            onChange={(event) => onUpdate(index, "ayatAwal", event.target.value)}
-            placeholder={assessment.ayatRange || "-"}
-            className="field-input"
-          />
-        </Field>
-
-        <Field label="Ayat Akhir">
-          <input
-            value={assessment.ayatAkhir ?? ""}
-            disabled={disabled || mode === "Sertifikat"}
-            onChange={(event) => onUpdate(index, "ayatAkhir", event.target.value)}
-            placeholder={assessment.ayatRange || "-"}
-            className="field-input"
-          />
-        </Field>
-      </div>
-
-      {regularMode && (
-        <div className="mt-2">
-          <Field label="Pilih cepat dari database juz">
-            <select
-              value={assessment.surah}
-              disabled={disabled}
-              onChange={(event) => {
-                const selected = getSurahsForJuz(assessment.juz).find((item) => item.name === event.target.value);
-                onUpdate(index, "surah", event.target.value);
-                onUpdate(index, "ayatRange", selected?.ayatRange || "");
-              }}
-              className="field-input"
-            >
-              <option value={assessment.surah}>{assessment.surah || "Custom"}</option>
-              {getSurahsForJuz(assessment.juz).map((item) => (
-                <option key={`${item.name}-${item.ayatRange || "full"}`} value={item.name}>
-                  {getSurahLabel(item)}
-                </option>
-              ))}
-            </select>
-          </Field>
-        </div>
-      )}
-
-      <div className="mt-3 grid gap-2 md:grid-cols-6">
-        <Field label="Kelancaran">
-          <select
-            value={assessment.kelancaran}
+            type="number"
+            min={0}
+            value={assessment[field.key]}
             disabled={disabled}
-            onChange={(event) => onUpdate(index, "kelancaran", Number(event.target.value))}
-            className="field-input"
-          >
-            {KELANCARAN_OPTIONS.map((value) => (
-              <option key={value} value={value}>{value}</option>
-            ))}
-          </select>
-        </Field>
-        <NumberField label="Lahn Jali" value={assessment.lahnJali} disabled={disabled} onChange={(value) => onUpdate(index, "lahnJali", value)} />
-        <NumberField label="Lahn Khofi" value={assessment.lahnKhofi} disabled={disabled} onChange={(value) => onUpdate(index, "lahnKhofi", value)} />
-        <NumberField label="Waqaf" value={assessment.waqaf} disabled={disabled} onChange={(value) => onUpdate(index, "waqaf", value)} />
-        <NumberField label="Sambung Ayat" value={assessment.salahSambung} disabled={disabled} onChange={(value) => onUpdate(index, "salahSambung", value)} />
-        <Field label="Nilai">
-          <div className="rounded-md border border-input bg-muted px-3 py-2 text-center text-sm font-semibold">{nilaiSurah}</div>
-        </Field>
-      </div>
-
-      {regularMode && (
-        <div className="mt-3">
-          <Field label="Detail kesalahan / catatan baris">
-            <textarea
-              value={assessment.catatan || ""}
-              disabled={disabled}
-              onChange={(event) => onUpdate(index, "catatan", event.target.value)}
-              className="min-h-[58px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            />
-          </Field>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function NumberField({
-  label,
-  value,
-  disabled,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  disabled: boolean;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <Field label={label}>
-      <input
-        type="number"
-        min={0}
-        value={value}
-        disabled={disabled}
-        onChange={(event) => onChange(Math.max(0, Number(event.target.value) || 0))}
-        className="field-input"
-      />
-    </Field>
+            onChange={(event) => onUpdate(index, field.key, Math.max(0, Number(event.target.value) || 0))}
+            className="sheet-cell text-center"
+          />
+        </SheetTd>
+      ))}
+      <SheetTd>
+        <input
+          value={assessment.catatan || ""}
+          disabled={disabled}
+          onChange={(event) => onUpdate(index, "catatan", event.target.value)}
+          className="sheet-cell"
+          placeholder="Catatan baris"
+        />
+      </SheetTd>
+      <SheetTd className="text-center">
+        <span className="inline-flex min-w-10 justify-center rounded bg-emerald-50 px-2 py-1 font-bold text-emerald-700">
+          {nilaiSurah}
+        </span>
+      </SheetTd>
+      <SheetTd className="text-center">
+        {showRemove && (
+          <button type="button" onClick={() => onRemove(index)} className="rounded p-1 text-destructive hover:bg-destructive/10">
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
+      </SheetTd>
+    </tr>
   );
 }

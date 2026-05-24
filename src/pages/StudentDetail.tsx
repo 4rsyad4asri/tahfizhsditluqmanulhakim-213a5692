@@ -18,6 +18,7 @@ import { calculateNilaiTahsinDasar, calculateNilaiTahsinLanjutan } from "@/data/
 import type { TahsinDasarEntry, TahsinLanjutanEntry, TahsinPenaltyConfig, WaqafSymbolTest } from "@/data/tahsinScoring";
 import { generateTahsinPDF } from "@/utils/generateTahsinPDF";
 import EditUjianDialog from "@/components/EditUjianDialog";
+import EditTahfizhDialog from "@/components/EditTahfizhDialog";
 import RaportPreviewDialog from "@/components/RaportPreviewDialog";
 import { handleSmartFormKey } from "@/utils/smartFormNav";
 
@@ -45,38 +46,56 @@ const StudentDetail = () => {
   const [editingUjian, setEditingUjian] = useState<any | null>(null);
   const [raportUjian, setRaportUjian] = useState<any | null>(null);
 
-  const [catatan, setCatatan] = useState("");
-  const [catatanInitialized, setCatatanInitialized] = useState(false);
-
-  // Setoran form state
   const [showSetoranForm, setShowSetoranForm] = useState(false);
-  const [setoranForm, setSetoranForm] = useState({
-    tanggal: new Date().toISOString().split("T")[0],
-    juz: 30,
-    surah: getSurahsForJuz(30)[0]?.name || "An-Naba",
-    ayatMulai: 1,
-    ayatAkhir: 7,
-    koreksi: { kesalahanMakhraj: 0, kesalahanTajwid: 0, kesalahanMad: 0, kelancaran: 8 } as Koreksi,
-    lupaAyat: 0,
-    terhentiTerbata: 0,
-    catatanGuru: "",
-  });
-
-  // Ujian form state
   const [showUjianForm, setShowUjianForm] = useState(false);
-  const [ujianMode, setUjianMode] = useState<'Tahfizh' | 'Tahsin Dasar' | 'Tahsin Lanjutan' | null>(null);
+  const [ujianMode, setUjianMode] = useState<"Tahfizh" | "Tahsin Dasar" | "Tahsin Lanjutan" | null>(null);
 
-  // Tahfizh form state
   const [tahfizhEntries, setTahfizhEntries] = useState<TahfizhSurahEntry[]>([
     { surah: getSurahsForJuz(30)[0]?.name || "An-Naba", juz: 30, lahn_jali: 0, lahn_khofi: 0, kelancaran: 90, waqaf_ibtida: 0, salah_sambung_ayat: 0 }
   ]);
+  const [tahfizhTanggal, setTahfizhTanggal] = useState(new Date().toISOString().split('T')[0]);
   const [catatanGuru, setCatatanGuru] = useState("");
-  // Tahfizh penalty config (editable)
-  const [tahfizhPenalti, setTahfizhPenalti] = useState({ lj: 2, lk: 1, waqaf: 2, sambung: 2 });
-  const [showTahfizhConfig, setShowTahfizhConfig] = useState(false);
-  const tahfizhNow = new Date();
-  const [tahfizhTanggal, setTahfizhTanggal] = useState(tahfizhNow.toISOString().split("T")[0]);
-  const [tahfizhWaktu, setTahfizhWaktu] = useState(tahfizhNow.toTimeString().slice(0, 5));
+
+  const [tahsinDasarEntries, setTahsinDasarEntries] = useState<TahsinDasarEntry[]>([
+    { nama_ebta: "", surah: "", ayat_mulai: "", ayat_akhir: "", kelancaran: 90, salah_huruf: 0, salah_harakat: 0, kesalahan_tajwid: 0, kesalahan_mad: 0, kesalahan_ghunnah: 0, kesalahan_waqaf: 0 }
+  ]);
+  const [tahsinDasarTanggal, setTahsinDasarTanggal] = useState(new Date().toISOString().split('T')[0]);
+  const [tahsinDasarCatatan, setTahsinDasarCatatan] = useState("");
+  const [tahsinDasarConfig, setTahsinDasarConfig] = useState<TahsinPenaltyConfig>({
+    penalti_lahn_jali: 2,
+    penalti_lahn_khofi: 1,
+    bobot_kelancaran: 40,
+  });
+
+  const [tahsinLanjutanEntries, setTahsinLanjutanEntries] = useState<TahsinLanjutanEntry[]>([
+    { nama_ebta: "", surah: "", ayat: "", kelancaran: 90, salah_huruf: 0, salah_harakat: 0, kesalahan_tajwid: 0, kesalahan_mad: 0, kesalahan_ghunnah: 0, kesalahan_waqaf: 0, waqaf_ibtida: 0 }
+  ]);
+  const [tahsinLanjutanTanggal, setTahsinLanjutanTanggal] = useState(new Date().toISOString().split('T')[0]);
+  const [tahsinLanjutanCatatan, setTahsinLanjutanCatatan] = useState("");
+  const [tahsinLanjutanConfig, setTahsinLanjutanConfig] = useState<TahsinPenaltyConfig>({
+    penalti_lahn_jali: 2,
+    penalti_lahn_khofi: 1,
+    bobot_kelancaran: 40,
+  });
+  const [waqafTest, setWaqafTest] = useState<WaqafSymbolTest>({
+    waqaf_lazim: false,
+    waqaf_mustahab: false,
+    waqaf_jaiz: false,
+    waqaf_mujawwaz: false,
+    waqaf_mamnu: false,
+    waqaf_muanaqah: false,
+  });
+
+  const [catatan, setCatatan] = useState("");
+
+  const student = data?.student;
+  const classInfo = data?.classInfo;
+  const setoran = data?.setoran || [];
+  const ujian = data?.ujian || [];
+  const assessorMap = data?.assessorMap || {};
+
+  const isLoggedIn = !!user;
+  const hasAccess = !isPenguji || assignedClassIds === null || assignedClassIds === undefined || (classInfo?.id && assignedClassIds.includes(classInfo.id));
 
   if (isLoading) {
     return (
@@ -90,63 +109,37 @@ const StudentDetail = () => {
   }
 
   if (error || !data) {
-    return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">Siswa tidak ditemukan</div>;
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="flex items-center justify-center py-20 text-destructive">
+          Siswa tidak ditemukan
+        </div>
+      </div>
+    );
   }
 
-  const { student, classInfo, setoran, ujian, assessorMap = {} } = data;
-
-  // Access check for penguji
-  const studentClassId = student?.class_id;
-  const hasAccess = !isPenguji || assignedClassIds === null || assignedClassIds === undefined || (studentClassId && assignedClassIds.includes(studentClassId));
   if (!hasAccess) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">
-          <Award className="w-12 h-12 text-destructive/60" />
-          <h2 className="text-lg font-semibold text-foreground">Akses Ditolak</h2>
-          <p className="text-sm">Anda tidak ditugaskan untuk kelas siswa ini.</p>
-          <button onClick={() => navigate("/")} className="mt-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm">
-            Kembali ke Dashboard
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <p className="text-muted-foreground">Anda tidak memiliki akses ke siswa ini</p>
+          <button onClick={() => navigate("/")} className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm">
+            Kembali
           </button>
         </div>
       </div>
     );
   }
 
-  const isLoggedIn = !!user;
-
-  if (!catatanInitialized && student) {
-    setCatatan(student.catatan_penguji || "");
-    setCatatanInitialized(true);
-  }
-
-  const handleAddSetoran = () => {
+  const handleSaveCatatan = () => {
     if (!studentId) return;
-    addSetoran.mutate({
-      student_id: studentId,
-      tanggal: setoranForm.tanggal,
-      juz: setoranForm.juz,
-      surah: setoranForm.surah,
-      ayat_mulai: setoranForm.ayatMulai,
-      ayat_akhir: setoranForm.ayatAkhir,
-      kesalahan_makhraj: setoranForm.koreksi.kesalahanMakhraj,
-      kesalahan_tajwid: setoranForm.koreksi.kesalahanTajwid,
-      kesalahan_mad: setoranForm.koreksi.kesalahanMad,
-      kelancaran: setoranForm.koreksi.kelancaran,
-      lupa_ayat: setoranForm.lupaAyat,
-      terhenti_terbata: setoranForm.terhentiTerbata,
-      catatan_guru: setoranForm.catatanGuru,
-      assessed_by: user?.id,
-    }, {
-      onSuccess: () => {
-        toast.success("Setoran berhasil disimpan!");
-        setShowSetoranForm(false);
-      },
+    updateCatatan.mutate({ student_id: studentId, catatan }, {
+      onSuccess: () => toast.success("Catatan berhasil disimpan!"),
       onError: (err) => toast.error(getSafeErrorMessage(err)),
     });
   };
-
 
   const handleTahfizhSubmit = () => {
     if (!studentId) return;
@@ -170,14 +163,6 @@ const StudentDetail = () => {
     });
   };
 
-  const handleSaveCatatan = () => {
-    if (!studentId) return;
-    updateCatatan.mutate({ student_id: studentId, catatan }, {
-      onSuccess: () => toast.success("Catatan berhasil disimpan!"),
-      onError: (err) => toast.error(getSafeErrorMessage(err)),
-    });
-  };
-
   const tahfizhPreview = tahfizhEntries.length > 0 ? calculateNilaiTahfizh(tahfizhEntries) : null;
 
   const addTahfizhEntry = () => {
@@ -192,7 +177,6 @@ const StudentDetail = () => {
   const updateTahfizhEntry = (index: number, field: keyof TahfizhSurahEntry, value: any) => {
     const updated = [...tahfizhEntries];
     updated[index] = { ...updated[index], [field]: value };
-    // When juz changes, reset surah to first surah of that juz
     if (field === 'juz') {
       const surahs = getSurahsForJuz(value as number);
       if (surahs.length > 0) {
@@ -207,970 +191,336 @@ const StudentDetail = () => {
       <Header />
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <button
-          onClick={() => classInfo ? navigate(`/kelas/${classInfo.grade}${classInfo.section}`) : navigate("/")}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Kembali ke {classInfo?.name || "Dashboard"}
+          Kembali
         </button>
 
-        {/* Student Info Card */}
-        <div className="bg-card rounded-lg border border-border shadow-card p-6 mb-6 animate-fade-in">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">{student.name}</h2>
-              <p className="text-sm text-muted-foreground">{classInfo?.name} · Target Juz {student.target_juz}</p>
-              <div className="flex flex-wrap gap-2 mt-2">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  student.level === 'Tahfizh' ? 'bg-primary/10 text-primary' :
-                  student.level === 'Tahsin Lanjutan' ? 'bg-accent/10 text-accent' :
-                  'bg-muted text-muted-foreground'
-                }`}>
-                  {student.level}
-                </span>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  student.status_sertifikasi === 'Lulus' ? 'bg-success/10 text-success' :
-                  student.status_sertifikasi === 'Tidak Lulus' ? 'bg-destructive/10 text-destructive' :
-                  'bg-muted text-muted-foreground'
-                }`}>
-                  {student.status_sertifikasi === 'Lulus' ? '✅' : student.status_sertifikasi === 'Tidak Lulus' ? '❌' : '⏳'} {student.status_sertifikasi}
-                </span>
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="relative w-20 h-20 mx-auto">
-                <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
-                  <circle cx="40" cy="40" r="34" fill="none" stroke="hsl(var(--muted))" strokeWidth="6" />
-                  <circle cx="40" cy="40" r="34" fill="none" stroke="hsl(var(--primary))" strokeWidth="6"
-                    strokeDasharray={`${student.progress_hafalan * 2.136} 213.6`}
-                    strokeLinecap="round" />
-                </svg>
-                <span className="absolute inset-0 flex items-center justify-center text-lg font-bold text-foreground">
-                  {student.progress_hafalan}%
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Progress</p>
-            </div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground mb-2">{student?.name}</h1>
+          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+            {student?.nisn && <p>NISN: {student.nisn}</p>}
+            {classInfo?.name && <p>Kelas: {classInfo.name}</p>}
           </div>
         </div>
 
-        {/* Tabs */}
-        <Tabs defaultValue="setoran" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 bg-muted">
-            <TabsTrigger value="setoran" className="flex items-center gap-1.5 text-xs md:text-sm">
-              <BookOpen className="w-3.5 h-3.5" />Setoran
-            </TabsTrigger>
-            <TabsTrigger value="ujian" className="flex items-center gap-1.5 text-xs md:text-sm">
-              <Award className="w-3.5 h-3.5" />Ujian
-            </TabsTrigger>
-            <TabsTrigger value="catatan" className="flex items-center gap-1.5 text-xs md:text-sm">
-              <PenLine className="w-3.5 h-3.5" />Catatan
-            </TabsTrigger>
+        <Tabs defaultValue="ujian" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="ujian">Ujian</TabsTrigger>
+            <TabsTrigger value="setoran">Setoran</TabsTrigger>
+            <TabsTrigger value="catatan">Catatan</TabsTrigger>
+            <TabsTrigger value="raport">Raport</TabsTrigger>
           </TabsList>
 
-          {/* SETORAN TAB */}
-          <TabsContent value="setoran" className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-foreground">Riwayat Setoran</h3>
-              {isLoggedIn && (
-              <button
-                onClick={() => setShowSetoranForm(!showSetoranForm)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium gradient-islamic text-primary-foreground hover:opacity-90 transition-opacity"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Tambah Setoran
-              </button>
-              )}
-            </div>
-
-            {showSetoranForm && (
-               <div className="bg-card rounded-lg border border-border p-5 shadow-card animate-scale-in space-y-4">
-                <h4 className="font-semibold text-foreground flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-primary" />
-                  Form Input Setoran Hafalan
-                </h4>
-
-                {/* Keterangan Rumus Penilaian Setoran */}
-                <div className="p-4 rounded-lg border border-border bg-muted/40 space-y-3">
-                  <h5 className="text-sm font-semibold text-foreground flex items-center gap-1.5">📐 Rumus & Bobot Penilaian Setoran</h5>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    <div className="p-3 rounded-md bg-destructive/5 border border-destructive/20">
-                      <p className="text-xs font-semibold text-foreground mb-1">Kesalahan Makhraj</p>
-                      <p className="text-[10px] text-muted-foreground">Salah pengucapan huruf hijaiyah</p>
-                      <p className="text-xs font-bold text-destructive mt-1">Penalti: −3 poin / kesalahan</p>
-                    </div>
-                    <div className="p-3 rounded-md bg-warning/5 border border-warning/20">
-                      <p className="text-xs font-semibold text-foreground mb-1">Kesalahan Tajwid</p>
-                      <p className="text-[10px] text-muted-foreground">Hukum bacaan kurang tepat</p>
-                      <p className="text-xs font-bold text-orange-600 mt-1">Penalti: −2 poin / kesalahan</p>
-                    </div>
-                    <div className="p-3 rounded-md bg-warning/5 border border-warning/20">
-                      <p className="text-xs font-semibold text-foreground mb-1">Kesalahan Mad</p>
-                      <p className="text-[10px] text-muted-foreground">Panjang-pendek bacaan tidak sesuai</p>
-                      <p className="text-xs font-bold text-orange-600 mt-1">Penalti: −2 poin / kesalahan</p>
-                    </div>
-                    <div className="p-3 rounded-md bg-primary/5 border border-primary/20">
-                      <p className="text-xs font-semibold text-foreground mb-1">Kelancaran</p>
-                      <p className="text-[10px] text-muted-foreground">Skor 1–10, bobot 20% dari nilai akhir</p>
-                      <p className="text-xs font-bold text-primary mt-1">Rumus: (skor / 10) × 20</p>
-                    </div>
-                    <div className="p-3 rounded-md bg-muted border border-border">
-                      <p className="text-xs font-semibold text-foreground mb-1">Lupa Ayat</p>
-                      <p className="text-[10px] text-muted-foreground">Catatan tambahan jumlah ayat yang lupa</p>
-                    </div>
-                    <div className="p-3 rounded-md bg-muted border border-border">
-                      <p className="text-xs font-semibold text-foreground mb-1">Terhenti / Terbata</p>
-                      <p className="text-[10px] text-muted-foreground">Catatan tambahan bacaan terhenti</p>
-                    </div>
-                  </div>
-                  <div className="p-3 rounded-md bg-accent/50 border border-border">
-                    <p className="text-xs font-semibold text-foreground">📝 Rumus Nilai Setoran:</p>
-                    <p className="text-xs text-muted-foreground font-mono bg-background/80 px-2 py-1 rounded mt-1">Nilai = 100 − (Makhraj × 3) − (Tajwid × 2) − (Mad × 2) − (20 − Kelancaran × 2)</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-muted-foreground mb-1">Tanggal</label>
-                    <input type="date" value={setoranForm.tanggal}
-                      onChange={e => setSetoranForm({ ...setoranForm, tanggal: e.target.value })}
-                      className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1">Juz yang Diujikan</label>
-                    <select value={setoranForm.juz}
-                      onChange={e => {
-                        const newJuz = parseInt(e.target.value);
-                        const surahs = getSurahsForJuz(newJuz);
-                        setSetoranForm({
-                          ...setoranForm,
-                          juz: newJuz,
-                          surah: surahs[0]?.name || "",
-                          ayatMulai: 1,
-                          ayatAkhir: surahs[0]?.ayatCount || 1,
-                        });
-                      }}
-                      className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                      {Array.from({ length: 30 }, (_, i) => i + 1).map(j => (
-                        <option key={j} value={j}>📖 Juz {j}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1">Surah</label>
-                    <select value={setoranForm.surah}
-                      onChange={e => {
-                        const selectedSurah = getSurahsForJuz(setoranForm.juz).find(s => s.name === e.target.value);
-                        setSetoranForm({
-                          ...setoranForm,
-                          surah: e.target.value,
-                          ayatMulai: 1,
-                          ayatAkhir: selectedSurah?.ayatCount || 1,
-                        });
-                      }}
-                      className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                      {getSurahsForJuz(setoranForm.juz).map(s => (
-                        <option key={`${s.name}-${s.ayatRange || 'full'}`} value={s.name}>{getSurahLabel(s)}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-xs font-medium text-muted-foreground mb-1">Ayat Mulai</label>
-                      <input type="number" min={1} value={setoranForm.ayatMulai}
-                        onChange={e => setSetoranForm({ ...setoranForm, ayatMulai: parseInt(e.target.value) || 1 })}
-                        className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-muted-foreground mb-1">Ayat Akhir</label>
-                      <input type="number" min={1} value={setoranForm.ayatAkhir}
-                        onChange={e => setSetoranForm({ ...setoranForm, ayatAkhir: parseInt(e.target.value) || 1 })}
-                        className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Keterangan Kesalahan */}
-                <div className="pt-2 border-t border-border">
-                  <h5 className="text-sm font-semibold text-foreground mb-1">📝 Keterangan Kesalahan</h5>
-                  <p className="text-[11px] text-muted-foreground mb-3">Catat jumlah kesalahan yang ditemukan selama setoran hafalan</p>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {[
-                      { key: 'kesalahanMakhraj', label: 'Kesalahan Makhraj', desc: 'Salah pengucapan huruf / makhraj', tooltip: 'Contoh:\n• Huruf ث dibaca س\n• Huruf ذ dibaca ز\n• Huruf ض dibaca د\n• Huruf ظ dibaca ز\n• Huruf ق dibaca ك' },
-                      { key: 'kesalahanTajwid', label: 'Kesalahan Tajwid', desc: 'Hukum tajwid tidak diterapkan', tooltip: 'Contoh:\n• Idgham dibaca izhhar\n• Ikhfa tidak diterapkan\n• Qalqalah tidak dibaca membal\n• Iqlab tidak dilakukan\n• Ghunnah kurang dengung' },
-                      { key: 'kesalahanMad', label: 'Kesalahan Mad', desc: 'Panjang pendek bacaan tidak sesuai', tooltip: 'Contoh:\n• Mad thabi\'i kurang 2 harakat\n• Mad wajib muttashil kurang panjang\n• Mad lazim tidak 6 harakat\n• Mad \'aridh lissukun dipendekkan\n• Mad lin tidak dibaca panjang' },
-                    ].map(field => (
-                      <div key={field.key}>
-                        <label className="flex items-center gap-1 text-xs font-medium text-muted-foreground mb-1">
-                          {field.label}
-                          <TooltipProvider delayDuration={200}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Info className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-primary cursor-help transition-colors" />
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="max-w-[220px] whitespace-pre-line text-xs">
-                                {field.tooltip}
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </label>
-                        <input type="number" min={0} max={50}
-                          value={(setoranForm.koreksi as any)[field.key]}
-                          onChange={e => setSetoranForm({
-                            ...setoranForm,
-                            koreksi: { ...setoranForm.koreksi, [field.key]: parseInt(e.target.value) || 0 }
-                          })}
-                          className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-                        <p className="text-[10px] text-muted-foreground mt-0.5">{field.desc}</p>
-                      </div>
-                    ))}
-                    <div>
-                      <label className="flex items-center gap-1 text-xs font-medium text-muted-foreground mb-1">
-                        Lupa Ayat
-                        <TooltipProvider delayDuration={200}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-primary cursor-help transition-colors" />
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="max-w-[220px] whitespace-pre-line text-xs">
-                              {"Contoh:\n• Lupa sambungan antar ayat\n• Lupa awal ayat berikutnya\n• Melewati ayat tanpa sadar\n• Perlu diingatkan guru"}
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </label>
-                      <input type="number" min={0} max={50}
-                        value={setoranForm.lupaAyat}
-                        onChange={e => setSetoranForm({ ...setoranForm, lupaAyat: parseInt(e.target.value) || 0 })}
-                        className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-                      <p className="text-[10px] text-muted-foreground mt-0.5">Lupa lanjutan ayat / ayat terlewat</p>
-                    </div>
-                    <div>
-                      <label className="flex items-center gap-1 text-xs font-medium text-muted-foreground mb-1">
-                        Terhenti / Terbata
-                        <TooltipProvider delayDuration={200}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-primary cursor-help transition-colors" />
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="max-w-[220px] whitespace-pre-line text-xs">
-                              {"Contoh:\n• Berhenti lama di tengah ayat\n• Membaca terbata-bata\n• Mengulang-ulang kata\n• Ragu dalam melanjutkan"}
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </label>
-                      <input type="number" min={0} max={50}
-                        value={setoranForm.terhentiTerbata}
-                        onChange={e => setSetoranForm({ ...setoranForm, terhentiTerbata: parseInt(e.target.value) || 0 })}
-                        className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-                      <p className="text-[10px] text-muted-foreground mt-0.5">Bacaan terputus-putus / tidak lancar</p>
-                    </div>
-                    <div>
-                      <label className="flex items-center gap-1 text-xs font-medium text-muted-foreground mb-1">
-                        Kelancaran (1-10)
-                        <TooltipProvider delayDuration={200}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-primary cursor-help transition-colors" />
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="max-w-[220px] whitespace-pre-line text-xs">
-                              {"Panduan skor:\n• 9-10: Sangat lancar, tanpa jeda\n• 7-8: Lancar, sedikit jeda\n• 5-6: Cukup, beberapa kali jeda\n• 3-4: Kurang lancar, sering jeda\n• 1-2: Tidak lancar, sangat terbata"}
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </label>
-                      <input type="number" min={0} max={10}
-                        value={setoranForm.koreksi.kelancaran}
-                        onChange={e => setSetoranForm({
-                          ...setoranForm,
-                          koreksi: { ...setoranForm.koreksi, kelancaran: parseInt(e.target.value) || 0 }
-                        })}
-                        className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-                      <p className="text-[10px] text-muted-foreground mt-0.5">Skor kelancaran keseluruhan</p>
-                    </div>
-                  </div>
-                  <div className="mt-3 p-3 rounded-md bg-muted">
-                    <p className="text-sm text-muted-foreground">
-                      Nilai Otomatis: <span className="text-lg font-bold text-primary">{calculateNilaiSetoran(setoranForm.koreksi)}</span>
-                    </p>
-                  </div>
-                </div>
-
-                {/* Catatan Guru */}
-                <div className="pt-2 border-t border-border">
-                  <h5 className="text-sm font-semibold text-foreground mb-1">💬 Catatan Guru / Pembimbing</h5>
-                  <p className="text-[11px] text-muted-foreground mb-2">Tuliskan komentar atau masukan untuk siswa</p>
-                  <textarea
-                    value={setoranForm.catatanGuru}
-                    onChange={e => setSetoranForm({ ...setoranForm, catatanGuru: e.target.value })}
-                    placeholder="Contoh: Hafalan sudah lancar namun masih perlu memperbaiki mad thabi'i"
-                    className="w-full min-h-[80px] px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y"
-                  />
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {[
-                      "Hafalan sudah lancar namun masih perlu memperbaiki mad thabi'i",
-                      "Makhraj huruf ض dan ظ masih perlu latihan",
-                      "Perlu memperbanyak murajaah",
-                      "Bacaan sudah sangat baik",
-                    ].map(saran => (
-                      <button key={saran} type="button"
-                        onClick={() => setSetoranForm({ ...setoranForm, catatanGuru: saran })}
-                        className="text-[10px] px-2 py-1 rounded-full border border-border bg-muted/50 text-muted-foreground hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors">
-                        {saran.length > 40 ? saran.slice(0, 40) + '…' : saran}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex gap-2 justify-end">
-                  <button onClick={() => setShowSetoranForm(false)}
-                    className="px-4 py-2 rounded-md text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80 transition-colors">
-                    Batal
-                  </button>
-                  <button onClick={handleAddSetoran}
-                    disabled={addSetoran.isPending}
-                    className="px-4 py-2 rounded-md text-sm font-medium gradient-islamic text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50">
-                    {addSetoran.isPending ? "Menyimpan..." : "Simpan Setoran"}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Setoran List */}
-            <div className="space-y-3">
-              {setoran.map((s: any) => (
-                <div key={s.id} className="bg-card rounded-lg border border-border p-4 shadow-card">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                    <div>
-                      <p className="font-medium text-foreground">{s.surah} (Ayat {s.ayat_mulai}-{s.ayat_akhir})</p>
-                      <p className="text-xs text-muted-foreground">Juz {s.juz} · {s.tanggal}</p>
-                      {s.assessed_by && assessorMap[s.assessed_by] && (
-                        <p className="text-xs text-primary font-medium mt-0.5">👤 Dinilai oleh: {assessorMap[s.assessed_by]}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <p className={`text-xl font-bold ${s.nilai >= 80 ? 'text-success' : s.nilai >= 60 ? 'text-warning' : 'text-destructive'}`}>
-                          {s.nilai}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Nilai</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-2 grid grid-cols-3 md:grid-cols-6 gap-2 text-xs text-muted-foreground">
-                    <span>Makhraj: {s.kesalahan_makhraj}</span>
-                    <span>Tajwid: {s.kesalahan_tajwid}</span>
-                    <span>Mad: {s.kesalahan_mad}</span>
-                    <span>Lupa: {s.lupa_ayat || 0}</span>
-                    <span>Terhenti: {s.terhenti_terbata || 0}</span>
-                    <span>Lancar: {s.kelancaran}/10</span>
-                  </div>
-                  {s.catatan_guru && (
-                    <p className="mt-1.5 text-xs text-muted-foreground italic">💬 {s.catatan_guru}</p>
-                  )}
-                </div>
-              ))}
-              {setoran.length === 0 && (
-                <p className="text-center text-muted-foreground py-8">Belum ada setoran</p>
-              )}
-            </div>
-          </TabsContent>
-
           {/* UJIAN TAB */}
-          <TabsContent value="ujian" className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-foreground">Ujian</h3>
-              {isLoggedIn && !showUjianForm && (
-              <button
-                onClick={() => setShowUjianForm(true)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium gradient-islamic text-primary-foreground hover:opacity-90 transition-opacity"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Mulai Ujian
-              </button>
-              )}
-            </div>
+          <TabsContent value="ujian" className="space-y-6">
+            {isLoggedIn && (
+              <div className="p-6 rounded-lg border border-border bg-card space-y-4">
+                <h3 className="font-semibold text-foreground flex items-center gap-2">
+                  <Plus className="w-4 h-4" /> Tambah Ujian Baru
+                </h3>
 
-            {/* Exam Type Selector */}
-            {showUjianForm && !ujianMode && (
-              <div className="bg-card rounded-lg border border-border p-5 shadow-card animate-scale-in space-y-4">
-                <h4 className="font-semibold text-foreground">Pilih Jenis Ujian</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {[
-                    { mode: 'Tahsin Dasar' as const, icon: '📘', desc: 'EBTA Iqra 1-6' },
-                    { mode: 'Tahsin Lanjutan' as const, icon: '📗', desc: 'Surat Al-Quran + Tes Waqaf' },
-                    { mode: 'Tahfizh' as const, icon: '📕', desc: 'Ujian Sertifikasi Tahfizh' },
-                  ].map(opt => (
-                    <button key={opt.mode} onClick={() => setUjianMode(opt.mode)}
-                      className="p-4 rounded-lg border-2 border-border hover:border-primary bg-muted/30 hover:bg-primary/5 transition-all text-left">
-                      <p className="text-2xl mb-1">{opt.icon}</p>
-                      <p className="font-semibold text-foreground text-sm">{opt.mode}</p>
-                      <p className="text-[11px] text-muted-foreground">{opt.desc}</p>
+                <div className="flex flex-wrap gap-2">
+                  {["Tahfizh", "Tahsin Dasar", "Tahsin Lanjutan"].map(mode => (
+                    <button
+                      key={mode}
+                      onClick={() => { setUjianMode(mode as any); setShowUjianForm(true); }}
+                      className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                      disabled={showUjianForm}
+                    >
+                      {mode === "Tahfizh" ? "📖" : "🎓"} {mode}
                     </button>
                   ))}
                 </div>
-                <button onClick={() => setShowUjianForm(false)}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  ← Batal
-                </button>
-              </div>
-            )}
 
-            {/* Tahsin Dasar Form */}
-            {showUjianForm && ujianMode === 'Tahsin Dasar' && (
-              <UjianTahsinDasarForm
-                isPending={addTahsinUjian.isPending}
-                onCancel={() => { setShowUjianForm(false); setUjianMode(null); }}
-                onSubmit={(data) => {
-                  if (!studentId) return;
-                  addTahsinUjian.mutate({
-                    student_id: studentId,
-                    mode: 'Tahsin Dasar',
-                    nilai_aspek: { entries: data.entries, config: data.config, catatanGuru: data.catatan_guru, predikat: data.predikat } as any,
-                    nilaiAkhir: data.nilaiAkhir,
-                    status: data.status,
-                    grade: data.grade,
-                    assessed_by: user?.id,
-                    tanggal: data.tanggal,
-                    waktu: data.waktu,
-                  }, {
-                    onSuccess: () => { toast.success("Hasil Ujian Tahsin Dasar berhasil disimpan!"); setShowUjianForm(false); setUjianMode(null); },
-                    onError: (err) => toast.error(getSafeErrorMessage(err)),
-                  });
-                }}
-              />
-            )}
+                {showUjianForm && ujianMode === "Tahfizh" && (
+                  <div className="space-y-4 p-4 rounded-lg border border-border bg-muted/30">
+                    <h4 className="font-semibold text-foreground">Form Ujian Tahfizh</h4>
 
-            {/* Tahsin Lanjutan Form */}
-            {showUjianForm && ujianMode === 'Tahsin Lanjutan' && (
-              <UjianTahsinLanjutanForm
-                isPending={addTahsinUjian.isPending}
-                onCancel={() => { setShowUjianForm(false); setUjianMode(null); }}
-                onSubmit={(data) => {
-                  if (!studentId) return;
-                  addTahsinUjian.mutate({
-                    student_id: studentId,
-                    mode: 'Tahsin Lanjutan',
-                    nilai_aspek: { entries: data.entries, config: data.config, penaltiWaqaf: data.penaltiWaqaf, waqafTest: data.waqafTest, catatanGuru: data.catatan_guru, predikat: data.predikat } as any,
-                    nilaiAkhir: data.nilaiAkhir,
-                    status: data.status,
-                    grade: data.grade,
-                    assessed_by: user?.id,
-                    tanggal: data.tanggal,
-                    waktu: data.waktu,
-                  }, {
-                    onSuccess: () => { toast.success("Hasil Ujian Tahsin Lanjutan berhasil disimpan!"); setShowUjianForm(false); setUjianMode(null); },
-                    onError: (err) => toast.error(getSafeErrorMessage(err)),
-                  });
-                }}
-              />
-            )}
-
-            {showUjianForm && ujianMode === 'Tahfizh' && (
-              <div
-                className="bg-card rounded-lg border border-border p-5 shadow-card animate-scale-in space-y-4"
-                onKeyDown={handleSmartFormKey}
-              >
-                <h4 className="font-semibold text-foreground flex items-center justify-between">
-                  <span>Form Ujian Sertifikasi</span>
-                  <span className="text-[10px] font-normal text-muted-foreground">⌨️ Tekan Enter untuk pindah field · Shift+Enter untuk mundur</span>
-                </h4>
-
-                {/* Date & Time */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="flex items-center gap-1 text-xs font-medium text-muted-foreground mb-1">
-                      <Calendar className="w-3.5 h-3.5" /> Tanggal Ujian
-                    </label>
-                    <input type="date" value={tahfizhTanggal} onChange={e => setTahfizhTanggal(e.target.value)}
-                      className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-                  </div>
-                  <div>
-                    <label className="flex items-center gap-1 text-xs font-medium text-muted-foreground mb-1">
-                      <Clock className="w-3.5 h-3.5" /> Waktu Ujian
-                    </label>
-                    <input type="time" value={tahfizhWaktu} onChange={e => setTahfizhWaktu(e.target.value)}
-                      className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-                  </div>
-                </div>
-
-                {/* Keterangan Rumus Penilaian */}
-                <div className="p-4 rounded-lg border border-border bg-muted/40 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h5 className="text-sm font-semibold text-foreground flex items-center gap-1.5">📐 Rumus & Penalti Penilaian</h5>
-                    <button onClick={() => setShowTahfizhConfig(!showTahfizhConfig)} className="text-xs text-primary hover:underline">
-                      {showTahfizhConfig ? 'Tutup Pengaturan' : 'Edit Penalti'}
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="p-3 rounded-md bg-primary/10 border-2 border-primary/30">
-                      <p className="text-xs font-semibold text-foreground mb-1">⭐ 1️⃣ Kelancaran (Prioritas)</p>
-                      <p className="text-[10px] text-muted-foreground">Skor 60–100 — default 90</p>
-                      <p className="text-xs font-bold text-primary mt-1">Basis nilai (tanpa penalti)</p>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1">Tanggal</label>
+                      <input type="date" value={tahfizhTanggal} onChange={e => setTahfizhTanggal(e.target.value)}
+                        className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm" />
                     </div>
-                    <div className="p-3 rounded-md bg-destructive/5 border border-destructive/20">
-                      <p className="text-xs font-semibold text-foreground mb-1">2️⃣ Lahn Jali</p>
-                      <p className="text-[10px] text-muted-foreground">Kesalahan nyata: salah huruf, harakat, tasydid</p>
-                      <p className="text-xs font-bold text-destructive mt-1">Penalti: −{tahfizhPenalti.lj} poin / kesalahan</p>
-                    </div>
-                    <div className="p-3 rounded-md bg-warning/5 border border-warning/20">
-                      <p className="text-xs font-semibold text-foreground mb-1">3️⃣ Lahn Khofi</p>
-                      <p className="text-[10px] text-muted-foreground">Kesalahan samar: mad, ghunnah, tajwid, irama</p>
-                      <p className="text-xs font-bold text-orange-600 mt-1">Penalti: −{tahfizhPenalti.lk} poin / kesalahan</p>
-                    </div>
-                    <div className="p-3 rounded-md bg-accent border border-border">
-                      <p className="text-xs font-semibold text-foreground mb-1">4️⃣ Waqaf & Ibtida</p>
-                      <p className="text-[10px] text-muted-foreground">Kesalahan berhenti dan memulai bacaan</p>
-                      <p className="text-xs font-bold text-foreground mt-1">Penalti: −{tahfizhPenalti.waqaf} poin / kesalahan</p>
-                    </div>
-                    <div className="p-3 rounded-md bg-violet-500/5 border border-violet-500/20">
-                      <p className="text-xs font-semibold text-foreground mb-1">5️⃣ Salah/Lupa Sambung Ayat</p>
-                      <p className="text-[10px] text-muted-foreground">Kesalahan menyambung antar ayat</p>
-                      <p className="text-xs font-bold text-violet-600 mt-1">Penalti: −{tahfizhPenalti.sambung} poin / kesalahan</p>
-                    </div>
-                  </div>
 
-                  {showTahfizhConfig && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 rounded-md bg-background border border-border">
-                      <div>
-                        <label className="block text-xs font-medium text-muted-foreground mb-1">Penalti Lahn Jali</label>
-                        <input type="number" min={0} max={10} value={tahfizhPenalti.lj}
-                          onChange={e => setTahfizhPenalti({ ...tahfizhPenalti, lj: parseFloat(e.target.value) || 0 })}
-                          className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm" />
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <h5 className="font-medium text-sm text-foreground">Surat yang Diujikan</h5>
+                        <button onClick={addTahfizhEntry} className="text-xs text-primary hover:underline">+ Tambah</button>
                       </div>
-                      <div>
-                        <label className="block text-xs font-medium text-muted-foreground mb-1">Penalti Lahn Khofi</label>
-                        <input type="number" min={0} max={10} value={tahfizhPenalti.lk}
-                          onChange={e => setTahfizhPenalti({ ...tahfizhPenalti, lk: parseFloat(e.target.value) || 0 })}
-                          className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-muted-foreground mb-1">Penalti Waqaf</label>
-                        <input type="number" min={0} max={10} value={tahfizhPenalti.waqaf}
-                          onChange={e => setTahfizhPenalti({ ...tahfizhPenalti, waqaf: parseFloat(e.target.value) || 0 })}
-                          className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-muted-foreground mb-1">Penalti Sambung Ayat</label>
-                        <input type="number" min={0} max={10} value={tahfizhPenalti.sambung}
-                          onChange={e => setTahfizhPenalti({ ...tahfizhPenalti, sambung: parseFloat(e.target.value) || 0 })}
-                          className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm" />
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="p-3 rounded-md bg-accent/50 border border-border space-y-1.5">
-                    <p className="text-xs font-semibold text-foreground">📝 Rumus Nilai Per Surat (Tahfizh):</p>
-                    <p className="text-xs text-muted-foreground font-mono bg-background/80 px-2 py-1 rounded">
-                      Koreksi = Kelancaran (60–100) − (LJ × {tahfizhPenalti.lj}) − (LK × {tahfizhPenalti.lk}) − (Waqaf × {tahfizhPenalti.waqaf}) − (Sambung × {tahfizhPenalti.sambung})
-                    </p>
-                    <p className="text-xs font-semibold text-primary font-mono bg-background/80 px-2 py-1 rounded">
-                      Nilai akhir = Kelancaran − ({tahfizhPenalti.lj} × Lahn Jali) − ({tahfizhPenalti.lk} × Lahn Khofi) − ({tahfizhPenalti.waqaf} × Waqaf & Ibtida) − ({tahfizhPenalti.sambung} × Salah/Lupa Sambung Ayat)
-                    </p>
-                    <p className="text-xs font-semibold text-foreground mt-2">📊 Nilai Akhir Ujian = Rata-rata nilai seluruh surat</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2 text-[10px]">
-                    <span className="px-2 py-1 rounded-full bg-green-100 text-green-800 font-medium">Mumtaz: 90–100</span>
-                    <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-800 font-medium">Jayyid Jiddan: 80–89</span>
-                    <span className="px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 font-medium">Jayyid: 70–79</span>
-                    <span className="px-2 py-1 rounded-full bg-red-100 text-red-800 font-medium">Perlu Perbaikan: &lt;70</span>
-                    <span className="px-2 py-1 rounded-full bg-emerald-100 text-emerald-800 font-medium">✅ Lulus: ≥ 85</span>
-                  </div>
-                </div>
-
-                {/* TAHFIZH FORM */}
-                  <>
-                    <div className="space-y-4">
-                      {tahfizhEntries.map((entry, index) => (
-                        <div key={index} className="p-4 rounded-lg border border-border bg-muted/30 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <h5 className="text-sm font-semibold text-foreground">Surat #{index + 1}</h5>
+                      {tahfizhEntries.map((entry, idx) => (
+                        <div key={idx} className="p-3 rounded-md border border-border bg-background space-y-2">
+                          <div className="flex justify-between items-start mb-2">
+                            <p className="text-sm font-medium text-foreground">Surat #{idx + 1}</p>
                             {tahfizhEntries.length > 1 && (
-                              <button onClick={() => removeTahfizhEntry(index)} className="text-destructive hover:text-destructive/80">
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              <button onClick={() => removeTahfizhEntry(idx)} className="text-destructive text-xs hover:underline">Hapus</button>
                             )}
                           </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                             <div>
-                              <label className="block text-xs font-medium text-muted-foreground mb-1">Juz yang Diujikan</label>
-                              <select value={entry.juz}
-                                onChange={e => updateTahfizhEntry(index, 'juz', parseInt(e.target.value))}
-                                className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                                {Array.from({ length: 30 }, (_, i) => i + 1).map(j => (
-                                  <option key={j} value={j}>📖 Juz {j}</option>
-                                ))}
-                              </select>
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-muted-foreground mb-1">Surah</label>
-                              <select value={entry.surah}
-                                onChange={e => updateTahfizhEntry(index, 'surah', e.target.value)}
-                                className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                              <label className="text-xs text-muted-foreground">Surah</label>
+                              <select value={entry.surah} onChange={e => updateTahfizhEntry(idx, 'surah', e.target.value)}
+                                className="w-full px-2 py-1 rounded-md border border-input bg-background text-foreground text-xs">
                                 {getSurahsForJuz(entry.juz).map(s => (
-                                  <option key={`${s.name}-${s.ayatRange || 'full'}`} value={s.name}>{getSurahLabel(s)}</option>
+                                  <option key={s.name} value={s.name}>{getSurahLabel(s)}</option>
                                 ))}
                               </select>
                             </div>
-                          </div>
-
-                          {/* Kelancaran (priority #1) */}
-                          <div className="p-3 rounded-md bg-primary/10 border-2 border-primary/30">
-                            <h6 className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1">
-                              ⭐ 1️⃣ Kelancaran (Prioritas Utama)
-                              <TooltipProvider delayDuration={200}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Info className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-primary cursor-help transition-colors" />
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" className="max-w-[240px] whitespace-pre-line text-xs">
-                                    {"Panduan kelancaran:\n• 100: Sangat lancar tanpa jeda\n• 90: Lancar (default)\n• 80: Cukup lancar\n• 70: Kurang lancar\n• 60: Tidak lancar"}
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </h6>
-                            <select value={entry.kelancaran}
-                              onChange={e => updateTahfizhEntry(index, 'kelancaran', parseInt(e.target.value))}
-                              className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                              {KELANCARAN_OPTIONS.map(opt => (
-                                <option key={opt.value} value={opt.value}>{opt.label}</option>
-                              ))}
-                            </select>
-                            <p className="text-[10px] text-muted-foreground mt-1">Default 90 — dapat diubah oleh penguji</p>
-                          </div>
-
-                          {/* Lahn Jali */}
-                          <div className="p-3 rounded-md bg-destructive/5 border border-destructive/20">
-                            <h6 className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1">
-                              2️⃣ Lahn Jali (Kesalahan Nyata) − {tahfizhPenalti.lj}/kesalahan
-                              <TooltipProvider delayDuration={200}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Info className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-destructive cursor-help transition-colors" />
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" className="max-w-[240px] whitespace-pre-line text-xs">
-                                    {"Contoh Lahn Jali:\n• Huruf ث dibaca س\n• Harakat fathah dibaca kasrah\n• Salah tasydid (kurang/lebih)\n• Menambah/mengurangi huruf"}
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </h6>
-                            <p className="text-[10px] text-muted-foreground mb-2">Salah Huruf · Salah Harakat · Salah Tasydid</p>
                             <div>
-                              <label className="block text-xs font-medium text-muted-foreground mb-1">Jumlah Kesalahan</label>
-                              <input type="number" min={0} max={50} value={entry.lahn_jali}
-                                onChange={e => updateTahfizhEntry(index, 'lahn_jali', parseInt(e.target.value) || 0)}
-                                className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-                              <p className="text-[10px] text-muted-foreground mt-1">Penalti: −{entry.lahn_jali * tahfizhPenalti.lj} poin</p>
+                              <label className="text-xs text-muted-foreground">Juz</label>
+                              <select value={entry.juz} onChange={e => updateTahfizhEntry(idx, 'juz', parseInt(e.target.value))}
+                                className="w-full px-2 py-1 rounded-md border border-input bg-background text-foreground text-xs">
+                                {Array.from({ length: 30 }, (_, i) => i + 1).map(j => (
+                                  <option key={j} value={j}>{j}</option>
+                                ))}
+                              </select>
                             </div>
-                          </div>
-
-                          {/* Lahn Khofi */}
-                          <div className="p-3 rounded-md bg-warning/5 border border-warning/20">
-                            <h6 className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1">
-                              3️⃣ Lahn Khofi (Kesalahan Samar) − {tahfizhPenalti.lk}/kesalahan
-                              <TooltipProvider delayDuration={200}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Info className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-warning cursor-help transition-colors" />
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" className="max-w-[240px] whitespace-pre-line text-xs">
-                                    {"Contoh Lahn Khofi:\n• Mad thabi'i kurang 2 harakat\n• Ghunnah kurang berdengung\n• Ikhfa tidak tepat\n• Waqaf/ibtida kurang sesuai\n• Irama bacaan tidak konsisten"}
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </h6>
-                            <p className="text-[10px] text-muted-foreground mb-2">Kurang panjang mad · Ghunnah kurang jelas · Tajwid kurang sempurna · Irama kurang tepat</p>
                             <div>
-                              <label className="block text-xs font-medium text-muted-foreground mb-1">Jumlah Kesalahan</label>
-                              <input type="number" min={0} max={50} value={entry.lahn_khofi}
-                                onChange={e => updateTahfizhEntry(index, 'lahn_khofi', parseInt(e.target.value) || 0)}
-                                className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-                              <p className="text-[10px] text-muted-foreground mt-1">Penalti: −{entry.lahn_khofi * tahfizhPenalti.lk} poin</p>
+                              <label className="text-xs text-muted-foreground">Kelancaran</label>
+                              <select value={entry.kelancaran} onChange={e => updateTahfizhEntry(idx, 'kelancaran', parseInt(e.target.value))}
+                                className="w-full px-2 py-1 rounded-md border border-input bg-background text-foreground text-xs">
+                                {KELANCARAN_OPTIONS.map(opt => (
+                                  <option key={opt.value} value={opt.value}>{opt.value}</option>
+                                ))}
+                              </select>
                             </div>
-                          </div>
-
-                          {/* Waqaf & Ibtida */}
-                          <div className="p-3 rounded-md bg-accent/50 border border-border">
-                            <h6 className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1">
-                              4️⃣ Waqaf & Ibtida (−{tahfizhPenalti.waqaf} poin/kesalahan)
-                              <TooltipProvider delayDuration={200}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Info className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-foreground cursor-help transition-colors" />
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" className="max-w-[240px] whitespace-pre-line text-xs">
-                                    {"Contoh Kesalahan Waqaf & Ibtida:\n• Berhenti di tengah kalimat yang masih terhubung\n• Memulai bacaan bukan dari awal kalimat\n• Tidak memperhatikan tanda waqaf lazim\n• Waqaf di tempat yang mengubah makna"}
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </h6>
-                            <p className="text-[10px] text-muted-foreground mb-2">Kesalahan berhenti (waqaf) dan memulai (ibtida) bacaan · Setiap kesalahan −{tahfizhPenalti.waqaf} poin</p>
                             <div>
-                              <label className="text-[10px] text-muted-foreground">Jumlah Kesalahan</label>
-                              <input type="number" min={0} value={entry.waqaf_ibtida}
-                                onChange={e => updateTahfizhEntry(index, 'waqaf_ibtida', Math.max(0, parseInt(e.target.value) || 0))}
-                                className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+                              <label className="text-xs text-muted-foreground">Lahn Jali</label>
+                              <input type="number" min={0} value={entry.lahn_jali} onChange={e => updateTahfizhEntry(idx, 'lahn_jali', parseInt(e.target.value) || 0)}
+                                className="w-full px-2 py-1 rounded-md border border-input bg-background text-foreground text-xs" />
                             </div>
-                          </div>
-
-                          {/* Salah/Lupa Sambung Ayat */}
-                          <div className="p-3 rounded-md bg-violet-500/5 border border-violet-500/20">
-                            <h6 className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1">
-                              5️⃣ Salah/Lupa Sambung Ayat (−{tahfizhPenalti.sambung} poin/kesalahan)
-                              <TooltipProvider delayDuration={200}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Info className="w-3.5 h-3.5 text-muted-foreground/60 hover:text-violet-600 cursor-help transition-colors" />
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" className="max-w-[240px] whitespace-pre-line text-xs">
-                                    {"Contoh Kesalahan Sambung Ayat:\n• Lupa sambungan ke ayat berikutnya\n• Salah menyambung ayat (loncat ayat)\n• Tertukar urutan ayat\n• Mengulang ayat yang sama"}
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </h6>
-                            <p className="text-[10px] text-muted-foreground mb-2">Kesalahan atau lupa menyambung antar ayat · Setiap kesalahan −{tahfizhPenalti.sambung} poin</p>
                             <div>
-                              <label className="text-[10px] text-muted-foreground">Jumlah Kesalahan</label>
-                              <input type="number" min={0} value={entry.salah_sambung_ayat}
-                                onChange={e => updateTahfizhEntry(index, 'salah_sambung_ayat', Math.max(0, parseInt(e.target.value) || 0))}
-                                className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+                              <label className="text-xs text-muted-foreground">Lahn Khofi</label>
+                              <input type="number" min={0} value={entry.lahn_khofi} onChange={e => updateTahfizhEntry(idx, 'lahn_khofi', parseInt(e.target.value) || 0)}
+                                className="w-full px-2 py-1 rounded-md border border-input bg-background text-foreground text-xs" />
                             </div>
-                          </div>
-
-                          {/* Nilai Surat */}
-                          <div className="p-3 rounded-md bg-muted text-center">
-                            <p className="text-xs text-muted-foreground">
-                              Nilai = {entry.kelancaran} − ({tahfizhPenalti.lj}×{entry.lahn_jali}) − ({tahfizhPenalti.lk}×{entry.lahn_khofi}) − ({tahfizhPenalti.waqaf}×{entry.waqaf_ibtida}) − ({tahfizhPenalti.sambung}×{entry.salah_sambung_ayat || 0})
-                            </p>
-                            <p className="text-2xl font-bold text-primary">{calculateNilaiSurahNew(entry)}</p>
+                            <div>
+                              <label className="text-xs text-muted-foreground">Waqaf</label>
+                              <input type="number" min={0} value={entry.waqaf_ibtida} onChange={e => updateTahfizhEntry(idx, 'waqaf_ibtida', Math.max(0, parseInt(e.target.value) || 0))}
+                                className="w-full px-2 py-1 rounded-md border border-input bg-background text-foreground text-xs" />
+                            </div>
+                            <div>
+                              <label className="text-xs text-muted-foreground">Sambung Ayat</label>
+                              <input type="number" min={0} value={entry.salah_sambung_ayat} onChange={e => updateTahfizhEntry(idx, 'salah_sambung_ayat', Math.max(0, parseInt(e.target.value) || 0))}
+                                className="w-full px-2 py-1 rounded-md border border-input bg-background text-foreground text-xs" />
+                            </div>
+                            <div>
+                              <label className="text-xs text-muted-foreground">Nilai Surat</label>
+                              <div className="text-center py-1 px-2 rounded-md border border-input bg-muted text-foreground text-xs font-semibold">
+                                {calculateNilaiSurah(entry)}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       ))}
-
-                      <button onClick={addTahfizhEntry}
-                        className="w-full py-2.5 rounded-md border-2 border-dashed border-border text-sm font-medium text-muted-foreground hover:border-primary hover:text-primary transition-colors">
-                        <Plus className="w-4 h-4 inline mr-1" /> Tambah Surat
-                      </button>
                     </div>
 
-                    {/* Catatan Guru */}
-                    <div className="pt-2 border-t border-border">
-                      <h5 className="text-sm font-semibold text-foreground mb-1">💬 Catatan Guru / Pembimbing</h5>
-                      <p className="text-[11px] text-muted-foreground mb-2">Tuliskan komentar atau masukan untuk siswa</p>
-                      <textarea value={catatanGuru}
-                        onChange={e => setCatatanGuru(e.target.value)}
-                        placeholder="Contoh: Hafalan sudah lancar namun masih perlu memperbaiki mad thabi'i"
-                        className="w-full min-h-[80px] px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y" />
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {[
-                          "Hafalan sudah lancar namun masih perlu memperbaiki mad thabi'i",
-                          "Makhraj huruf ض dan ظ masih perlu latihan",
-                          "Perlu memperbanyak murajaah",
-                          "Bacaan sudah sangat baik",
-                        ].map(saran => (
-                          <button key={saran} type="button"
-                            onClick={() => setCatatanGuru(saran)}
-                            className="text-[10px] px-2 py-1 rounded-full border border-border bg-muted/50 text-muted-foreground hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors">
-                            {saran.length > 40 ? saran.slice(0, 40) + '…' : saran}
-                          </button>
-                        ))}
-                      </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1">Catatan Guru</label>
+                      <textarea value={catatanGuru} onChange={e => setCatatanGuru(e.target.value)}
+                        placeholder="Catatan untuk siswa..."
+                        className="w-full min-h-[80px] px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm resize-y" />
                     </div>
 
-                    {/* Tahfizh Preview */}
                     {tahfizhPreview && (
-                      <div className={`p-4 rounded-md ${tahfizhPreview.status === 'Lulus' ? 'bg-success/10' : 'bg-destructive/10'}`}>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-foreground">Nilai Akhir Ujian</p>
-                            <p className="text-3xl font-bold text-foreground">{tahfizhPreview.nilaiAkhir}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className={`text-xl font-bold ${tahfizhPreview.status === 'Lulus' ? 'text-success' : 'text-destructive'}`}>
-                              {tahfizhPreview.predikat}
-                            </p>
-                            <p className="text-sm font-medium">
-                              {tahfizhPreview.status === 'Lulus' ? '✅ LULUS SERTIFIKASI' : '❌ BELUM LULUS'}
-                            </p>
-                            <p className="text-xs text-muted-foreground">Grade {tahfizhPreview.grade}</p>
-                          </div>
-                        </div>
+                      <div className="p-3 rounded-md bg-emerald-50 border border-emerald-200 space-y-1">
+                        <p className="text-xs text-muted-foreground">Preview Hasil</p>
+                        <p className="text-2xl font-bold text-emerald-600">{tahfizhPreview.nilaiAkhir}</p>
+                        <p className="text-sm font-medium text-emerald-700">{tahfizhPreview.predikat} - Grade {tahfizhPreview.grade}</p>
                       </div>
                     )}
 
-                    <div className="flex gap-2 justify-end">
+                    <div className="flex gap-2">
                       <button onClick={() => { setShowUjianForm(false); setUjianMode(null); }}
-                        className="px-4 py-2 rounded-md text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80 transition-colors">
+                        className="px-4 py-2 rounded-md border border-input text-sm font-medium text-foreground hover:bg-muted transition-colors">
                         Batal
                       </button>
-                      <button onClick={handleTahfizhSubmit}
-                        disabled={tahfizhEntries.length === 0 || addTahfizhUjian.isPending}
-                        className="px-4 py-2 rounded-md text-sm font-medium gradient-islamic text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50">
-                        {addTahfizhUjian.isPending ? "Menyimpan..." : "Simpan Hasil Ujian Tahfizh"}
+                      <button onClick={handleTahfizhSubmit} disabled={addTahfizhUjian.isPending}
+                        className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
+                        {addTahfizhUjian.isPending ? "Menyimpan..." : "Simpan Ujian"}
                       </button>
                     </div>
-                  </>
+                  </div>
+                )}
+
+                {showUjianForm && ujianMode === "Tahsin Dasar" && (
+                  <UjianTahsinDasarForm
+                    entries={tahsinDasarEntries}
+                    setEntries={setTahsinDasarEntries}
+                    tanggal={tahsinDasarTanggal}
+                    setTanggal={setTahsinDasarTanggal}
+                    catatan={tahsinDasarCatatan}
+                    setCatatan={setTahsinDasarCatatan}
+                    config={tahsinDasarConfig}
+                    setConfig={setTahsinDasarConfig}
+                    onCancel={() => { setShowUjianForm(false); setUjianMode(null); }}
+                    onSubmit={() => {
+                      if (!studentId) return;
+                      const result = calculateNilaiTahsinDasar(tahsinDasarEntries[0], tahsinDasarConfig);
+                      addTahsinUjian.mutate({
+                        student_id: studentId,
+                        mode: "Tahsin Dasar",
+                        entries: tahsinDasarEntries,
+                        catatan_guru: tahsinDasarCatatan,
+                        assessed_by: user?.id,
+                        tanggal: tahsinDasarTanggal,
+                        nilai_akhir: result,
+                        status: result >= 70 ? "Lulus" : "Tidak Lulus",
+                        grade: result >= 90 ? "A" : result >= 80 ? "B" : result >= 70 ? "C" : "D",
+                      }, {
+                        onSuccess: () => { toast.success("Hasil Ujian Tahsin Dasar berhasil disimpan!"); setShowUjianForm(false); setUjianMode(null); },
+                        onError: (err) => toast.error(getSafeErrorMessage(err)),
+                      });
+                    }}
+                    isLoading={addTahsinUjian.isPending}
+                  />
+                )}
+
+                {showUjianForm && ujianMode === "Tahsin Lanjutan" && (
+                  <UjianTahsinLanjutanForm
+                    entries={tahsinLanjutanEntries}
+                    setEntries={setTahsinLanjutanEntries}
+                    tanggal={tahsinLanjutanTanggal}
+                    setTanggal={setTahsinLanjutanTanggal}
+                    catatan={tahsinLanjutanCatatan}
+                    setCatatan={setTahsinLanjutanCatatan}
+                    config={tahsinLanjutanConfig}
+                    setConfig={setTahsinLanjutanConfig}
+                    waqafTest={waqafTest}
+                    setWaqafTest={setWaqafTest}
+                    onCancel={() => { setShowUjianForm(false); setUjianMode(null); }}
+                    onSubmit={() => {
+                      if (!studentId) return;
+                      const result = calculateNilaiTahsinLanjutan(tahsinLanjutanEntries[0], tahsinLanjutanConfig);
+                      addTahsinUjian.mutate({
+                        student_id: studentId,
+                        mode: "Tahsin Lanjutan",
+                        entries: tahsinLanjutanEntries,
+                        catatan_guru: tahsinLanjutanCatatan,
+                        assessed_by: user?.id,
+                        tanggal: tahsinLanjutanTanggal,
+                        nilai_akhir: result,
+                        status: result >= 70 ? "Lulus" : "Tidak Lulus",
+                        grade: result >= 90 ? "A" : result >= 80 ? "B" : result >= 70 ? "C" : "D",
+                      }, {
+                        onSuccess: () => { toast.success("Hasil Ujian Tahsin Lanjutan berhasil disimpan!"); setShowUjianForm(false); setUjianMode(null); },
+                        onError: (err) => toast.error(getSafeErrorMessage(err)),
+                      });
+                    }}
+                    isLoading={addTahsinUjian.isPending}
+                  />
+                )}
               </div>
             )}
 
-            {/* Ujian History */}
-            <div className="space-y-3">
-              {ujian.map((u: any) => {
-                const isTahfizh = u.mode === 'Tahfizh' && u.nilai_aspek?.surahEntries;
-                const isTahsinDasar = u.mode === 'Tahsin Dasar' && u.nilai_aspek?.entries;
-                const isTahsinLanjutan = u.mode === 'Tahsin Lanjutan' && u.nilai_aspek?.entries;
-                const predikat = u.nilai_aspek?.predikat || (u.nilai_akhir >= 90 ? 'Mumtaz' : u.nilai_akhir >= 80 ? 'Jayyid Jiddan' : u.nilai_akhir >= 70 ? 'Jayyid' : 'Perlu Perbaikan');
+            <div className="space-y-4">
+              <h3 className="font-semibold text-foreground flex items-center gap-2">
+                <Award className="w-4 h-4" /> Daftar Ujian ({ujian.length})
+              </h3>
+              {ujian.map((u: any, idx: number) => {
+                const statusBadge = (status: string) => {
+                  switch (status) {
+                    case 'Lulus':
+                      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success">✅ Lulus</span>;
+                    case 'Tidak Lulus':
+                      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-destructive/10 text-destructive">❌ Tidak Lulus</span>;
+                    default:
+                      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-700">⏳ Proses</span>;
+                  }
+                };
 
                 return (
-                  <div key={u.id} className={`bg-card rounded-lg border p-4 shadow-card ${u.status === 'Lulus' ? 'border-success/30' : 'border-destructive/30'}`}>
-                    <div className="flex items-center justify-between mb-3">
+                  <div key={idx} className="p-4 rounded-lg border border-border bg-card space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
-                        <p className="font-medium text-foreground">Ujian {u.mode}</p>
-                        <p className="text-xs text-muted-foreground">{u.tanggal}</p>
-                        {u.assessed_by && assessorMap[u.assessed_by] && (
-                          <p className="text-xs text-primary font-medium mt-0.5">👤 Dinilai oleh: {assessorMap[u.assessed_by]}</p>
-                        )}
-                      </div>
-                      <div className="text-right flex flex-col items-end gap-1">
-                        <p className="text-2xl font-bold text-foreground">{u.nilai_akhir}</p>
-                        <p className={`text-xs font-medium ${u.status === 'Lulus' ? 'text-success' : 'text-destructive'}`}>
-                          {predikat} · {u.status === 'Lulus' ? '✅ Lulus' : '❌ Tidak Lulus'}
+                        <p className="text-sm font-semibold text-foreground">{u.mode}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {u.tanggal && new Date(u.tanggal).toLocaleDateString("id-ID")}
+                          {u.assessed_by && ` • Penguji: ${assessorMap[u.assessed_by] || u.assessed_by}`}
                         </p>
-                        {isLoggedIn && (
-                          <div className="flex gap-1 mt-1">
-                            <button
-                              onClick={() => setEditingUjian(u)}
-                              className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                              title="Edit hasil ujian"
-                            >
-                              <Pencil className="w-3 h-3" /> Edit
-                            </button>
-                            <button
-                              onClick={() => {
-                                if (!confirm(`Hapus hasil ujian ${u.mode} tanggal ${u.tanggal}? Tindakan ini tidak dapat dibatalkan.`)) return;
-                                deleteUjian.mutate({ ujian_id: u.id, student_id: studentId! }, {
-                                  onSuccess: () => toast.success("Hasil ujian dihapus"),
-                                  onError: (err) => toast.error(getSafeErrorMessage(err)),
-                                });
-                              }}
-                              className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
-                              title="Hapus hasil ujian"
-                            >
-                              <Trash2 className="w-3 h-3" /> Hapus
-                            </button>
-                          </div>
-                        )}
-                        {(isTahsinDasar || isTahsinLanjutan || isTahfizh) && (
-                          <button
-                            onClick={() => setRaportUjian(u)}
-                            className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-emerald-600/10 text-emerald-700 hover:bg-emerald-600/20 transition-colors"
-                            title="Preview & cetak raport"
-                          >
-                            <FileText className="w-3 h-3" /> Preview Raport
-                          </button>
-                        )}
+                      </div>
+                      <div className="flex gap-1">
+                        {statusBadge(u.status_sertifikasi)}
                       </div>
                     </div>
 
-                    {isTahfizh ? (
-                      <div className="space-y-2">
-                        {(u.nilai_aspek.surahEntries as TahfizhSurahEntry[]).map((entry: TahfizhSurahEntry, i: number) => (
-                          <div key={i} className="grid grid-cols-7 gap-2 text-center p-2 rounded-md bg-muted text-xs">
-                            <div><p className="text-muted-foreground">Surat</p><p className="font-bold text-foreground">{entry.surah}</p></div>
-                            <div><p className="text-muted-foreground">Lahn Jali</p><p className="font-bold text-foreground">{entry.lahn_jali}</p></div>
-                            <div><p className="text-muted-foreground">Lahn Khofi</p><p className="font-bold text-foreground">{entry.lahn_khofi}</p></div>
-                            <div><p className="text-muted-foreground">Kelancaran</p><p className="font-bold text-foreground">{entry.kelancaran}</p></div>
-                            <div><p className="text-muted-foreground">Waqaf</p><p className="font-bold text-foreground">{entry.waqaf_ibtida ?? '-'}</p></div>
-                            <div><p className="text-muted-foreground">Sambung</p><p className="font-bold text-foreground">{entry.salah_sambung_ayat ?? '-'}</p></div>
-                            <div><p className="text-muted-foreground">Nilai</p><p className="font-bold text-primary">{calculateNilaiSurah(entry)}</p></div>
-                          </div>
-                        ))}
-                        {u.nilai_aspek.catatanGuru && (
-                          <p className="text-xs text-muted-foreground italic mt-2">📝 {u.nilai_aspek.catatanGuru}</p>
-                        )}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      <div className="text-center p-2 rounded-md bg-muted">
+                        <p className="text-xs text-muted-foreground">Nilai Akhir</p>
+                        <p className="text-xl font-bold text-foreground">{u.nilai_akhir}</p>
                       </div>
-                    ) : isTahsinDasar ? (
-                      <div className="space-y-2">
-                        {(u.nilai_aspek.entries as TahsinDasarEntry[]).map((entry: TahsinDasarEntry, i: number) => {
-                          const cfg = u.nilai_aspek.config || { penalti_lahn_jali: 2, penalti_lahn_khofi: 1, bobot_kelancaran: 40 };
-                          return (
-                            <div key={i} className="p-2 rounded-md bg-muted text-xs">
-                              <p className="font-semibold text-foreground mb-1">{entry.nama_ebta}</p>
-                              <div className="grid grid-cols-4 gap-2 text-center">
-                                <div>
-  <p className="text-muted-foreground">LJ</p>
-  <p className="font-bold text-foreground">
-    {Number(entry.salah_huruf || 0) +
-      Number(entry.salah_harakat || 0) +
-      Number((entry as any).salah_tasydid ?? (entry as any).salah_makhraj ?? 0)}
-  </p>
-</div>
-
-<div>
-  <p className="text-muted-foreground">LK</p>
-  <p className="font-bold text-foreground">
-    {Number(entry.kesalahan_mad || 0) +
-      Number((entry as any).kesalahan_qalqalah ?? (entry as any).kesalahan_ghunnah ?? 0) +
-      Number(entry.kesalahan_tajwid || 0) +
-      Number(entry.kesalahan_waqaf || 0)}
-  </p>
-</div>
-                                <div><p className="text-muted-foreground">Lancar</p><p className="font-bold text-foreground">{entry.kelancaran}</p></div>
-                                <div><p className="text-muted-foreground">Nilai</p><p className="font-bold text-primary">{calculateNilaiTahsinDasar(entry, cfg)}</p></div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                        {u.nilai_aspek.catatanGuru && (
-                          <p className="text-xs text-muted-foreground italic mt-2">📝 {u.nilai_aspek.catatanGuru}</p>
-                        )}
+                      <div className="text-center p-2 rounded-md bg-muted">
+                        <p className="text-xs text-muted-foreground">Grade</p>
+                        <p className="text-xl font-bold text-foreground">{u.grade}</p>
                       </div>
-                    ) : isTahsinLanjutan ? (
-                      <div className="space-y-2">
-                        {(u.nilai_aspek.entries as TahsinLanjutanEntry[]).map((entry: TahsinLanjutanEntry, i: number) => {
-                          const cfg = u.nilai_aspek.config || { penalti_lahn_jali: 2, penalti_lahn_khofi: 1, bobot_kelancaran: 40 };
-                          const pw = u.nilai_aspek.penaltiWaqaf || 2;
-                          return (
-                            <div key={i} className="p-2 rounded-md bg-muted text-xs">
-                              <p className="font-semibold text-foreground mb-1">{entry.surah} {entry.ayat ? `(${entry.ayat})` : ''}</p>
-                              <div className="grid grid-cols-5 gap-2 text-center">
-<div>
-  <p className="text-muted-foreground">LJ</p>
-  <p className="font-bold text-foreground">
-    {Number(entry.salah_huruf || 0) +
-      Number(entry.salah_harakat || 0) +
-      Number((entry as any).salah_tasydid ?? (entry as any).salah_makhraj ?? 0)}
-  </p>
-</div>
+                      <div className="text-center p-2 rounded-md bg-muted">
+                        <p className="text-xs text-muted-foreground">Status</p>
+                        <p className="text-sm font-bold text-foreground">{u.status_sertifikasi}</p>
+                      </div>
+                      <div className="text-center p-2 rounded-md bg-muted">
+                        <p className="text-xs text-muted-foreground">Predikat</p>
+                        <p className="text-sm font-bold text-primary">{u.nilai_aspek?.predikat || "-"}</p>
+                      </div>
+                    </div>
 
-<div>
-  <p className="text-muted-foreground">LK</p>
-  <p className="font-bold text-foreground">
-    {Number(entry.kesalahan_mad || 0) +
-      Number((entry as any).kesalahan_qalqalah ?? (entry as any).kesalahan_ghunnah ?? 0) +
-      Number(entry.kesalahan_tajwid || 0)}
-  </p>
-</div>
-                                <div><p className="text-muted-foreground">Waqaf</p><p className="font-bold text-foreground">{entry.waqaf_ibtida}</p></div>
-                                <div><p className="text-muted-foreground">Lancar</p><p className="font-bold text-foreground">{entry.kelancaran}</p></div>
-                                <div><p className="text-muted-foreground">Nilai</p><p className="font-bold text-primary">{calculateNilaiTahsinLanjutan(entry, cfg, pw)}</p></div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                        {u.nilai_aspek.waqafTest && (
-                          <div className="p-2 rounded-md bg-violet-500/5 border border-violet-500/20 text-xs">
-                            <p className="font-semibold text-foreground mb-1">🔖 Tes Simbol Waqaf</p>
-                            <div className="flex flex-wrap gap-1">
-                              {Object.entries(u.nilai_aspek.waqafTest).map(([key, val]) => (
-                                <span key={key} className={`px-1.5 py-0.5 rounded text-[10px] ${val ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'}`}>
-                                  {key.replace(/_/g, ' ')} {val ? '✅' : '❌'}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                    <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
+                      {isLoggedIn && (
+                        <>
+                          <button
+                            onClick={() => setEditingUjian(u)}
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
+                          >
+                            <Pencil className="w-3 h-3" /> Edit
+                          </button>
+                          <button
+                            onClick={() => {
+                              deleteUjian.mutate({
+                                ujian_id: u.id,
+                                student_id: studentId!,
+                              }, {
+                                onSuccess: () => toast.success("Hasil ujian dihapus"),
+                                onError: (err) => toast.error(getSafeErrorMessage(err)),
+                              });
+                            }}
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-destructive/10 text-destructive text-xs font-medium hover:bg-destructive/20 transition-colors"
+                          >
+                            <Trash2 className="w-3 h-3" /> Hapus
+                          </button>
+                        </>
+                      )}
+                      <button
+                        onClick={() => setRaportUjian(u)}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-blue-500/10 text-blue-600 text-xs font-medium hover:bg-blue-500/20 transition-colors"
+                      >
+                        <FileText className="w-3 h-3" /> Lihat Raport
+                      </button>
+                      {u.mode === "Tahsin Dasar" && (
+                        <button
+                          onClick={() => {
+                            const entries = u.nilai_aspek?.entries || [];
+                            generateTahsinPDF(student?.name || "Siswa", u.mode, entries, u.nilai_akhir);
+                          }}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-green-500/10 text-green-600 text-xs font-medium hover:bg-green-500/20 transition-colors"
+                        >
+                          <Download className="w-3 h-3" /> Unduh PDF
+                        </button>
+                      )}
+                    </div>
+
+                    {u.mode === "Tahfizh" && u.nilai_aspek?.surahEntries ? (
+                      <div className="mt-3 p-3 rounded-md bg-muted/40 space-y-2">
+                        <p className="text-xs font-semibold text-foreground">Surat yang Diujikan:</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
+                          {u.nilai_aspek.surahEntries.map((entry: any, i: number) => (
+                            <p key={i} className="text-xs text-muted-foreground">
+                              {i + 1}. {entry.surah} (Juz {entry.juz}) - Nilai: {calculateNilaiSurah(entry)}
+                            </p>
+                          ))}
+                        </div>
                         {u.nilai_aspek.catatanGuru && (
-                          <p className="text-xs text-muted-foreground italic mt-2">📝 {u.nilai_aspek.catatanGuru}</p>
+                          <p className="text-xs italic text-muted-foreground mt-2">💬 {u.nilai_aspek.catatanGuru}</p>
                         )}
                       </div>
                     ) : (
@@ -1188,6 +538,38 @@ const StudentDetail = () => {
               })}
               {ujian.length === 0 && (
                 <p className="text-center text-muted-foreground py-8">Belum ada ujian</p>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* SETORAN TAB */}
+          <TabsContent value="setoran" className="space-y-6">
+            {isLoggedIn && (
+              <div className="p-6 rounded-lg border border-border bg-card space-y-4">
+                <h3 className="font-semibold text-foreground flex items-center gap-2">
+                  <Plus className="w-4 h-4" /> Tambah Setoran
+                </h3>
+                {/* Form setoran bisa ditambahkan di sini */}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <h3 className="font-semibold text-foreground flex items-center gap-2">
+                <BookOpen className="w-4 h-4" /> Daftar Setoran ({setoran.length})
+              </h3>
+              {setoran.map((s: any, idx: number) => (
+                <div key={idx} className="p-4 rounded-lg border border-border bg-card">
+                  <p className="text-sm font-semibold text-foreground">
+                    {s.surah} (Ayat {s.ayat_mulai}-{s.ayat_akhir})
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {s.tanggal && new Date(s.tanggal).toLocaleDateString("id-ID")}
+                  </p>
+                  <p className="text-sm font-bold text-primary mt-2">Nilai: {s.nilai}</p>
+                </div>
+              ))}
+              {setoran.length === 0 && (
+                <p className="text-center text-muted-foreground py-8">Belum ada setoran</p>
               )}
             </div>
           </TabsContent>
@@ -1217,10 +599,42 @@ const StudentDetail = () => {
               </div>
             )}
           </TabsContent>
+
+          {/* RAPORT TAB */}
+          <TabsContent value="raport" className="space-y-4">
+            <h3 className="font-semibold text-foreground">Raport</h3>
+            <p className="text-sm text-muted-foreground">Pilih ujian untuk melihat raport</p>
+          </TabsContent>
         </Tabs>
       </main>
 
-      {editingUjian && (
+      {/* Edit Dialog - Tahfizh */}
+      {editingUjian && editingUjian.mode === "Tahfizh" && (
+        <EditTahfizhDialog
+          open={!!editingUjian}
+          onClose={() => setEditingUjian(null)}
+          tahfizhData={editingUjian}
+          studentName={student.name}
+          isSaving={updateUjian.isPending}
+          onSave={(updated) => {
+            updateUjian.mutate({
+              ujian_id: editingUjian.id,
+              student_id: studentId!,
+              nilai_aspek: updated.nilai_aspek,
+              nilai_akhir: updated.nilai_akhir,
+              status: updated.status,
+              grade: updated.grade,
+              tanggal: updated.tanggal,
+            }, {
+              onSuccess: () => { toast.success("Hasil ujian diperbarui"); setEditingUjian(null); },
+              onError: (err) => toast.error(getSafeErrorMessage(err)),
+            });
+          }}
+        />
+      )}
+
+      {/* Edit Dialog - Tahsin Dasar/Lanjutan */}
+      {editingUjian && (editingUjian.mode === "Tahsin Dasar" || editingUjian.mode === "Tahsin Lanjutan") && (
         <EditUjianDialog
           open={!!editingUjian}
           onClose={() => setEditingUjian(null)}
@@ -1243,6 +657,7 @@ const StudentDetail = () => {
           }}
         />
       )}
+
       {raportUjian && (
         <RaportPreviewDialog
           open={!!raportUjian}

@@ -3,6 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { calculateNilaiSetoran, calculateNilaiUjian, calculateNilaiTahfizh } from "@/data/mockData";
 import type { TahfizhSurahEntry } from "@/data/mockData";
 import type { TahsinDasarEntry, TahsinLanjutanEntry, TahsinPenaltyConfig, WaqafSymbolTest } from "@/data/tahsinScoring";
+import {
+  toLegacyTahfizhEntry,
+  type TahfizhDocumentStatus,
+  type TahfizhExamMode,
+  type TahfizhPenaltyConfig,
+  type TahfizhSurahAssessment,
+} from "@/data/tahfizhSystem";
 
 export function useStudentDetail(studentId: string | undefined) {
   return useQuery({
@@ -153,7 +160,7 @@ export function useAddTahfizhUjian() {
   return useMutation({
     mutationFn: async (data: {
       student_id: string;
-      entries: TahfizhSurahEntry[];
+      entries: TahfizhSurahEntry[] | TahfizhSurahAssessment[];
       catatan_guru: string;
       nilaiAkhir: number;
       status: 'Lulus' | 'Tidak Lulus';
@@ -161,11 +168,35 @@ export function useAddTahfizhUjian() {
       predikat: string;
       assessed_by?: string;
       tanggal?: string;
+      waktu?: string;
+      tahfizh_mode?: TahfizhExamMode;
+      config?: TahfizhPenaltyConfig;
+      status_label?: string;
+      document_status?: TahfizhDocumentStatus;
+      manual_stop_reason?: string;
+      auto_fail_log?: string;
     }) => {
+      const tahfizhMode = data.tahfizh_mode || "Sertifikat";
+      const normalizedEntries = (data.entries as any[]).map((entry) =>
+        "lahnJali" in entry ? toLegacyTahfizhEntry(entry as TahfizhSurahAssessment) : entry
+      );
+      const verificationToken =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
       const nilai_aspek = {
-        surahEntries: data.entries,
+        surahEntries: normalizedEntries,
+        tahfizhMode,
+        reportType: tahfizhMode === "Sertifikat" ? "summary" : "detail",
+        config: data.config,
         catatanGuru: data.catatan_guru,
         predikat: data.predikat,
+        statusLabel: data.status_label || data.status,
+        documentStatus: data.document_status || "Draft",
+        manualStopReason: data.manual_stop_reason,
+        autoFailLog: data.auto_fail_log,
+        verificationToken,
       } as unknown as Record<string, unknown>;
 
       const { error: ujianError } = await supabase.from("ujian").insert({
@@ -177,6 +208,9 @@ export function useAddTahfizhUjian() {
         grade: data.grade,
         assessed_by: data.assessed_by || null,
         tanggal: data.tanggal || new Date().toISOString().split("T")[0],
+        document_status: data.document_status || "Draft",
+        verification_token: verificationToken,
+        published_at: data.document_status === "Published" ? new Date().toISOString() : null,
       } as any);
       if (ujianError) throw ujianError;
 
@@ -255,6 +289,7 @@ export function useUpdateUjian() {
       status: 'Lulus' | 'Tidak Lulus';
       grade: string;
       tanggal?: string;
+      document_status?: TahfizhDocumentStatus;
     }) => {
       const payload: any = {
         nilai_aspek: data.nilai_aspek,
@@ -263,6 +298,10 @@ export function useUpdateUjian() {
         grade: data.grade,
       };
       if (data.tanggal) payload.tanggal = data.tanggal;
+      if (data.document_status) {
+        payload.document_status = data.document_status;
+        if (data.document_status === "Published") payload.published_at = new Date().toISOString();
+      }
       const { error } = await supabase.from("ujian").update(payload).eq("id", data.ujian_id);
       if (error) throw error;
 
@@ -278,6 +317,60 @@ export function useUpdateUjian() {
       queryClient.invalidateQueries({ queryKey: ["rekap-sertifikat"] });
       queryClient.invalidateQueries({ queryKey: ["rekap-ujian-global"] });
     },
+  });
+}
+
+export function usePublishUjian() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { ujian_id: string; student_id: string }) => {
+      const { data: ujianRow, error: fetchError } = await supabase
+        .from("ujian")
+        .select("nilai_aspek")
+        .eq("id", data.ujian_id)
+        .single();
+      if (fetchError) throw fetchError;
+
+      const aspek = ujianRow?.nilai_aspek && typeof ujianRow.nilai_aspek === "object"
+        ? { ...(ujianRow.nilai_aspek as Record<string, unknown>), documentStatus: "Published" }
+        : { documentStatus: "Published" };
+
+      const { error } = await supabase
+        .from("ujian")
+        .update({
+          document_status: "Published",
+          published_at: new Date().toISOString(),
+          nilai_aspek: aspek as any,
+        } as any)
+        .eq("id", data.ujian_id);
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["student-detail", variables.student_id] });
+      queryClient.invalidateQueries({ queryKey: ["rekap-sertifikat"] });
+      queryClient.invalidateQueries({ queryKey: ["rekap-ujian-global"] });
+    },
+  });
+}
+
+export function useTahfizhVerification(token: string | undefined) {
+  return useQuery({
+    queryKey: ["tahfizh-verification", token],
+    queryFn: async () => {
+      if (!token) throw new Error("Token verifikasi tidak valid");
+
+      const { data, error } = await supabase
+        .from("ujian")
+        .select("*, students(name, class_id, classes(name, grade, section))")
+        .eq("verification_token", token)
+        .eq("document_status", "Published")
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!token,
+    retry: false,
   });
 }
 

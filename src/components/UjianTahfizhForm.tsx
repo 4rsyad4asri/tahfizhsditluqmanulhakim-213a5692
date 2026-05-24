@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, Lock, Plus, Square, Trash2 } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Lock, Plus, Square, Trash2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import {
   DEFAULT_TAHFIZH_PENALTY,
@@ -205,7 +205,16 @@ export default function UjianTahfizhForm({
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+          <div className="flex flex-col gap-2 lg:items-end">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="inline-flex h-8 items-center justify-center gap-2 self-start rounded-md border border-input bg-background px-3 text-xs font-medium text-foreground hover:bg-muted lg:self-end"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Kembali
+            </button>
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
             <MiniField label="Tanggal">
               <input type="date" value={tanggal} onChange={(event) => setTanggal(event.target.value)} className="sheet-input h-8" />
             </MiniField>
@@ -221,6 +230,7 @@ export default function UjianTahfizhForm({
             </MiniField>
             <Metric label="Nilai" value={String(examResult.nilaiAkhir)} />
             <Metric label="Status" value={examResult.statusLabel} compact />
+            </div>
           </div>
         </div>
 

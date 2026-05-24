@@ -60,7 +60,7 @@ function getInitialJuz(initialAssessments?: TahfizhSurahAssessment[]) {
 
 function initialRows(mode: TahfizhExamMode, initialAssessments?: TahfizhSurahAssessment[]) {
   if (initialAssessments?.length) return initialAssessments.map(normalizeTahfizhAssessment);
-  if (mode === "Sertifikat") return [createCertificateAssessment(0, 30)];
+  if (mode === "Sertifikat") return getCertificateSequenceForJuz(30);
   return createRegularRows(30);
 }
 
@@ -108,7 +108,7 @@ export default function UjianTahfizhForm({
     setIsManualStopped(false);
     setManualStopReason("");
     if (isCertificate) {
-      setAssessments([createCertificateAssessment(0, juz)]);
+      setAssessments(getCertificateSequenceForJuz(juz));
     } else {
       setAssessments((current) =>
         current.map((item) => ({ ...item, juz }))
@@ -150,8 +150,6 @@ export default function UjianTahfizhForm({
 
   const addAssessment = () => {
     if (isCertificate) {
-      if (assessments.length >= certificateSequence.length) return;
-      setAssessments((current) => [...current, createCertificateAssessment(current.length, selectedJuz)]);
       return;
     }
 
@@ -201,8 +199,8 @@ export default function UjianTahfizhForm({
           <div>
             <h4 className="text-base font-semibold text-foreground">Form Ujian Tahfizh - Mode {mode}</h4>
             <p className="text-xs text-muted-foreground">
-              {isCertificate
-                ? `Urutan sertifikat Juz ${selectedJuz}: baris ${assessments.length} dari ${certificateSequence.length}`
+            {isCertificate
+                ? `Urutan sertifikat Juz ${selectedJuz}: ${certificateSequence.length} baris langsung tampil`
                 : "Mode reguler memakai 5 soal bebas. Tambah baris hanya bila diperlukan."}
             </p>
           </div>
@@ -255,15 +253,17 @@ export default function UjianTahfizhForm({
             ))}
           </div>
 
-          <button
-            type="button"
-            onClick={addAssessment}
-            disabled={isStopped || (isCertificate && assessments.length >= certificateSequence.length)}
-            className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            {isCertificate ? "Tambah Urutan" : "Tambah Soal"}
-          </button>
+          {!isCertificate && (
+            <button
+              type="button"
+              onClick={addAssessment}
+              disabled={isStopped}
+              className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Tambah Soal
+            </button>
+          )}
 
           {!isCertificate && (
             <button
@@ -314,9 +314,9 @@ export default function UjianTahfizhForm({
               <SheetTh className="w-10">No</SheetTh>
               <SheetTh className="w-20">Juz</SheetTh>
               <SheetTh className="w-56">Surat / Grup</SheetTh>
-              <SheetTh className="w-44">Pilih Cepat</SheetTh>
-              <SheetTh className="w-24">Ayat Awal</SheetTh>
-              <SheetTh className="w-24">Ayat Akhir</SheetTh>
+              {!isCertificate && <SheetTh className="w-44">Pilih Cepat</SheetTh>}
+              {!isCertificate && <SheetTh className="w-24">Ayat Awal</SheetTh>}
+              {!isCertificate && <SheetTh className="w-24">Ayat Akhir</SheetTh>}
               <SheetTh className="w-24">Lancar</SheetTh>
               <SheetTh className="w-20">LJ</SheetTh>
               <SheetTh className="w-20">LK</SheetTh>
@@ -469,39 +469,45 @@ function SheetRow({
           placeholder="Nama surat"
         />
       </SheetTd>
-      <SheetTd>
-        <select
-          value={quickOptions.some((item) => item.name === assessment.surah) ? assessment.surah : ""}
-          disabled={disabled || isCertificate}
-          onChange={(event) => onQuickPick(index, event.target.value)}
-          className="sheet-cell"
-        >
-          <option value="">Custom</option>
-          {quickOptions.map((item) => (
-            <option key={`${item.name}-${item.ayatRange || "full"}`} value={item.name}>
-              {getSurahLabel(item)}
-            </option>
-          ))}
-        </select>
-      </SheetTd>
-      <SheetTd>
-        <input
-          value={assessment.ayatAwal ?? ""}
-          disabled={disabled || isCertificate}
-          onChange={(event) => onUpdate(index, "ayatAwal", event.target.value)}
-          className="sheet-cell"
-          placeholder={assessment.ayatRange || "-"}
-        />
-      </SheetTd>
-      <SheetTd>
-        <input
-          value={assessment.ayatAkhir ?? ""}
-          disabled={disabled || isCertificate}
-          onChange={(event) => onUpdate(index, "ayatAkhir", event.target.value)}
-          className="sheet-cell"
-          placeholder={assessment.ayatRange || "-"}
-        />
-      </SheetTd>
+      {!isCertificate && (
+        <SheetTd>
+          <select
+            value={quickOptions.some((item) => item.name === assessment.surah) ? assessment.surah : ""}
+            disabled={disabled}
+            onChange={(event) => onQuickPick(index, event.target.value)}
+            className="sheet-cell"
+          >
+            <option value="">Custom</option>
+            {quickOptions.map((item) => (
+              <option key={`${item.name}-${item.ayatRange || "full"}`} value={item.name}>
+                {getSurahLabel(item)}
+              </option>
+            ))}
+          </select>
+        </SheetTd>
+      )}
+      {!isCertificate && (
+        <SheetTd>
+          <input
+            value={assessment.ayatAwal ?? ""}
+            disabled={disabled}
+            onChange={(event) => onUpdate(index, "ayatAwal", event.target.value)}
+            className="sheet-cell"
+            placeholder={assessment.ayatRange || "-"}
+          />
+        </SheetTd>
+      )}
+      {!isCertificate && (
+        <SheetTd>
+          <input
+            value={assessment.ayatAkhir ?? ""}
+            disabled={disabled}
+            onChange={(event) => onUpdate(index, "ayatAkhir", event.target.value)}
+            className="sheet-cell"
+            placeholder={assessment.ayatRange || "-"}
+          />
+        </SheetTd>
+      )}
       <SheetTd>
         <select
           value={assessment.kelancaran}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Settings2, Trash2, Calendar, Clock } from "lucide-react";
+import { ArrowLeft, Settings2, Trash2, Calendar, Clock } from "lucide-react";
 import {
   TahsinDasarEntry,
   TahsinPenaltyConfig,
@@ -87,9 +87,19 @@ export default function UjianTahsinDasarForm({
 
   return (
     <div className="bg-card rounded-lg border border-border p-5 shadow-card animate-scale-in space-y-4">
-      <h4 className="font-semibold text-foreground">
-        Ujian Tahsin Dasar - EBTA Iqra 1-6
-      </h4>
+      <div className="flex items-center justify-between gap-3">
+        <h4 className="font-semibold text-foreground">
+          Ujian Tahsin Dasar - EBTA Iqra 1-6
+        </h4>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="inline-flex h-8 items-center gap-2 rounded-md border border-input bg-background px-3 text-xs font-medium text-foreground hover:bg-muted"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Kembali
+        </button>
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>

@@ -238,38 +238,47 @@ export type Database = {
         Row: {
           assessed_by: string | null
           created_at: string
+          document_status: string
           grade: string
           id: string
           mode: Database["public"]["Enums"]["exam_mode"]
           nilai_akhir: number
           nilai_aspek: Json
+          published_at: string | null
           status: Database["public"]["Enums"]["exam_status"]
           student_id: string
           tanggal: string
+          verification_token: string
         }
         Insert: {
           assessed_by?: string | null
           created_at?: string
+          document_status?: string
           grade?: string
           id?: string
           mode: Database["public"]["Enums"]["exam_mode"]
           nilai_akhir?: number
           nilai_aspek?: Json
+          published_at?: string | null
           status?: Database["public"]["Enums"]["exam_status"]
           student_id: string
           tanggal?: string
+          verification_token?: string
         }
         Update: {
           assessed_by?: string | null
           created_at?: string
+          document_status?: string
           grade?: string
           id?: string
           mode?: Database["public"]["Enums"]["exam_mode"]
           nilai_akhir?: number
           nilai_aspek?: Json
+          published_at?: string | null
           status?: Database["public"]["Enums"]["exam_status"]
           student_id?: string
           tanggal?: string
+          verification_token?: string
         }
         Relationships: [
           {

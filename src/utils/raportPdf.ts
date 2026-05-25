@@ -57,6 +57,7 @@ export interface RaportData {
   grade: string;
   predikat: string;
   catatanGuru?: string;
+  tahfizhReportType?: "summary" | "detail";
 
   tahfizhEntries?: TahfizhSurahEntry[];
 
@@ -444,6 +445,49 @@ function drawDetail(
   let y = startY;
 
   if (data.mode === "Tahfizh" && data.tahfizhEntries) {
+    if (data.tahfizhReportType === "summary") {
+      y = sectionTitle(doc, "RINGKASAN UJIAN TAHFIZH PER JUZ", margin, y) || y;
+
+      const entries = data.tahfizhEntries;
+      const totalLahnJali = entries.reduce((a, b) => a + Number(b.lahn_jali || 0), 0);
+      const totalLahnKhofi = entries.reduce((a, b) => a + Number(b.lahn_khofi || 0), 0);
+      const totalWaqaf = entries.reduce((a, b) => a + Number(b.waqaf_ibtida || 0), 0);
+      const totalSambung = entries.reduce((a, b) => a + Number(b.salah_sambung_ayat || 0), 0);
+      const rataKelancaran = getRataKelancaran(entries);
+
+      autoTable(doc, {
+        startY: y,
+        margin: { left: margin, right: margin },
+        head: [["Aspek", "Hasil"]],
+        body: [
+          ["Total Lahn Jali", String(totalLahnJali)],
+          ["Total Lahn Khofi", String(totalLahnKhofi)],
+          ["Total Waqaf Ibtida", String(totalWaqaf)],
+          ["Total Salah Sambung Ayat", String(totalSambung)],
+          ["Rata-rata Kelancaran", String(rataKelancaran)],
+        ],
+        theme: "grid",
+        styles: {
+          font: "helvetica",
+          fontSize: 7,
+          cellPadding: 1.2,
+          lineColor: GRAY_LINE,
+          lineWidth: 0.12,
+        },
+        headStyles: {
+          fillColor: EMERALD,
+          textColor: 255,
+          fontStyle: "bold",
+        },
+        columnStyles: {
+          0: { fontStyle: "bold" },
+          1: { halign: "center", textColor: EMERALD as any, fontStyle: "bold" },
+        },
+      });
+
+      return (doc as any).lastAutoTable.finalY + 2;
+    }
+
     y = sectionTitle(doc, "DETAIL UJIAN TAHFIZH", margin, y) || y;
 
     const head = [

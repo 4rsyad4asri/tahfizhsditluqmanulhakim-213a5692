@@ -5,7 +5,7 @@ import { useMyAssignedClasses } from "@/hooks/useMyAssignedClasses";
 import Header from "@/components/Header";
 import { calculateNilaiSetoran, calculateNilaiTahfizh, calculateNilaiSurah, calculateNilaiSurahNew } from "@/data/mockData";
 import type { Koreksi, TahfizhSurahEntry } from "@/data/mockData";
-import { useStudentDetail, useAddSetoran, useAddTahfizhUjian, useAddTahsinUjian, useUpdateCatatan, useUpdateUjian, useDeleteUjian } from "@/hooks/useStudentDetail";
+import { useStudentDetail, useAddSetoran, useAddTahfizhUjian, useAddTahsinUjian, useUpdateCatatan, useUpdateUjian, useDeleteUjian, usePublishUjian } from "@/hooks/useStudentDetail";
 import { JUZ_SURAH_MAP, getSurahsForJuz, getSurahLabel } from "@/data/quranData";
 import { ArrowLeft, Plus, FileText, Award, BookOpen, PenLine, Loader2, Trash2, Info, Calendar, Clock, Download, Pencil } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -14,12 +14,14 @@ import { toast } from "sonner";
 import { getSafeErrorMessage } from "@/utils/errorMessages";
 import UjianTahsinDasarForm from "@/components/UjianTahsinDasarForm";
 import UjianTahsinLanjutanForm from "@/components/UjianTahsinLanjutanForm";
+import UjianTahfizhForm from "@/components/UjianTahfizhForm";
 import { calculateNilaiTahsinDasar, calculateNilaiTahsinLanjutan } from "@/data/tahsinScoring";
 import type { TahsinDasarEntry, TahsinLanjutanEntry, TahsinPenaltyConfig, WaqafSymbolTest } from "@/data/tahsinScoring";
 import { generateTahsinPDF } from "@/utils/generateTahsinPDF";
 import EditUjianDialog from "@/components/EditUjianDialog";
 import RaportPreviewDialog from "@/components/RaportPreviewDialog";
 import { handleSmartFormKey } from "@/utils/smartFormNav";
+import type { TahfizhExamMode } from "@/data/tahfizhSystem";
 
 const KELANCARAN_OPTIONS = [
   { value: 100, label: "Sangat Lancar (100)" },
@@ -42,12 +44,14 @@ const StudentDetail = () => {
   const updateCatatan = useUpdateCatatan();
   const updateUjian = useUpdateUjian();
   const deleteUjian = useDeleteUjian();
+  const publishUjian = usePublishUjian();
   const [editingUjian, setEditingUjian] = useState<any | null>(null);
   const [raportUjian, setRaportUjian] = useState<any | null>(null);
 
   const [showSetoranForm, setShowSetoranForm] = useState(false);
   const [showUjianForm, setShowUjianForm] = useState(false);
   const [ujianMode, setUjianMode] = useState<"Tahfizh" | "Tahsin Dasar" | "Tahsin Lanjutan" | null>(null);
+  const [tahfizhExamMode, setTahfizhExamMode] = useState<TahfizhExamMode>("Sertifikat");
 
   const [tahfizhEntries, setTahfizhEntries] = useState<TahfizhSurahEntry[]>([
     { surah: getSurahsForJuz(30)[0]?.name || "An-Naba", juz: 30, lahn_jali: 0, lahn_khofi: 0, kelancaran: 90, waqaf_ibtida: 0, salah_sambung_ayat: 0 }
@@ -226,7 +230,6 @@ const StudentDetail = () => {
                   {[
                     { mode: "Tahsin Dasar" as const, icon: "🎓" },
                     { mode: "Tahsin Lanjutan" as const, icon: "🎓" },
-                    { mode: "Tahfizh" as const, icon: "📖" },
                   ].map(({ mode, icon }) => (
                     <button
                       key={mode}
@@ -237,77 +240,121 @@ const StudentDetail = () => {
                       {icon} {mode}
                     </button>
                   ))}
+                  <button
+                    onClick={() => { setTahfizhExamMode("Sertifikat"); setUjianMode("Tahfizh"); setShowUjianForm(true); }}
+                    className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    disabled={showUjianForm}
+                  >
+                    Tahfizh Sertifikat
+                  </button>
+                  <button
+                    onClick={() => { setTahfizhExamMode("Reguler"); setUjianMode("Tahfizh"); setShowUjianForm(true); }}
+                    className="px-4 py-2 rounded-md bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/90 transition-colors disabled:opacity-50"
+                    disabled={showUjianForm}
+                  >
+                    Tahfizh Reguler
+                  </button>
                 </div>
 
                 {showUjianForm && ujianMode === "Tahsin Dasar" && (
                   <UjianTahsinDasarForm
-                    entries={tahsinDasarEntries}
-                    setEntries={setTahsinDasarEntries}
-                    tanggal={tahsinDasarTanggal}
-                    setTanggal={setTahsinDasarTanggal}
-                    catatan={tahsinDasarCatatan}
-                    setCatatan={setTahsinDasarCatatan}
-                    config={tahsinDasarConfig}
-                    setConfig={setTahsinDasarConfig}
                     onCancel={() => { setShowUjianForm(false); setUjianMode(null); }}
-                    onSubmit={() => {
+                    onSubmit={(formData) => {
                       if (!studentId) return;
-                      const result = calculateNilaiTahsinDasar(tahsinDasarEntries[0], tahsinDasarConfig);
                       addTahsinUjian.mutate({
                         student_id: studentId,
                         mode: "Tahsin Dasar",
-                        entries: tahsinDasarEntries,
-                        catatan_guru: tahsinDasarCatatan,
+                        nilai_aspek: {
+                          rumus: "baru",
+                          entries: formData.entries,
+                          config: formData.config,
+                          predikat: formData.predikat,
+                          catatanGuru: formData.catatan_guru,
+                        },
                         assessed_by: user?.id,
-                        tanggal: tahsinDasarTanggal,
-                        nilai_akhir: result,
-                        status: result >= 70 ? "Lulus" : "Tidak Lulus",
-                        grade: result >= 90 ? "A" : result >= 80 ? "B" : result >= 70 ? "C" : "D",
+                        tanggal: formData.tanggal,
+                        waktu: formData.waktu,
+                        nilaiAkhir: formData.nilaiAkhir,
+                        status: formData.status,
+                        grade: formData.grade,
                       }, {
                         onSuccess: () => { toast.success("Hasil Ujian Tahsin Dasar berhasil disimpan!"); setShowUjianForm(false); setUjianMode(null); },
                         onError: (err) => toast.error(getSafeErrorMessage(err)),
                       });
                     }}
-                    isLoading={addTahsinUjian.isPending}
+                    isPending={addTahsinUjian.isPending}
                   />
                 )}
 
                 {showUjianForm && ujianMode === "Tahsin Lanjutan" && (
                   <UjianTahsinLanjutanForm
-                    entries={tahsinLanjutanEntries}
-                    setEntries={setTahsinLanjutanEntries}
-                    tanggal={tahsinLanjutanTanggal}
-                    setTanggal={setTahsinLanjutanTanggal}
-                    catatan={tahsinLanjutanCatatan}
-                    setCatatan={setTahsinLanjutanCatatan}
-                    config={tahsinLanjutanConfig}
-                    setConfig={setTahsinLanjutanConfig}
-                    waqafTest={waqafTest}
-                    setWaqafTest={setWaqafTest}
                     onCancel={() => { setShowUjianForm(false); setUjianMode(null); }}
-                    onSubmit={() => {
+                    onSubmit={(formData) => {
                       if (!studentId) return;
-                      const result = calculateNilaiTahsinLanjutan(tahsinLanjutanEntries[0], tahsinLanjutanConfig);
                       addTahsinUjian.mutate({
                         student_id: studentId,
                         mode: "Tahsin Lanjutan",
-                        entries: tahsinLanjutanEntries,
-                        catatan_guru: tahsinLanjutanCatatan,
+                        nilai_aspek: {
+                          rumus: "baru",
+                          entries: formData.entries,
+                          config: formData.config,
+                          penaltiWaqaf: formData.penaltiWaqaf,
+                          waqafTest: formData.waqafTest,
+                          predikat: formData.predikat,
+                          catatanGuru: formData.catatan_guru,
+                        },
                         assessed_by: user?.id,
-                        tanggal: tahsinLanjutanTanggal,
-                        nilai_akhir: result,
-                        status: result >= 70 ? "Lulus" : "Tidak Lulus",
-                        grade: result >= 90 ? "A" : result >= 80 ? "B" : result >= 70 ? "C" : "D",
+                        tanggal: formData.tanggal,
+                        waktu: formData.waktu,
+                        nilaiAkhir: formData.nilaiAkhir,
+                        status: formData.status,
+                        grade: formData.grade,
                       }, {
                         onSuccess: () => { toast.success("Hasil Ujian Tahsin Lanjutan berhasil disimpan!"); setShowUjianForm(false); setUjianMode(null); },
                         onError: (err) => toast.error(getSafeErrorMessage(err)),
                       });
                     }}
-                    isLoading={addTahsinUjian.isPending}
+                    isPending={addTahsinUjian.isPending}
                   />
                 )}
 
                 {showUjianForm && ujianMode === "Tahfizh" && (
+                  <UjianTahfizhForm
+                    mode={tahfizhExamMode}
+                    onCancel={() => { setShowUjianForm(false); setUjianMode(null); }}
+                    onSubmit={(formData) => {
+                      if (!studentId) return;
+                      addTahfizhUjian.mutate({
+                        student_id: studentId,
+                        entries: formData.assessments,
+                        config: formData.config,
+                        tahfizh_mode: tahfizhExamMode,
+                        catatan_guru: formData.catatanGuru,
+                        assessed_by: user?.id,
+                        tanggal: formData.tanggal,
+                        waktu: formData.waktu,
+                        nilaiAkhir: formData.nilaiAkhir,
+                        status: formData.status,
+                        grade: formData.grade,
+                        predikat: formData.predikat,
+                        status_label: formData.statusLabel,
+                        document_status: formData.documentStatus,
+                        manual_stop_reason: formData.manualStopReason,
+                        auto_fail_log: formData.autoFailLog,
+                      }, {
+                        onSuccess: () => {
+                          toast.success(formData.documentStatus === "Published" ? "Ujian Tahfizh dipublish dan dikunci" : "Draft Ujian Tahfizh tersimpan");
+                          setShowUjianForm(false);
+                          setUjianMode(null);
+                        },
+                        onError: (err) => toast.error(getSafeErrorMessage(err)),
+                      });
+                    }}
+                    isPending={addTahfizhUjian.isPending}
+                  />
+                )}
+
+                {false && showUjianForm && ujianMode === "Tahfizh" && (
                   <div className="space-y-4 p-4 rounded-lg border border-border bg-muted/30">
                     <h4 className="font-semibold text-foreground">📖 Form Ujian Tahfizh</h4>
 
@@ -434,22 +481,25 @@ const StudentDetail = () => {
                       return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-700">⏳ Proses</span>;
                   }
                 };
-const ujianStatus = u.status || u.status_sertifikasi || "Proses";
-const nilaiAspek =
-  u.nilai_aspek && typeof u.nilai_aspek === "object" && !Array.isArray(u.nilai_aspek)
-    ? u.nilai_aspek
-    : {};
-const tahfizhEntries = Array.isArray(nilaiAspek.surahEntries)
-  ? nilaiAspek.surahEntries
-  : [];
-const tahsinEntries = Array.isArray(nilaiAspek.entries)
-  ? nilaiAspek.entries
-  : [];
-const detailEntries = Object.entries(nilaiAspek as Record<string, unknown>)
-  .filter(([key, val]) =>
-    !["entries", "surahEntries", "config", "waqafTest", "catatanGuru", "catatanMode", "rumus", "predikat"].includes(key) &&
-    (typeof val === "string" || typeof val === "number" || typeof val === "boolean")
-  );
+                const ujianStatus = u.status || u.status_sertifikasi || "Proses";
+                const documentStatus = u.document_status || u.nilai_aspek?.documentStatus || "Draft";
+                const isPublished = documentStatus === "Published";
+                const nilaiAspek =
+                  u.nilai_aspek && typeof u.nilai_aspek === "object" && !Array.isArray(u.nilai_aspek)
+                    ? u.nilai_aspek
+                    : {};
+                const tahfizhEntries = Array.isArray(nilaiAspek.surahEntries)
+                  ? nilaiAspek.surahEntries
+                  : [];
+                const tahsinEntries = Array.isArray(nilaiAspek.entries)
+                  ? nilaiAspek.entries
+                  : [];
+                const detailEntries = Object.entries(nilaiAspek as Record<string, unknown>)
+                  .filter(([key, val]) =>
+                    !["entries", "surahEntries", "config", "waqafTest", "catatanGuru", "catatanMode", "rumus", "predikat"].includes(key) &&
+                    (typeof val === "string" || typeof val === "number" || typeof val === "boolean")
+                  );
+
                 return (
                   <div key={idx} className="p-4 rounded-lg border border-border bg-card space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -482,6 +532,10 @@ const detailEntries = Object.entries(nilaiAspek as Record<string, unknown>)
                         <p className="text-xs text-muted-foreground">Predikat</p>
                         <p className="text-sm font-bold text-primary">{nilaiAspek.predikat || "-"}</p>
                       </div>
+                      <div className="text-center p-2 rounded-md bg-muted">
+                        <p className="text-xs text-muted-foreground">Dokumen</p>
+                        <p className="text-sm font-bold text-foreground">{documentStatus}</p>
+                      </div>
                     </div>
 
                     <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
@@ -489,7 +543,8 @@ const detailEntries = Object.entries(nilaiAspek as Record<string, unknown>)
                         <>
                           <button
                             onClick={() => setEditingUjian(u)}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
+                            disabled={isPublished}
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <Pencil className="w-3 h-3" /> Edit
                           </button>
@@ -503,10 +558,27 @@ const detailEntries = Object.entries(nilaiAspek as Record<string, unknown>)
                                 onError: (err) => toast.error(getSafeErrorMessage(err)),
                               });
                             }}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-destructive/10 text-destructive text-xs font-medium hover:bg-destructive/20 transition-colors"
+                            disabled={isPublished}
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-destructive/10 text-destructive text-xs font-medium hover:bg-destructive/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <Trash2 className="w-3 h-3" /> Hapus
                           </button>
+                          {!isPublished && (
+                            <button
+                              onClick={() => {
+                                publishUjian.mutate({
+                                  ujian_id: u.id,
+                                  student_id: studentId!,
+                                }, {
+                                  onSuccess: () => toast.success("Dokumen dipublish dan dikunci"),
+                                  onError: (err) => toast.error(getSafeErrorMessage(err)),
+                                });
+                              }}
+                              className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-emerald-500/10 text-emerald-700 text-xs font-medium hover:bg-emerald-500/20 transition-colors"
+                            >
+                              Publish
+                            </button>
+                          )}
                         </>
                       )}
                       <button
@@ -518,8 +590,7 @@ const detailEntries = Object.entries(nilaiAspek as Record<string, unknown>)
                       {u.mode === "Tahsin Dasar" && (
                         <button
                           onClick={() => {
-                            const entries = u.nilai_aspek?.entries || [];
-                            generateTahsinPDF(student?.name || "Siswa", u.mode, entries, u.nilai_akhir);
+                            generateTahsinPDF(student?.name || "Siswa", u.mode, tahsinEntries, u.nilai_akhir);
                           }}
                           className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-green-500/10 text-green-600 text-xs font-medium hover:bg-green-500/20 transition-colors"
                         >
@@ -542,7 +613,24 @@ const detailEntries = Object.entries(nilaiAspek as Record<string, unknown>)
                           <p className="text-xs italic text-muted-foreground mt-2">💬 {nilaiAspek.catatanGuru}</p>
                         )}
                       </div>
-                    ) : (
+                    ) : tahsinEntries.length > 0 ? (
+                      <div className="mt-3 p-3 rounded-md bg-muted/40 space-y-2">
+                        <p className="text-xs font-semibold text-foreground">Detail penilaian:</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          {tahsinEntries.map((entry: any, i: number) => (
+                            <div key={i} className="rounded-md bg-background/70 border border-border p-2">
+                              <p className="text-xs font-medium text-foreground">{entry.nama_ebta || entry.surah || `Baris ${i + 1}`}</p>
+                              <p className="text-xs text-muted-foreground">
+                                Kelancaran {entry.kelancaran ?? "-"} · LJ {(entry.salah_huruf ?? 0) + (entry.salah_harakat ?? 0) + (entry.salah_tasydid ?? 0)} · LK {(entry.kesalahan_mad ?? 0) + (entry.kesalahan_qalqalah ?? 0) + (entry.kesalahan_tajwid ?? 0) + (entry.kesalahan_waqaf ?? 0)}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                        {nilaiAspek.catatanGuru && (
+                          <p className="text-xs italic text-muted-foreground mt-2">💬 {nilaiAspek.catatanGuru}</p>
+                        )}
+                      </div>
+                    ) : detailEntries.length > 0 ? (
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                         {detailEntries.map(([key, val]) => (
                           <div key={key} className="text-center p-2 rounded-md bg-muted">
@@ -550,6 +638,10 @@ const detailEntries = Object.entries(nilaiAspek as Record<string, unknown>)
                             <p className="font-bold text-foreground">{String(val)}</p>
                           </div>
                         ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">
+                        Detail aspek penilaian belum tersedia untuk ujian ini.
                       </div>
                     )}
                   </div>

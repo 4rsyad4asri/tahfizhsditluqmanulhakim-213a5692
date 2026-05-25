@@ -298,6 +298,7 @@ export default function RaportPreviewDialog({
       grade: ujian?.grade ?? "-",
       predikat,
       catatanGuru: finalCatatan,
+      tahfizhReportType: aspek.reportType || (aspek.tahfizhMode === "Sertifikat" ? "summary" : "detail"),
       tahfizhEntries: aspek.surahEntries as TahfizhSurahEntry[] | undefined,
       dasarEntries: normalizedEntries as TahsinDasarEntry[] | undefined,
       dasarConfig: aspek.config as TahsinPenaltyConfig | undefined,
@@ -309,6 +310,12 @@ export default function RaportPreviewDialog({
     };
   }, [ujian, studentName, className, assessorName, tanggal, finalCatatan]);
 
+  const effectiveOpts: RaportPdfOptions = useMemo(() => {
+    const token = ujian?.verification_token || ujian?.nilai_aspek?.verificationToken;
+    const verifyUrl = token ? `${window.location.origin}/verifikasi/tahfizh/${token}` : opts.verifyUrl;
+    return { ...opts, verifyUrl };
+  }, [opts, ujian]);
+
   useEffect(() => {
     if (!open || !ujian) return;
 
@@ -317,7 +324,7 @@ export default function RaportPreviewDialog({
 
     const t = setTimeout(async () => {
       try {
-        const doc = await generateRaportPDF(data, header, assets, opts);
+        const doc = await generateRaportPDF(data, header, assets, effectiveOpts);
         if (seq !== previewSeqRef.current) return;
 
         const url = doc.output("bloburl") as unknown as string;
@@ -334,7 +341,7 @@ export default function RaportPreviewDialog({
     }, 250);
 
     return () => clearTimeout(t);
-  }, [open, data, header, assets, opts, ujian]);
+  }, [open, data, header, assets, effectiveOpts, ujian]);
 
   useEffect(
     () => () => {
@@ -370,7 +377,7 @@ export default function RaportPreviewDialog({
     setExporting(true);
 
     try {
-      await downloadRaportPDF(data, header, assets, opts);
+      await downloadRaportPDF(data, header, assets, effectiveOpts);
       toast.success("Raport berhasil diunduh");
     } catch (e: any) {
       toast.error("Gagal export PDF: " + (e?.message || ""));
@@ -381,7 +388,7 @@ export default function RaportPreviewDialog({
 
   const handlePrint = async () => {
     try {
-      await printRaportPDF(data, header, assets, opts);
+      await printRaportPDF(data, header, assets, effectiveOpts);
     } catch (e: any) {
       toast.error("Gagal print: " + (e?.message || ""));
     }

@@ -18,6 +18,7 @@ import Login from "./pages/Login";
 import ChangePassword from "./pages/ChangePassword";
 import ProfilPenguji from "./pages/ProfilPenguji";
 import NotFound from "./pages/NotFound";
+import TahfizhVerification from "./pages/TahfizhVerification";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/verifikasi/tahfizh/:token" element={<TahfizhVerification />} />
             <Route path="/" element={<Index />} />
             <Route path="/kelas/:classId" element={<ClassStudents />} />
             <Route path="/siswa/:studentId" element={<StudentDetail />} />

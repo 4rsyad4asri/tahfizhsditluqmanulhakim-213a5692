@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, Info, Settings2, Calendar, Clock } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Info, Settings2, Calendar, Clock } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -114,7 +114,17 @@ export default function UjianTahsinLanjutanForm({
 
   return (
     <div className="bg-card rounded-lg border border-border p-5 shadow-card animate-scale-in space-y-4">
-      <h4 className="font-semibold text-foreground">Ujian Tahsin Lanjutan</h4>
+      <div className="flex items-center justify-between gap-3">
+        <h4 className="font-semibold text-foreground">Ujian Tahsin Lanjutan</h4>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="inline-flex h-8 items-center gap-2 rounded-md border border-input bg-background px-3 text-xs font-medium text-foreground hover:bg-muted"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Kembali
+        </button>
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>

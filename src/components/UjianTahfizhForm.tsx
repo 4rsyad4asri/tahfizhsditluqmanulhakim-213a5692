@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, ArrowLeft, Lock, Plus, Square, Trash2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
 import {
   DEFAULT_TAHFIZH_PENALTY,
   calculateTahfizhExamResult,
   calculateTahfizhSurahScore,
+  calculateAutoTahfizhKelancaran,
   createCertificateAssessment,
   createEmptyTahfizhAssessment,
   getCertificateSequenceForJuz,
@@ -25,7 +27,7 @@ interface UjianTahfizhFormProps {
     config: TahfizhPenaltyConfig;
     nilaiAkhir: number;
     predikat: string;
-    status: "Lulus" | "Tidak Lulus";
+    status: "Lulus" | "Tidak Lulus" | "Ulang";
     grade: string;
     catatanGuru: string;
     tanggal: string;
@@ -45,6 +47,27 @@ const NUMBER_FIELDS = [
   { key: "waqaf", label: "Waqaf" },
   { key: "salahSambung", label: "Sambung" },
 ] as const;
+
+const TAHFIZH_SETTINGS_STORAGE_KEY = "tahfizh_penalty_settings";
+
+function loadTahfizhPenaltySettings(initialPenalty: TahfizhPenaltyConfig): TahfizhPenaltyConfig {
+  if (typeof window === "undefined") return initialPenalty;
+
+  try {
+    const raw = window.localStorage.getItem(TAHFIZH_SETTINGS_STORAGE_KEY);
+    if (!raw) return initialPenalty;
+
+    const parsed = JSON.parse(raw);
+
+    return {
+      ...initialPenalty,
+      maxLahnJali: Math.max(1, Number(parsed.maxLahnJali ?? initialPenalty.maxLahnJali ?? 10)),
+      maxSalahSambung: Math.max(1, Number(parsed.maxSalahSambung ?? initialPenalty.maxSalahSambung ?? 10)),
+    };
+  } catch {
+    return initialPenalty;
+  }
+}
 
 function createRegularRows(juz = 30) {
   return Array.from({ length: 5 }, () => ({
@@ -76,7 +99,13 @@ export default function UjianTahfizhForm({
   const [assessments, setAssessments] = useState<TahfizhSurahAssessment[]>(
     initialRows(mode, initialAssessments)
   );
-  const [penaltyConfig, setPenaltyConfig] = useState<TahfizhPenaltyConfig>(initialPenalty);
+  const [penaltyConfig, setPenaltyConfig] = useState<TahfizhPenaltyConfig>(() =>
+    loadTahfizhPenaltySettings({
+      ...DEFAULT_TAHFIZH_PENALTY,
+      ...initialPenalty,
+    })
+  );
+  const [isEditingMaxError, setIsEditingMaxError] = useState(false);
   const [catatanGuru, setCatatanGuru] = useState("");
   const [tanggal, setTanggal] = useState(new Date().toISOString().split("T")[0]);
   const [waktu, setWaktu] = useState(new Date().toTimeString().slice(0, 5));
@@ -120,12 +149,55 @@ export default function UjianTahfizhForm({
     setAssessments((current) =>
       current.map((item, itemIndex) => {
         if (itemIndex !== index) return item;
+
         if (field === "juz") {
           return { ...item, juz: Number(value) };
         }
-        return { ...item, [field]: value };
+
+        if (field === "kelancaran") {
+          return {
+            ...item,
+            kelancaran: Math.max(0, Math.min(100, Number(value) || 0)),
+            kelancaranManual: true,
+          };
+        }
+
+        const updated = { ...item, [field]: value };
+
+        if (
+          (field === "lahnJali" || field === "salahSambung") &&
+          !item.kelancaranManual
+        ) {
+          return {
+            ...updated,
+            kelancaran: calculateAutoTahfizhKelancaran(updated, penaltyConfig),
+          };
+        }
+
+        return updated;
       })
     );
+  };
+
+  const saveMaxErrorSettings = () => {
+    const nextConfig = {
+      ...penaltyConfig,
+      maxLahnJali: Math.max(1, Number(penaltyConfig.maxLahnJali ?? 10)),
+      maxSalahSambung: Math.max(1, Number(penaltyConfig.maxSalahSambung ?? 10)),
+    };
+
+    setPenaltyConfig(nextConfig);
+
+    window.localStorage.setItem(
+      TAHFIZH_SETTINGS_STORAGE_KEY,
+      JSON.stringify({
+        maxLahnJali: nextConfig.maxLahnJali,
+        maxSalahSambung: nextConfig.maxSalahSambung,
+      })
+    );
+
+    setIsEditingMaxError(false);
+    toast.success("Standar penilaian berhasil disimpan.");
   };
 
   const quickPickSurah = (index: number, value: string) => {
@@ -209,7 +281,7 @@ export default function UjianTahfizhForm({
             <button
               type="button"
               onClick={onCancel}
-              className="inline-flex h-8 items-center justify-center gap-2 self-start rounded-md border border-input bg-background px-3 text-xs font-medium text-foreground hover:bg-muted lg:self-end"
+              className="inline-flex h-8 items-center justify-center gap-2 self-start rounded-md border border-input bg-background px-3 text-xs font-medium text-foreground hover:bg-muted lg:self-auto"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               Kembali
@@ -305,6 +377,71 @@ export default function UjianTahfizhForm({
         />
       </div>
 
+      <div className="rounded-md border border-border bg-background p-3 mx-4 my-3">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div>
+            <p className="text-xs font-semibold text-foreground">
+              Standar Maksimal Kesalahan
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              Jika batas per juz tercapai, status otomatis menjadi Ulang.
+            </p>
+          </div>
+
+          {!isEditingMaxError ? (
+            <button
+              type="button"
+              onClick={() => setIsEditingMaxError(true)}
+              className="h-8 rounded-md border border-border px-3 text-xs font-medium hover:bg-muted"
+            >
+              Ubah
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={saveMaxErrorSettings}
+              className="h-8 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              Simpan
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <MiniField label="Maks. Lahn Jali">
+            <input
+              type="number"
+              min={1}
+              value={penaltyConfig.maxLahnJali ?? 10}
+              disabled={!isEditingMaxError}
+              onChange={(event) =>
+                setPenaltyConfig((current) => ({
+                  ...current,
+                  maxLahnJali: Math.max(1, Number(event.target.value) || 1),
+                }))
+              }
+              className="sheet-input h-8"
+            />
+          </MiniField>
+
+          <MiniField label="Maks. Salah Sambung">
+            <input
+              type="number"
+              min={1}
+              value={penaltyConfig.maxSalahSambung ?? 10}
+              disabled={!isEditingMaxError}
+              onChange={(event) =>
+                setPenaltyConfig((current) => ({
+                  ...current,
+                  maxSalahSambung: Math.max(1, Number(event.target.value) || 1),
+                }))
+              }
+              className="sheet-input h-8"
+            />
+          </MiniField>
+        </div>
+      </div>
+
       {(examResult.autoFail.isFailed || isManualStopped) && (
         <div className="border-b border-border px-4 py-2">
           <div className="flex gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
@@ -356,6 +493,26 @@ export default function UjianTahfizhForm({
         </table>
       </div>
 
+      {examResult.summaries.length > 0 && (
+        <div className="rounded-md border border-border bg-muted/20 p-3 m-4 text-xs">
+          <p className="mb-2 font-semibold text-foreground">Ringkasan Nilai per Juz</p>
+          <div className="grid gap-1">
+            {examResult.summaries.map((summary) => (
+              <div
+                key={summary.juz}
+                className="flex flex-wrap items-center justify-between gap-2 rounded bg-background px-2 py-1"
+              >
+                <span>Juz {summary.juz}</span>
+                <span>{summary.jumlahSoal} soal</span>
+                <span>Rata-rata: {summary.nilaiJuz}</span>
+                <span>LJ: {summary.totalLahnJali}</span>
+                <span>Sambung: {summary.totalSalahSambung}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-3 border-t border-border px-4 py-3 lg:grid-cols-[1fr_280px]">
         <textarea
           value={catatanGuru}
@@ -366,7 +523,11 @@ export default function UjianTahfizhForm({
         <div className="grid grid-cols-3 gap-2">
           <Metric label="Predikat" value={examResult.predikat} />
           <Metric label="Grade" value={examResult.grade} />
-          <Metric label="LJ+S" value={`${examResult.autoFail.totalBlockingErrors}/10`} />
+          <Metric
+            label="Kesalahan Kunci"
+            value={`LJ ${examResult.autoFail.totalLahnJali ?? 0}/${examResult.autoFail.maxLahnJali ?? 10} • S ${examResult.autoFail.totalSalahSambung ?? 0}/${examResult.autoFail.maxSalahSambung ?? 10}`}
+            compact
+          />
         </div>
       </div>
 

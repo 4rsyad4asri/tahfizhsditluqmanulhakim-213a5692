@@ -23,6 +23,7 @@ import {
   Copy,
 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { generateCatatanOtomatisFromUjian } from "@/utils/catatanOtomatis";
 import { aggregateTahfizhAssessmentsForDisplay } from "@/data/tahfizhSystem";
 import { getStandardExamGrading } from "@/data/grading";
@@ -76,6 +77,12 @@ const DEFAULT_OPTS: RaportPdfOptions = {
   showQR: true,
 };
 
+function createVerificationToken() {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 function getRataKelancaran(entries: { kelancaran?: number }[]) {
   if (!entries.length) return 90;
 
@@ -118,11 +125,13 @@ export default function RaportPreviewDialog({
   const [exporting, setExporting] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [localUjian, setLocalUjian] = useState<any | null>(ujian);
   const previewSeqRef = useRef(0);
+  const activeUjian = localUjian || ujian;
 
   const generatedCatatan = useMemo(
-    () => generateCatatanOtomatisFromUjian(ujian, studentName),
-    [ujian, studentName]
+    () => generateCatatanOtomatisFromUjian(activeUjian, studentName),
+    [activeUjian, studentName]
   );
 
   const [catatan, setCatatan] = useState("");
@@ -132,6 +141,10 @@ export default function RaportPreviewDialog({
   const [tanggal, setTanggal] = useState<string>(
     ujian?.tanggal || new Date().toISOString().split("T")[0]
   );
+
+  useEffect(() => {
+    setLocalUjian(ujian);
+  }, [ujian]);
 
   useEffect(() => {
     try {
@@ -156,45 +169,93 @@ export default function RaportPreviewDialog({
 
   useEffect(() => {
     if (open) {
-      const savedCatatanMode = ujian?.nilai_aspek?.catatanMode || "auto";
+      const savedCatatanMode = activeUjian?.nilai_aspek?.catatanMode || "auto";
 
       setCatatan(
         savedCatatanMode === "manual"
-          ? ujian?.nilai_aspek?.catatanGuru ?? ""
+          ? activeUjian?.nilai_aspek?.catatanGuru ?? ""
           : ""
       );
 
-      setTanggal(ujian?.tanggal || new Date().toISOString().split("T")[0]);
+      setTanggal(activeUjian?.tanggal || new Date().toISOString().split("T")[0]);
     }
-  }, [open, ujian]);
+  }, [open, activeUjian]);
 
-  const verificationToken = ujian?.verification_token || ujian?.nilai_aspek?.verificationToken;
+  useEffect(() => {
+    if (!open || !activeUjian?.id || activeUjian?.mode !== "Tahfizh") return;
+
+    const documentStatus = activeUjian.document_status || activeUjian.nilai_aspek?.documentStatus;
+    if (documentStatus !== "Published") return;
+
+    const currentAspek =
+      activeUjian.nilai_aspek && typeof activeUjian.nilai_aspek === "object"
+        ? activeUjian.nilai_aspek
+        : {};
+    const token = activeUjian.verification_token || currentAspek.verificationToken || createVerificationToken();
+    const currentAssessorName = currentAspek.assessorName;
+    const nextAssessorName = currentAssessorName || assessorName;
+
+    if (
+      activeUjian.verification_token &&
+      currentAspek.verificationToken &&
+      (!assessorName || currentAssessorName)
+    ) return;
+
+    const nextAspek = {
+      ...currentAspek,
+      documentStatus: "Published",
+      verificationToken: token,
+      assessorName: nextAssessorName,
+    };
+    const nextUjian = {
+      ...activeUjian,
+      verification_token: token,
+      nilai_aspek: nextAspek,
+    };
+
+    setLocalUjian(nextUjian);
+
+    supabase
+      .from("ujian")
+      .update({
+        verification_token: token,
+        nilai_aspek: nextAspek as any,
+      } as any)
+      .eq("id", activeUjian.id)
+      .then(({ error }) => {
+        if (error) {
+          toast.error("Gagal menyiapkan link QR verifikasi");
+        }
+      });
+  }, [open, activeUjian, assessorName]);
+
+  const verificationToken = activeUjian?.verification_token || activeUjian?.nilai_aspek?.verificationToken;
 
   const data: RaportData = useMemo(() => {
-    const aspek = ujian?.nilai_aspek || {};
+    const aspek = activeUjian?.nilai_aspek || {};
     const normalizedEntries = (aspek.entries || []).map(normalizeTahsinEntry);
     const rawTahfizhEntries = Array.isArray(aspek.surahEntries) ? aspek.surahEntries : [];
     const tahfizhMode = aspek.tahfizhMode || "Reguler";
     const rawTahfizhJuzList = [...new Set(rawTahfizhEntries.map((entry: any) => Number(entry.juz || 30)))];
     const useRegularFiveQuestionDetail =
-      ujian?.mode === "Tahfizh" &&
+      activeUjian?.mode === "Tahfizh" &&
       tahfizhMode === "Reguler" &&
       rawTahfizhJuzList.length === 1 &&
       rawTahfizhEntries.length <= 5;
     const tahfizhReportType = useRegularFiveQuestionDetail ? "detail" : "summary";
 
-    const grading = getStandardExamGrading(ujian?.nilai_akhir ?? 0);
+    const grading = getStandardExamGrading(activeUjian?.nilai_akhir ?? 0);
     const predikat = aspek.predikat || grading.predikat;
 
     return {
-      mode: ujian?.mode,
+      mode: activeUjian?.mode,
       studentName,
       className,
       assessorName,
       tanggal,
-      nilaiAkhir: ujian?.nilai_akhir ?? 0,
-      status: ujian?.status ?? "-",
-      grade: ujian?.grade ?? grading.grade,
+      nilaiAkhir: activeUjian?.nilai_akhir ?? 0,
+      status: activeUjian?.status ?? "-",
+      grade: activeUjian?.grade ?? grading.grade,
       predikat,
       catatanGuru: finalCatatan,
       verificationToken,
@@ -212,9 +273,9 @@ export default function RaportPreviewDialog({
       lanjutanConfig: aspek.config as TahsinPenaltyConfig | undefined,
       penaltiWaqaf: aspek.penaltiWaqaf,
       waqafTest: aspek.waqafTest as WaqafSymbolTest | undefined,
-      ujianId: ujian?.id,
+      ujianId: activeUjian?.id,
     };
-  }, [ujian, studentName, className, assessorName, tanggal, finalCatatan, verificationToken]);
+  }, [activeUjian, studentName, className, assessorName, tanggal, finalCatatan, verificationToken]);
 
   const verifyUrl = useMemo(
     () => buildTahfizhVerificationUrl(verificationToken) || opts.verifyUrl,
@@ -227,7 +288,7 @@ export default function RaportPreviewDialog({
   );
 
   useEffect(() => {
-    if (!open || !ujian) return;
+    if (!open || !activeUjian) return;
 
     const seq = ++previewSeqRef.current;
     setLoadingPreview(true);
@@ -251,7 +312,7 @@ export default function RaportPreviewDialog({
     }, 250);
 
     return () => clearTimeout(t);
-  }, [open, data, header, assets, effectiveOpts, ujian]);
+  }, [open, data, header, assets, effectiveOpts, activeUjian]);
 
   useEffect(
     () => () => {
@@ -321,13 +382,13 @@ export default function RaportPreviewDialog({
     }
   };
 
-  if (!ujian) return null;
+  if (!activeUjian) return null;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-6xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Preview Raport Ujian {ujian.mode}</DialogTitle>
+          <DialogTitle>Preview Raport Ujian {activeUjian.mode}</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-wrap gap-2 items-center justify-between border-b pb-3">

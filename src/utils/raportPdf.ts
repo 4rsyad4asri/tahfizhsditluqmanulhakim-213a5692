@@ -892,9 +892,13 @@ function drawCatatan(
 
   const textWidth = pageW - margin * 2 - 6;
   const lines = doc.splitTextToSize(text, textWidth);
-  const lineHeight = isArabicText ? 4.8 : 3;
-  const extraPadding = isArabicText ? 5 : 2;
-  const blockH = Math.max(10, lines.length * lineHeight + extraPadding);
+  const lineHeight = isArabicText ? 4.8 : 3.6;
+  const paddingTop = isArabicText ? 4.5 : 4;
+  const paddingBottom = isArabicText ? 5.5 : 4.5;
+  const blockH = Math.max(
+    12,
+    paddingTop + lines.length * lineHeight + paddingBottom
+  );
 
   doc.setDrawColor(...GRAY_LINE);
   doc.rect(margin, startY + 4, pageW - margin * 2, blockH);
@@ -907,10 +911,10 @@ function drawCatatan(
       maxWidth: textWidth,
     });
   } else {
-    doc.text(lines, margin + 3, startY + 8.5);
+    doc.text(lines, margin + 3, startY + 4 + paddingTop + 2);
   }
 
-  return startY + blockH + 5;
+  return startY + 4 + blockH + 5;
 }
 
 function drawSignatures(

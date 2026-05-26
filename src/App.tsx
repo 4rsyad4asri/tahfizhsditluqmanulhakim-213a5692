@@ -74,33 +74,40 @@ function ScrollControls() {
   );
 }
 
+function AppRoutes() {
+  return (
+    <AuthProvider>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Index />} />
+        <Route path="/kelas/:classId" element={<ClassStudents />} />
+        <Route path="/siswa/:studentId" element={<StudentDetail />} />
+        <Route path="/kelola-siswa" element={<ProtectedRoute><ManageStudents /></ProtectedRoute>} />
+        <Route path="/kelola-user" element={<ProtectedRoute requiredRole="admin"><ManageUsers /></ProtectedRoute>} />
+        <Route path="/rekap-sertifikat" element={<ProtectedRoute><RekapSertifikat /></ProtectedRoute>} />
+        <Route path="/rekap-global" element={<RekapGlobal />} />
+        <Route path="/cari-siswa" element={<SearchStudents />} />
+        <Route path="/ganti-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+        <Route path="/profil" element={<ProtectedRoute><ProfilPenguji /></ProtectedRoute>} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </AuthProvider>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/verifikasi/tahfizh/:token" element={<TahfizhVerification />} />
-            <Route path="/" element={<Index />} />
-            <Route path="/kelas/:classId" element={<ClassStudents />} />
-            <Route path="/siswa/:studentId" element={<StudentDetail />} />
-            <Route path="/kelola-siswa" element={<ProtectedRoute><ManageStudents /></ProtectedRoute>} />
-            <Route path="/kelola-user" element={<ProtectedRoute requiredRole="admin"><ManageUsers /></ProtectedRoute>} />
-            <Route path="/rekap-sertifikat" element={<ProtectedRoute><RekapSertifikat /></ProtectedRoute>} />
-            <Route path="/rekap-global" element={<RekapGlobal />} />
-            <Route path="/cari-siswa" element={<SearchStudents />} />
-            <Route path="/ganti-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
-            <Route path="/profil" element={<ProtectedRoute><ProfilPenguji /></ProtectedRoute>} />
-            
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <ScrollControls />
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/verifikasi/tahfizh/:token" element={<TahfizhVerification />} />
+          <Route path="/*" element={<AppRoutes />} />
+        </Routes>
+        <ScrollControls />
+      </BrowserRouter>
+    </TooltipProvider>
   </QueryClientProvider>
 );
 

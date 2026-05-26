@@ -477,6 +477,8 @@ const StudentDetail = () => {
                       return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success">✅ Lulus</span>;
                     case 'Tidak Lulus':
                       return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-destructive/10 text-destructive">❌ Tidak Lulus</span>;
+                    case 'Ulang':
+                      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-700">🔁 Ulang</span>;
                     default:
                       return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-700">⏳ Proses</span>;
                   }
@@ -621,7 +623,7 @@ const StudentDetail = () => {
                             <div key={i} className="rounded-md bg-background/70 border border-border p-2">
                               <p className="text-xs font-medium text-foreground">{entry.nama_ebta || entry.surah || `Baris ${i + 1}`}</p>
                               <p className="text-xs text-muted-foreground">
-                                Kelancaran {entry.kelancaran ?? "-"} · LJ {(entry.salah_huruf ?? 0) + (entry.salah_harakat ?? 0) + (entry.salah_tasydid ?? 0)} · LK {(entry.kesalahan_mad ?? 0) + (entry.kesalahan_qalqalah ?? 0) + (entry.kesalahan_tajwid ?? 0) + (entry.kesalahan_waqaf ?? 0)}
+                                Kelancaran {entry.kelancaran ?? "-"} · LJ {(entry.salah_huruf ?? 0) + (entry.salah_harakat ?? 0) + (entry.salah_tasydid ?? 0)} · LK {(entry.kesalahan_mad ?? 0) + (entry.kesalahan_ghunnah ?? 0) + (entry.kesalahan_waqaf ?? 0)}
                               </p>
                             </div>
                           ))}
@@ -694,7 +696,7 @@ const StudentDetail = () => {
                   value={catatan}
                   onChange={e => setCatatan(e.target.value)}
                   placeholder="Tulis catatan, evaluasi, dan saran perbaikan untuk siswa..."
-                  className="w-full min-h-[200px] px-4 py-3 rounded-lg border border-input bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+                  className="w-full min-h-[200px] px-4 py-3 rounded-lg border border-input bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
                 <button
                   onClick={handleSaveCatatan}

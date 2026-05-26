@@ -83,6 +83,10 @@ function getFallback(value: unknown) {
   return String(value);
 }
 
+function isUuidLike(value?: string | null) {
+  return !!value && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
 export default function TahfizhVerification() {
   const { token } = useParams<{ token: string }>();
   const { data, isLoading, error } = useTahfizhVerification(token);
@@ -146,7 +150,7 @@ export default function TahfizhVerification() {
   const effectiveCatatanGuru = getEffectiveCatatanGuru(data, student?.name || "Siswa");
   const nilaiAkhir = syncedResult.nilaiAkhir || data.nilai_akhir || 0;
   const documentNumber = getDocumentNumber(data.mode, data.id, data.published_at, data.tanggal);
-  const assessor = data.assessor_name || data.assessed_by || aspek.assessorName || "-";
+  const assessor = data.assessor_name || aspek.assessorName || (isUuidLike(data.assessed_by) ? "-" : data.assessed_by) || "-";
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-slate-50 text-foreground">

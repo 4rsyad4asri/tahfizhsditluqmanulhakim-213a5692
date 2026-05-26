@@ -13,6 +13,24 @@ import {
   type TahfizhSurahAssessment,
 } from "@/data/tahfizhSystem";
 
+function createVerificationToken() {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+async function getAssessorName(assessorId?: string | null) {
+  if (!assessorId) return undefined;
+
+  const { data } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("id", assessorId)
+    .maybeSingle();
+
+  return data?.full_name || undefined;
+}
+
 export function useStudentDetail(studentId: string | undefined) {
   return useQuery({
     queryKey: ["student-detail", studentId],
@@ -183,10 +201,8 @@ export function useAddTahfizhUjian() {
       const normalizedEntries = aggregateTahfizhAssessmentsForDisplay(data.entries as any[]).map((entry) =>
         toLegacyTahfizhEntry(entry as TahfizhSurahAssessment)
       );
-      const verificationToken =
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const verificationToken = createVerificationToken();
+      const assessorName = await getAssessorName(data.assessed_by);
 
       const nilai_aspek = {
         surahEntries: normalizedEntries,
@@ -202,6 +218,7 @@ export function useAddTahfizhUjian() {
         autoFailLog: data.auto_fail_log,
         autoFailConfig: data.auto_fail_config,
         verificationToken,
+        assessorName,
       } as unknown as Record<string, unknown>;
 
       const { error: ujianError } = await supabase.from("ujian").insert({
@@ -331,20 +348,27 @@ export function usePublishUjian() {
     mutationFn: async (data: { ujian_id: string; student_id: string }) => {
       const { data: ujianRow, error: fetchError } = await supabase
         .from("ujian")
-        .select("nilai_aspek")
+        .select("nilai_aspek, verification_token, assessed_by")
         .eq("id", data.ujian_id)
         .single();
       if (fetchError) throw fetchError;
 
+      const verificationToken =
+        ujianRow?.verification_token ||
+        ((ujianRow?.nilai_aspek as Record<string, unknown> | null)?.verificationToken as string | undefined) ||
+        createVerificationToken();
+      const storedAssessorName = (ujianRow?.nilai_aspek as Record<string, unknown> | null)?.assessorName as string | undefined;
+      const assessorName = storedAssessorName || await getAssessorName(ujianRow?.assessed_by);
       const aspek = ujianRow?.nilai_aspek && typeof ujianRow.nilai_aspek === "object"
-        ? { ...(ujianRow.nilai_aspek as Record<string, unknown>), documentStatus: "Published" }
-        : { documentStatus: "Published" };
+        ? { ...(ujianRow.nilai_aspek as Record<string, unknown>), documentStatus: "Published", verificationToken, assessorName }
+        : { documentStatus: "Published", verificationToken, assessorName };
 
       const { error } = await supabase
         .from("ujian")
         .update({
           document_status: "Published",
           published_at: new Date().toISOString(),
+          verification_token: verificationToken,
           nilai_aspek: aspek as any,
         } as any)
         .eq("id", data.ujian_id);
@@ -372,7 +396,15 @@ export function useTahfizhVerification(token: string | undefined) {
         .single();
 
       if (error) throw error;
-      return data;
+
+      if (!data.assessed_by) return data;
+
+      const assessorName = await getAssessorName(data.assessed_by);
+
+      return {
+        ...data,
+        assessor_name: assessorName,
+      };
     },
     enabled: !!token,
     retry: false,

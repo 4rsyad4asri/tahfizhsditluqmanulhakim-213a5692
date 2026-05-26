@@ -3,6 +3,7 @@ import autoTable, { type RowInput } from "jspdf-autotable";
 import QRCode from "qrcode";
 import { loadArabicFont } from "@/utils/loadArabicFont";
 import generateCatatanOtomatis from "@/utils/catatanOtomatis";
+import { buildTahfizhVerificationUrl } from "@/utils/verificationUrl";
 import {
   calculateNilaiTahsinDasar,
   calculateNilaiTahsinLanjutan,
@@ -63,6 +64,7 @@ export interface RaportData {
   grade: string;
   predikat: string;
   catatanGuru?: string;
+  verificationToken?: string;
   tahfizhMode?: TahfizhExamMode;
   tahfizhReportType?: "summary" | "detail";
   tahfizhConfig?: TahfizhPenaltyConfig;
@@ -1022,14 +1024,15 @@ export async function generateRaportPDF(
 
   const nomor = generateNomorDokumen(data.mode, data.ujianId);
 
+  const effectiveVerifyUrl = opts.verifyUrl || buildTahfizhVerificationUrl(data.verificationToken);
   const verifyText =
-    opts.verifyUrl ||
+    effectiveVerifyUrl ||
     `${data.mode}|${data.studentName}|${data.tanggal}|${data.nilaiAkhir}|${data.status}|${nomor}`;
 
   const qrUrl = opts.showQR ? await makeQR(verifyText) : undefined;
 
   drawWatermark(doc, header, assets, opts, pageW, pageH);
-  drawHeader(doc, data, header, assets, pageW, margin, qrUrl, nomor, opts.verifyUrl);
+  drawHeader(doc, data, header, assets, pageW, margin, qrUrl, nomor, effectiveVerifyUrl);
 
   let y = margin + 26 + 16;
 

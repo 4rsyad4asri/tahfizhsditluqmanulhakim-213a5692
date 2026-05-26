@@ -168,6 +168,8 @@ export default function RaportPreviewDialog({
     }
   }, [open, ujian]);
 
+  const verificationToken = ujian?.verification_token || ujian?.nilai_aspek?.verificationToken;
+
   const data: RaportData = useMemo(() => {
     const aspek = ujian?.nilai_aspek || {};
     const normalizedEntries = (aspek.entries || []).map(normalizeTahsinEntry);
@@ -195,6 +197,7 @@ export default function RaportPreviewDialog({
       grade: ujian?.grade ?? grading.grade,
       predikat,
       catatanGuru: finalCatatan,
+      verificationToken,
       tahfizhMode,
       tahfizhReportType,
       tahfizhConfig: aspek.config,
@@ -211,9 +214,8 @@ export default function RaportPreviewDialog({
       waqafTest: aspek.waqafTest as WaqafSymbolTest | undefined,
       ujianId: ujian?.id,
     };
-  }, [ujian, studentName, className, assessorName, tanggal, finalCatatan]);
+  }, [ujian, studentName, className, assessorName, tanggal, finalCatatan, verificationToken]);
 
-  const verificationToken = ujian?.verification_token || ujian?.nilai_aspek?.verificationToken;
   const verifyUrl = useMemo(
     () => buildTahfizhVerificationUrl(verificationToken) || opts.verifyUrl,
     [opts.verifyUrl, verificationToken]

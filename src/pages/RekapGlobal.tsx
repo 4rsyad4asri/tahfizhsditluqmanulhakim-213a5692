@@ -2,6 +2,15 @@ import { useMemo, useState } from "react";
 import Header from "@/components/Header";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  aggregateTahfizhAssessmentsForDisplay,
+  calculateTahfizhExamResult,
+  DEFAULT_TAHFIZH_PENALTY,
+  type TahfizhExamMode,
+  type TahfizhPenaltyConfig,
+  type TahfizhSurahAssessment,
+} from "@/data/tahfizhSystem";
+import { getStandardExamGrading } from "@/data/grading";
 import { Loader2, Download, BarChart3, Award, BookOpen, Users, Eye, FileArchive } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from "recharts";
 import { exportJsonToExcel } from "@/utils/excel";
@@ -35,6 +44,62 @@ const MODE_COLORS: Record<string, string> = {
   "Tahsin Dasar": "hsl(var(--success))",
   "Tahsin Lanjutan": "hsl(var(--warning))",
 };
+
+function getTahfizhPenaltyConfig(config: any): TahfizhPenaltyConfig {
+  return {
+    lahnJali: Number(config?.lahnJali ?? config?.penalti_lahn_jali ?? DEFAULT_TAHFIZH_PENALTY.lahnJali),
+    lahnKhofi: Number(config?.lahnKhofi ?? config?.penalti_lahn_khofi ?? DEFAULT_TAHFIZH_PENALTY.lahnKhofi),
+    waqaf: Number(config?.waqaf ?? config?.penalti_waqaf ?? DEFAULT_TAHFIZH_PENALTY.waqaf),
+    salahSambung: Number(config?.salahSambung ?? config?.penalti_salah_sambung ?? DEFAULT_TAHFIZH_PENALTY.salahSambung),
+  };
+}
+
+function isLegacyClassSixExam(classInfo: any, ujian: any) {
+  const grade = Number(classInfo?.grade ?? String(classInfo?.name || "").match(/\d+/)?.[0]);
+  return grade === 6 && !!ujian?.id;
+}
+
+function getLegacyClassSixTahfizhState(nilai: number) {
+  const grading = getStandardExamGrading(nilai);
+  return { ...grading, statusLabel: grading.status };
+}
+
+function getSyncedUjian(ujian: any, classInfo?: any) {
+  if (ujian?.mode !== "Tahfizh") return ujian;
+
+  const aspek =
+    ujian.nilai_aspek && typeof ujian.nilai_aspek === "object" && !Array.isArray(ujian.nilai_aspek)
+      ? ujian.nilai_aspek
+      : {};
+  const rawEntries = Array.isArray(aspek.surahEntries) ? aspek.surahEntries : [];
+  if (rawEntries.length === 0) return ujian;
+
+  const entries = aggregateTahfizhAssessmentsForDisplay(rawEntries) as TahfizhSurahAssessment[];
+  const result = calculateTahfizhExamResult(
+    entries,
+    (aspek.tahfizhMode || "Reguler") as TahfizhExamMode,
+    getTahfizhPenaltyConfig(aspek.config),
+    aspek.manualStopReason || "",
+    isLegacyClassSixExam(classInfo, ujian),
+    aspek.autoFailConfig,
+  );
+  const legacyState = isLegacyClassSixExam(classInfo, ujian)
+    ? getLegacyClassSixTahfizhState(result.nilaiAkhir || result.rataRataAkhir)
+    : undefined;
+  const finalState = legacyState || result;
+
+  return {
+    ...ujian,
+    nilai_akhir: result.nilaiAkhir,
+    status: finalState.status,
+    grade: finalState.grade,
+    nilai_aspek: {
+      ...aspek,
+      predikat: finalState.predikat,
+      statusLabel: finalState.statusLabel,
+    },
+  };
+}
 
 export default function RekapGlobal() {
   const [filterMode, setFilterMode] = useState<string>("all");
@@ -75,19 +140,20 @@ export default function RekapGlobal() {
         const s = sMap.get(u.student_id) as any;
         const c = s ? cMap.get(s.class_id) as any : null;
         const p = u.assessed_by ? (pMap.get(u.assessed_by) as any) : null;
-        const aspek = u.nilai_aspek as any;
+        const syncedUjian = getSyncedUjian(u, c);
+        const aspek = syncedUjian.nilai_aspek as any;
         return {
-          ujianId: u.id,
-          studentId: u.student_id,
+          ujianId: syncedUjian.id,
+          studentId: syncedUjian.student_id,
           studentName: s?.name || "Unknown",
           className: c?.name || "Unknown",
           grade: c?.grade || 0,
-          mode: u.mode,
-          tanggal: u.tanggal,
-          nilai: u.nilai_akhir,
-          status: u.status,
+          mode: syncedUjian.mode,
+          tanggal: syncedUjian.tanggal,
+          nilai: syncedUjian.nilai_akhir,
+          status: syncedUjian.status,
           predikat: aspek?.predikat || "-",
-          ujian: u,
+          ujian: syncedUjian,
           assessorName: p?.full_name || aspek?.assessorName,
         };
       });

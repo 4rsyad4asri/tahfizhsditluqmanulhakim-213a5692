@@ -231,9 +231,9 @@ export default function RekapGlobal() {
             </div>
 
             {/* Table */}
-            <div className="p-4 rounded-lg border border-border bg-card overflow-x-auto">
+            <div className="p-4 rounded-lg border border-border bg-card">
               <h3 className="text-sm font-semibold text-foreground mb-3">Detail Ujian ({filtered.length})</h3>
-              <table className="w-full text-sm">
+              <table className="min-w-[1040px] text-sm">
                 <thead className="text-xs text-muted-foreground border-b border-border">
                   <tr>
                     <th className="text-left py-2 px-2">Nama</th>

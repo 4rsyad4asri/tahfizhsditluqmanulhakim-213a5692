@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import Header from "@/components/Header";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getStandardExamGrading } from "@/data/grading";
 import {
   aggregateTahfizhAssessmentsForDisplay,
   calculateTahfizhExamResult,
@@ -50,13 +49,20 @@ const generateNomorSertifikat = (tanggal: string, index: number): string => {
   return `${nomorUrut}/SDITLH/STQ/2526/${bulanRoman}/2026`;
 };
 
-const isLegacyClassSixCertificate = (classGrade: number, ujianId?: string | null) => {
-  return Number(classGrade) === 6 && !!ujianId;
+const isTahfizhCertificateExam = (ujian: any) => {
+  if (ujian?.mode !== "Tahfizh") return false;
+  const aspek = (ujian?.nilai_aspek || {}) as { surahEntries?: unknown[]; tahfizhMode?: string };
+  const entryCount = Array.isArray(aspek.surahEntries) ? aspek.surahEntries.length : 0;
+
+  if (aspek.tahfizhMode === "Sertifikat") return true;
+  if (!aspek.tahfizhMode) return true;
+
+  // Data Tahfizh lama belum dipisah rapi; beberapa sertifikat lama tersimpan sebagai Reguler.
+  return aspek.tahfizhMode === "Reguler" && entryCount >= 13;
 };
 
 const getSyncedTahfizhCertificateResult = (
   ujian: any,
-  classGrade: number,
 ): {
   entries: TahfizhSurahAssessment[];
   nilaiAkhir: number;
@@ -68,37 +74,14 @@ const getSyncedTahfizhCertificateResult = (
   const rawEntries = Array.isArray(aspek?.surahEntries) ? aspek.surahEntries : [];
   const entries = aggregateTahfizhAssessmentsForDisplay(rawEntries) as TahfizhSurahAssessment[];
 
-  if (entries.length === 0) {
-    const grading = getStandardExamGrading(ujian.nilai_akhir);
-    return {
-      entries,
-      nilaiAkhir: grading.nilaiAkhir,
-      predikat: aspek?.predikat || grading.predikat,
-      grade: grading.grade,
-      status: (ujian.status as "Lulus" | "Tidak Lulus") || grading.status,
-    };
-  }
-
-  const ignoreAutoFail = isLegacyClassSixCertificate(classGrade, ujian.id);
   const result = calculateTahfizhExamResult(
     entries,
     (aspek?.tahfizhMode || "Reguler") as TahfizhExamMode,
     aspek?.config as TahfizhPenaltyConfig | undefined,
     aspek?.manualStopReason || "",
-    ignoreAutoFail,
+    false,
     aspek?.autoFailConfig,
   );
-
-  if (ignoreAutoFail) {
-    const grading = getStandardExamGrading(result.nilaiAkhir || result.rataRataAkhir);
-    return {
-      entries,
-      nilaiAkhir: grading.nilaiAkhir,
-      predikat: grading.predikat,
-      grade: grading.grade,
-      status: grading.status,
-    };
-  }
 
   return {
     entries,
@@ -138,7 +121,8 @@ const RekapSertifikat = () => {
       const { data: ujianData, error: ujianError } = await query;
       if (ujianError) throw ujianError;
 
-      const studentIds = [...new Set((ujianData || []).map((u) => u.student_id))];
+      const certificateUjianData = (ujianData || []).filter(isTahfizhCertificateExam);
+      const studentIds = [...new Set(certificateUjianData.map((u) => u.student_id))];
       if (studentIds.length === 0) return { items: [] as RekapItem[], classes: [] as string[] };
 
       const { data: students } = await supabase
@@ -157,11 +141,11 @@ const RekapSertifikat = () => {
 
       // Buat array dengan nomor urut berdasarkan urutan input
       let lulusIndex = 0;
-      const itemsWithSequence: Array<any> = (ujianData || []).map((u) => {
+      const itemsWithSequence: Array<any> = certificateUjianData.map((u) => {
         const student = studentMap.get(u.student_id);
         const cls = student ? classMap.get(student.class_id) : null;
         const classGrade = cls?.grade || 0;
-        const syncedResult = getSyncedTahfizhCertificateResult(u, classGrade);
+        const syncedResult = getSyncedTahfizhCertificateResult(u);
         const entries = syncedResult.entries;
         const juzList = [...new Set(entries.map((e: any) => e.juz))].sort((a: number, b: number) => a - b);
         const isLulus = syncedResult.status === "Lulus";
@@ -494,9 +478,8 @@ const RekapSertifikat = () => {
             </div>
 
             {/* Table */}
-            <div className="bg-card rounded-lg border border-border shadow-card overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+            <div className="bg-card rounded-lg border border-border shadow-card">
+              <table className="min-w-[1180px] text-sm">
                   <thead>
                     <tr className="border-b border-border bg-muted">
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">No</th>
@@ -640,8 +623,7 @@ const RekapSertifikat = () => {
                       </tr>
                     )}
                   </tbody>
-                </table>
-              </div>
+              </table>
             </div>
           </>
         )}

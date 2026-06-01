@@ -27,11 +27,11 @@ const Header = () => {
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-primary-foreground/20 bg-primary-foreground/10 backdrop-blur-sm">
               <BookOpen className="h-6 w-6 bg-background text-slate-950" />
             </div>
-            <div className="min-w-0">
-              <h1 className="break-words text-sm font-bold tracking-tight text-slate-950 md:text-2xl">
+            <div className="min-w-0 flex-1">
+              <h1 className={`${user ? "" : "max-w-[260px] sm:max-w-none"} break-words text-sm font-bold tracking-tight text-slate-950 md:text-2xl`}>
                 Sistem Laporan Ujian Tahfizh SDIT Luqmanul Hakim
               </h1>
-              <p className="text-xs text-gray-800 opacity-80">Web Developer : Miftahul Arsyad Asri, S.H</p>
+              <p className={`${user ? "" : "max-w-[260px] sm:max-w-none"} break-words text-xs text-gray-800 opacity-80`}>Web Developer : Miftahul Arsyad Asri, S.H</p>
             </div>
           </div>
 

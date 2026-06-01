@@ -2,9 +2,18 @@ import { useMemo, useState } from "react";
 import Header from "@/components/Header";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Download, BarChart3, Award, BookOpen, Users } from "lucide-react";
+import { Loader2, Download, BarChart3, Award, BookOpen, Users, Eye, FileArchive } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from "recharts";
 import { exportJsonToExcel } from "@/utils/excel";
+import RaportPreviewDialog from "@/components/RaportPreviewDialog";
+import {
+  buildRaportData,
+  buildEffectiveOpts,
+  loadRaportSettings,
+} from "@/utils/raportBuilder";
+import { generateRaportPDF, downloadRaportPDF } from "@/utils/raportPdf";
+import JSZip from "jszip";
+import { toast } from "sonner";
 
 interface Row {
   ujianId: string;
@@ -17,6 +26,8 @@ interface Row {
   nilai: number;
   status: string;
   predikat: string;
+  ujian: any;
+  assessorName?: string;
 }
 
 const MODE_COLORS: Record<string, string> = {
@@ -28,13 +39,17 @@ const MODE_COLORS: Record<string, string> = {
 export default function RekapGlobal() {
   const [filterMode, setFilterMode] = useState<string>("all");
   const [filterGrade, setFilterGrade] = useState<string>("all");
+  const [onlyLatest, setOnlyLatest] = useState<boolean>(true);
+  const [previewRow, setPreviewRow] = useState<Row | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["rekap-global"],
     queryFn: async () => {
       const { data: ujianData, error: e1 } = await supabase
         .from("ujian")
-        .select("id, student_id, mode, tanggal, nilai_akhir, status, nilai_aspek")
+        .select("id, student_id, mode, tanggal, nilai_akhir, status, nilai_aspek, grade, verification_token, document_status, assessed_by")
         .order("tanggal", { ascending: false });
       if (e1) throw e1;
 
@@ -47,12 +62,19 @@ export default function RekapGlobal() {
         ? await supabase.from("classes").select("id, name, grade").in("id", classIds)
         : { data: [] as any[] };
 
+      const assessorIds = [...new Set((ujianData || []).map((u: any) => u.assessed_by).filter(Boolean))];
+      const { data: profiles } = assessorIds.length
+        ? await supabase.from("profiles").select("id, full_name").in("id", assessorIds)
+        : { data: [] as any[] };
+
       const sMap = new Map((students || []).map((s: any) => [s.id, s]));
       const cMap = new Map((classes || []).map((c: any) => [c.id, c]));
+      const pMap = new Map((profiles || []).map((p: any) => [p.id, p]));
 
       const rows: Row[] = (ujianData || []).map((u: any) => {
         const s = sMap.get(u.student_id) as any;
         const c = s ? cMap.get(s.class_id) as any : null;
+        const p = u.assessed_by ? (pMap.get(u.assessed_by) as any) : null;
         const aspek = u.nilai_aspek as any;
         return {
           ujianId: u.id,
@@ -65,6 +87,8 @@ export default function RekapGlobal() {
           nilai: u.nilai_akhir,
           status: u.status,
           predikat: aspek?.predikat || "-",
+          ujian: u,
+          assessorName: p?.full_name || aspek?.assessorName,
         };
       });
       return rows;
@@ -75,8 +99,19 @@ export default function RekapGlobal() {
     let r = data || [];
     if (filterMode !== "all") r = r.filter((x) => x.mode === filterMode);
     if (filterGrade !== "all") r = r.filter((x) => x.grade === parseInt(filterGrade));
+    if (onlyLatest) {
+      const seen = new Set<string>();
+      const out: Row[] = [];
+      for (const row of r) {
+        const key = `${row.studentId}::${row.mode}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(row);
+      }
+      r = out;
+    }
     return r;
-  }, [data, filterMode, filterGrade]);
+  }, [data, filterMode, filterGrade, onlyLatest]);
 
   const stats = useMemo(() => {
     const total = filtered.length;
@@ -121,6 +156,66 @@ export default function RekapGlobal() {
     );
   };
 
+  const handleDownloadOne = async (r: Row) => {
+    setDownloadingId(r.ujianId);
+    try {
+      const { header, assets, opts } = loadRaportSettings();
+      const data = buildRaportData(r.ujian, r.studentName, r.className, r.assessorName);
+      const eff = buildEffectiveOpts(opts, data.verificationToken);
+      await downloadRaportPDF(data, header, assets, eff);
+      toast.success(`Raport ${r.studentName} berhasil diunduh`);
+    } catch (e: any) {
+      toast.error("Gagal mengunduh raport: " + (e?.message || ""));
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const sanitize = (s: string) => s.replace(/[^\w\s-]/g, "").replace(/\s+/g, "_");
+
+  const handleBulkDownload = async () => {
+    if (filtered.length === 0) {
+      toast.error("Tidak ada data untuk diunduh");
+      return;
+    }
+    if (filtered.length > 100) {
+      if (!confirm(`Anda akan mengunduh ${filtered.length} raport sekaligus. Lanjutkan?`)) return;
+    }
+    const { header, assets, opts } = loadRaportSettings();
+    const zip = new JSZip();
+    setBulkProgress({ current: 0, total: filtered.length });
+    try {
+      for (let i = 0; i < filtered.length; i++) {
+        const r = filtered[i];
+        setBulkProgress({ current: i + 1, total: filtered.length });
+        try {
+          const data = buildRaportData(r.ujian, r.studentName, r.className, r.assessorName);
+          const eff = buildEffectiveOpts(opts, data.verificationToken);
+          const doc = await generateRaportPDF(data, header, assets, eff);
+          const blob = doc.output("blob") as Blob;
+          const fname = `Raport_${sanitize(r.mode)}_${sanitize(r.className)}_${sanitize(r.studentName)}.pdf`;
+          zip.file(fname, blob);
+        } catch (e) {
+          console.error("Gagal generate raport untuk", r.studentName, e);
+        }
+      }
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Raport_Global_${new Date().toISOString().slice(0, 10)}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Berhasil mengunduh ${filtered.length} raport`);
+    } catch (e: any) {
+      toast.error("Gagal bulk download: " + (e?.message || ""));
+    } finally {
+      setBulkProgress(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -132,10 +227,24 @@ export default function RekapGlobal() {
             </h1>
             <p className="text-sm text-muted-foreground">Ringkasan seluruh ujian Tahfizh & Tahsin lintas kelas</p>
           </div>
-          <button onClick={handleExport}
-            className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium gradient-islamic text-primary-foreground hover:opacity-90">
-            <Download className="w-4 h-4" /> Export Excel
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={handleBulkDownload} disabled={!!bulkProgress}
+              className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium border border-primary/30 text-primary hover:bg-primary/5 disabled:opacity-50">
+              {bulkProgress ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> {bulkProgress.current}/{bulkProgress.total}
+                </>
+              ) : (
+                <>
+                  <FileArchive className="w-4 h-4" /> Download Massal (ZIP)
+                </>
+              )}
+            </button>
+            <button onClick={handleExport}
+              className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium gradient-islamic text-primary-foreground hover:opacity-90">
+              <Download className="w-4 h-4" /> Export Excel
+            </button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -157,6 +266,17 @@ export default function RekapGlobal() {
               <option value="all">Semua Tingkat</option>
               {grades.map((g) => <option key={g} value={g}>Kelas {g}</option>)}
             </select>
+          </div>
+          <div className="flex items-end">
+            <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={onlyLatest}
+                onChange={(e) => setOnlyLatest(e.target.checked)}
+                className="rounded border-input"
+              />
+              Hanya ujian terakhir per siswa
+            </label>
           </div>
         </div>
 
@@ -243,6 +363,7 @@ export default function RekapGlobal() {
                     <th className="text-center py-2 px-2">Nilai</th>
                     <th className="text-left py-2 px-2">Predikat</th>
                     <th className="text-center py-2 px-2">Status</th>
+                    <th className="text-center py-2 px-2">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -259,6 +380,29 @@ export default function RekapGlobal() {
                           {r.status}
                         </span>
                       </td>
+                      <td className="py-2 px-2 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => setPreviewRow(r)}
+                            title="Preview Raport"
+                            className="p-1.5 rounded-md hover:bg-primary/10 text-primary"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDownloadOne(r)}
+                            disabled={downloadingId === r.ujianId}
+                            title="Download PDF"
+                            className="p-1.5 rounded-md hover:bg-success/10 text-success disabled:opacity-50"
+                          >
+                            {downloadingId === r.ujianId ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Download className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -270,6 +414,17 @@ export default function RekapGlobal() {
           </>
         )}
       </div>
+
+      {previewRow && (
+        <RaportPreviewDialog
+          open={!!previewRow}
+          onClose={() => setPreviewRow(null)}
+          ujian={previewRow.ujian}
+          studentName={previewRow.studentName}
+          className={previewRow.className}
+          assessorName={previewRow.assessorName}
+        />
+      )}
     </div>
   );
 }

@@ -23,6 +23,7 @@ import {
   Users,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { getSafeErrorMessage } from "@/utils/errorMessages";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 
 const LEVEL_COLORS = [

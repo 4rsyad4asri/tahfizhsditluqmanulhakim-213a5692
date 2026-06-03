@@ -10,11 +10,16 @@ import {
   type TahfizhSurahAssessment,
 } from "@/data/tahfizhSystem";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { Loader2, Download, Filter, CheckCircle2, XCircle, Edit2, FileText, X } from "lucide-react";
+import { Loader2, Download, Filter, CheckCircle2, XCircle, Edit2, FileText, X, Eye } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { exportJsonToExcel } from "@/utils/excel";
-import { generateCertificatePDF } from "@/utils/generateCertificatePDF";
+import {
+  downloadCertificatePDF,
+  type CertificateData,
+} from "@/utils/generateCertificatePDF";
+import CertificatePreviewDialog from "@/components/CertificatePreviewDialog";
+import { buildTahfizhVerificationUrl } from "@/utils/verificationUrl";
 
 interface RekapItem {
   id: string;
@@ -28,6 +33,7 @@ interface RekapItem {
   tanggal: string;
   nomorSertifikat: string;
   status: string;
+  verificationToken?: string | null;
 }
 
 interface EditModalState {
@@ -97,6 +103,8 @@ const RekapSertifikat = () => {
   const [filterJuz, setFilterJuz] = useState<string>("all");
   const [showAll, setShowAll] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [previewItem, setPreviewItem] = useState<RekapItem | null>(null);
   const [editModal, setEditModal] = useState<EditModalState>({
     isOpen: false,
     ujianId: null,
@@ -170,6 +178,7 @@ const RekapSertifikat = () => {
           tanggal: u.tanggal,
           nomorSertifikat,
           status: syncedResult.status,
+          verificationToken: (u as any).verification_token ?? null,
         };
         return item;
       });

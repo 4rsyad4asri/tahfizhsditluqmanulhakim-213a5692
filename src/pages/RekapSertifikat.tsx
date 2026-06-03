@@ -638,6 +638,26 @@ const RekapSertifikat = () => {
         )}
       </main>
 
+      <CertificatePreviewDialog
+        open={!!previewItem}
+        onOpenChange={(o) => { if (!o) setPreviewItem(null); }}
+        data={
+          previewItem
+            ? {
+                studentName: previewItem.studentName,
+                className: previewItem.className,
+                juz: previewItem.juz,
+                nilaiAkhir: previewItem.nilaiAkhir,
+                predikat: previewItem.predikat,
+                tanggal: previewItem.tanggal,
+                nomorSertifikat: previewItem.nomorSertifikat,
+                verificationToken: previewItem.verificationToken,
+                verificationUrl: buildTahfizhVerificationUrl(previewItem.verificationToken),
+              }
+            : null
+        }
+      />
+
       {/* Modal Edit Nomor Sertifikat */}
       {editModal.isOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

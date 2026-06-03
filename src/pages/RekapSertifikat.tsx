@@ -550,36 +550,36 @@ const RekapSertifikat = () => {
                               {item.status === "Lulus" && (
                                 <>
                                   <button
+                                    onClick={() => setPreviewItem(item)}
+                                    className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                    title="Preview Sertifikat"
+                                  >
+                                    <Eye className="w-3 h-3" />
+                                  </button>
+                                  <button
                                     onClick={async () => {
                                       try {
-                                        setGeneratingId(item.id);
-
-                                        await generateCertificatePDF(item);
-
-                                        toast({
-                                          title: "Berhasil",
-                                          description: "Preview PDF berhasil dibuka",
-                                        });
-                                      } catch (error) {
-                                        console.error(error);
-
-                                        toast({
-                                          title: "Gagal",
-                                          description: "Gagal membuat PDF",
-                                          variant: "destructive",
-                                        });
+                                        setDownloadingId(item.id);
+                                        await downloadCertificatePDF({
+                                          ...item,
+                                          verificationUrl: buildTahfizhVerificationUrl(item.verificationToken),
+                                        } as CertificateData);
+                                        toast({ title: "Berhasil", description: "Sertifikat berhasil diunduh" });
+                                      } catch (err) {
+                                        console.error(err);
+                                        toast({ title: "Gagal", description: "Gagal membuat PDF", variant: "destructive" });
                                       } finally {
-                                        setGeneratingId(null);
+                                        setDownloadingId(null);
                                       }
                                     }}
-                                    disabled={generatingId === item.id}
-                                    className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
-                                    title="Cetak Sertifikat"
+                                    disabled={downloadingId === item.id}
+                                    className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium bg-success/10 text-success hover:bg-success/20 transition-colors disabled:opacity-50"
+                                    title="Download Sertifikat PDF"
                                   >
-                                    {generatingId === item.id ? (
+                                    {downloadingId === item.id ? (
                                       <Loader2 className="w-3 h-3 animate-spin" />
                                     ) : (
-                                      <FileText className="w-3 h-3" />
+                                      <Download className="w-3 h-3" />
                                     )}
                                   </button>
                                   <button

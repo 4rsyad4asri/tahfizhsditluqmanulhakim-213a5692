@@ -161,7 +161,7 @@ const RekapSertifikat = () => {
         const sequenceNumber = isLulus ? lulusIndex++ : -1;
 
         // Gunakan nomor sertifikat dari database jika sudah ada, jika tidak generate otomatis
-        const nomorSertifikatFromDb = u.nomor_sertifikat;
+        const nomorSertifikatFromDb = (u as any).nomor_sertifikat;
         const nomorSertifikat = isLulus 
           ? (nomorSertifikatFromDb || generateNomorSertifikat(u.tanggal, sequenceNumber))
           : "-";
@@ -224,7 +224,7 @@ const RekapSertifikat = () => {
     mutationFn: async ({ ujianId, nomorSertifikat }: { ujianId: string; nomorSertifikat: string }) => {
       const { error } = await supabase
         .from("ujian")
-        .update({ nomor_sertifikat: nomorSertifikat })
+        .update({ nomor_sertifikat: nomorSertifikat } as any)
         .eq("id", ujianId);
       if (error) throw error;
     },

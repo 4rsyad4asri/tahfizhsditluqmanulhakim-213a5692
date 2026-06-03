@@ -482,7 +482,7 @@ function drawScoreSummary(
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
-  doc.setTextColor(...(data.status === "Lulus" ? EMERALD : [220, 38, 38]));
+  doc.setTextColor(...((data.status === "Lulus" ? EMERALD : [220, 38, 38]) as [number, number, number]));
   doc.text(data.status.toUpperCase(), statusX + boxW / 2, centerY + 2, {
     align: "center",
   });

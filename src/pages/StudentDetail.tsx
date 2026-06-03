@@ -504,7 +504,7 @@ const StudentDetail = () => {
   const [catatanGuru, setCatatanGuru] = useState("");
 
   const [tahsinDasarEntries, setTahsinDasarEntries] = useState<TahsinDasarEntry[]>([
-    { nama_ebta: "", surah: "", ayat_mulai: "", ayat_akhir: "", kelancaran: 90, salah_huruf: 0, salah_harakat: 0, kesalahan_tajwid: 0, kesalahan_mad: 0, kesalahan_ghunnah: 0, kesalahan_waqaf: 0 }
+    { nama_ebta: "", kelancaran: 90, salah_huruf: 0, salah_harakat: 0, salah_tasydid: 0, kesalahan_tajwid: 0, kesalahan_mad: 0, kesalahan_qalqalah: 0, kesalahan_waqaf: 0 }
   ]);
   const [tahsinDasarTanggal, setTahsinDasarTanggal] = useState(new Date().toISOString().split('T')[0]);
   const [tahsinDasarCatatan, setTahsinDasarCatatan] = useState("");
@@ -515,7 +515,7 @@ const StudentDetail = () => {
   });
 
   const [tahsinLanjutanEntries, setTahsinLanjutanEntries] = useState<TahsinLanjutanEntry[]>([
-    { nama_ebta: "", surah: "", ayat: "", kelancaran: 90, salah_huruf: 0, salah_harakat: 0, kesalahan_tajwid: 0, kesalahan_mad: 0, kesalahan_ghunnah: 0, kesalahan_waqaf: 0, waqaf_ibtida: 0 }
+    { surah: "", ayat: "", kelancaran: 90, salah_huruf: 0, salah_harakat: 0, salah_tasydid: 0, kesalahan_tajwid: 0, kesalahan_mad: 0, kesalahan_qalqalah: 0, waqaf_ibtida: 0 }
   ]);
   const [tahsinLanjutanTanggal, setTahsinLanjutanTanggal] = useState(new Date().toISOString().split('T')[0]);
   const [tahsinLanjutanCatatan, setTahsinLanjutanCatatan] = useState("");
@@ -649,7 +649,7 @@ const StudentDetail = () => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">{student?.name}</h1>
           <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-            {student?.nisn && <p>NISN: {student.nisn}</p>}
+            {(student as any)?.nisn && <p>NISN: {(student as any).nisn}</p>}
             {classInfo?.name && <p>Kelas: {classInfo.name}</p>}
           </div>
         </div>
@@ -1061,7 +1061,7 @@ const StudentDetail = () => {
                       {displayUjian.mode === "Tahsin Dasar" && (
                         <button
                           onClick={() => {
-                            generateTahsinPDF(student?.name || "Siswa", displayUjian.mode, tahsinEntries, displayUjian.nilai_akhir);
+                            (generateTahsinPDF as any)(student?.name || "Siswa", displayUjian.mode, tahsinEntries, displayUjian.nilai_akhir);
                           }}
                           className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-green-500/10 text-green-600 text-xs font-medium hover:bg-green-500/20 transition-colors"
                         >

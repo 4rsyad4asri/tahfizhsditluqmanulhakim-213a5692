@@ -313,6 +313,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_get_penguji_user_id: {
+        Args: { _penguji_id: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

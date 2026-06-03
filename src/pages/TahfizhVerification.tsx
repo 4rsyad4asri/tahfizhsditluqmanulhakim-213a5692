@@ -150,7 +150,7 @@ export default function TahfizhVerification() {
   const effectiveCatatanGuru = getEffectiveCatatanGuru(data, student?.name || "Siswa");
   const nilaiAkhir = syncedResult.nilaiAkhir || data.nilai_akhir || 0;
   const documentNumber = getDocumentNumber(data.mode, data.id, data.published_at, data.tanggal);
-  const assessor = data.assessor_name || aspek.assessorName || (isUuidLike(data.assessed_by) ? "-" : data.assessed_by) || "-";
+  const assessor = (data as any).assessor_name || aspek.assessorName || (isUuidLike(data.assessed_by) ? "-" : data.assessed_by) || "-";
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-slate-50 text-foreground">

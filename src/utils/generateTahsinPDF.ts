@@ -420,11 +420,11 @@ export const generateTahsinPDF = async (data: TahsinExamData) => {
         doc.setFillColor(220, 220, 220);
         doc.roundedRect(x + 1, cardY + 1, cardWidth, cardHeight, 3, 3, "F");
 
-        doc.setFillColor(...bgColor);
-        doc.setDrawColor(...borderColor);
+        doc.setFillColor(...(bgColor as [number, number, number]));
+        doc.setDrawColor(...(borderColor as [number, number, number]));
         doc.roundedRect(x, cardY, cardWidth, cardHeight, 3, 3, "FD");
 
-        doc.setFillColor(...borderColor);
+        doc.setFillColor(...(borderColor as [number, number, number]));
         doc.roundedRect(x + 3, cardY + 3, 14, 12, 2, 2, "F");
 
         doc.setFont("Amiri", "normal");
@@ -444,7 +444,7 @@ export const generateTahsinPDF = async (data: TahsinExamData) => {
         doc.setTextColor(90, 90, 90);
         doc.text(val ? "Jawaban Benar" : "Jawaban Salah", x + 21, cardY + 12);
 
-        doc.setFillColor(...badgeColor);
+        doc.setFillColor(...(badgeColor as [number, number, number]));
         doc.roundedRect(x + cardWidth - 22, cardY + 4, 18, 6, 2, 2, "F");
 
         doc.setFont("helvetica", "bold");

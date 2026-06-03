@@ -1,7 +1,8 @@
 import jsPDF from "jspdf";
 import QRCode from "qrcode";
+import { loadArabicFont } from "./loadArabicFont";
 
-interface CertificateData {
+export interface CertificateData {
   studentName: string;
   className: string;
   juz: string;
@@ -9,565 +10,327 @@ interface CertificateData {
   predikat: string;
   tanggal: string;
   nomorSertifikat: string;
+  verificationToken?: string | null;
+  verificationUrl?: string;
 }
 
-const safeText = (value: any, fallback = "-") => {
-  if (!value) return fallback;
-  return String(value);
-};
+const EMERALD: [number, number, number] = [22, 101, 52];
+const GOLD: [number, number, number] = [180, 140, 50];
+const CREAM: [number, number, number] = [250, 248, 240];
+const INK: [number, number, number] = [40, 40, 40];
+const MUTED: [number, number, number] = [110, 110, 110];
+
+const safeText = (value: unknown, fallback = "-") =>
+  value === undefined || value === null || value === "" ? fallback : String(value);
 
 const safeDate = (value: string) => {
   const d = new Date(value);
-
-  if (isNaN(d.getTime())) {
-    return "-";
-  }
-
-  return d.toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  if (isNaN(d.getTime())) return "-";
+  return d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 };
 
-const safeFileName = (name: string) => {
-  return name
-    .replace(/[<>:"/\\|?*]+/g, "")
-    .replace(/\s+/g, "_");
+export const safeFileName = (name: string) =>
+  name.replace(/[<>:"/\\|?*]+/g, "").replace(/\s+/g, "_");
+
+const PREDIKAT_ARABIC: Record<string, string> = {
+  "Mumtaz Murtafi": "ممتاز مرتفع",
+  Mumtaz: "ممتاز",
+  "Jayyid Jiddan": "جيد جدا",
+  Jayyid: "جيد",
+  Maqbul: "مقبول",
+  Rosib: "راسب",
 };
 
-const drawBorder = (doc: jsPDF, w: number, h: number) => {
-  doc.setDrawColor(22, 101, 52);
-  doc.setLineWidth(3);
+const drawFrame = (doc: jsPDF, w: number, h: number) => {
+  // outer emerald border
+  doc.setDrawColor(...EMERALD);
+  doc.setLineWidth(2.5);
+  doc.rect(10, 10, w - 20, h - 20);
 
-  doc.rect(12, 12, w - 24, h - 24);
-
-  doc.setDrawColor(180, 140, 50);
-  doc.setLineWidth(1);
-
-  doc.rect(16, 16, w - 32, h - 32);
+  // inner gold border
+  doc.setDrawColor(...GOLD);
+  doc.setLineWidth(0.8);
+  doc.rect(14, 14, w - 28, h - 28);
 
   // corner ornaments
-  doc.setFillColor(180, 140, 50);
-
-  doc.circle(25, 25, 3, "F");
-  doc.circle(w - 25, 25, 3, "F");
-  doc.circle(25, h - 25, 3, "F");
-  doc.circle(w - 25, h - 25, 3, "F");
+  doc.setFillColor(...GOLD);
+  const corners: [number, number][] = [
+    [22, 22],
+    [w - 22, 22],
+    [22, h - 22],
+    [w - 22, h - 22],
+  ];
+  corners.forEach(([cx, cy]) => {
+    doc.circle(cx, cy, 2.5, "F");
+    doc.setDrawColor(...EMERALD);
+    doc.setLineWidth(0.4);
+    doc.circle(cx, cy, 4, "S");
+  });
 };
 
-export const generateCertificatePDF = async (
-  data: CertificateData,
-) => {
-  const doc = new jsPDF({
-    orientation: "landscape",
-    unit: "mm",
-    format: "a4",
-  });
+const drawLogo = (doc: jsPDF, cx: number, cy: number) => {
+  doc.setDrawColor(...EMERALD);
+  doc.setLineWidth(1.2);
+  doc.circle(cx, cy, 10);
 
+  doc.setDrawColor(...GOLD);
+  doc.setLineWidth(0.6);
+  doc.circle(cx, cy, 7.5);
+
+  // crescent
+  doc.setFillColor(...EMERALD);
+  doc.circle(cx - 1.5, cy, 3.2, "F");
+  doc.setFillColor(...CREAM);
+  doc.circle(cx - 0.4, cy, 2.6, "F");
+
+  // star
+  doc.setFillColor(...GOLD);
+  doc.circle(cx + 3.5, cy - 2.5, 1, "F");
+};
+
+export const buildCertificatePDF = async (data: CertificateData): Promise<jsPDF> => {
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const w = doc.internal.pageSize.getWidth();
   const h = doc.internal.pageSize.getHeight();
 
-  // ======================
-  // BACKGROUND
-  // ======================
+  // Arabic font
+  try {
+    await loadArabicFont(doc);
+  } catch (err) {
+    console.error("Arabic font load failed:", err);
+  }
 
-  doc.setFillColor(250, 248, 240);
+  // ======= BACKGROUND =======
+  doc.setFillColor(...CREAM);
   doc.rect(0, 0, w, h, "F");
 
+  // soft top/bottom bands
   doc.setFillColor(240, 247, 240);
-  doc.rect(0, 0, w, 18, "F");
-  doc.rect(0, h - 18, w, 18, "F");
+  doc.rect(0, 0, w, 16, "F");
+  doc.rect(0, h - 16, w, 16, "F");
 
-  drawBorder(doc, w, h);
+  drawFrame(doc, w, h);
 
-  // ======================
-  // SIMPLE ISLAMIC LOGO
-  // ======================
+  // ======= LOGOS (left + right) =======
+  drawLogo(doc, 32, 30);
+  drawLogo(doc, w - 32, 30);
 
-  const logoX = 34;
-  const logoY = 30;
+  // ======= BISMILLAH (Arabic) =======
+  doc.setFont("Amiri", "normal");
+  doc.setFontSize(22);
+  doc.setTextColor(...EMERALD);
+  doc.text("بسم الله الرحمن الرحيم", w / 2, 28, { align: "center" });
 
-  // outer circle
-  doc.setDrawColor(22, 101, 52);
-  doc.setLineWidth(1.2);
-
-  doc.circle(logoX, logoY, 10);
-
-  // inner circle
-  doc.setDrawColor(180, 140, 50);
-
-  doc.circle(logoX, logoY, 7);
-
-  // moon
-  doc.setFillColor(22, 101, 52);
-
-  doc.circle(logoX - 2, logoY, 3, "F");
-
-  doc.setFillColor(250, 248, 240);
-
-  doc.circle(logoX - 1, logoY, 2.5, "F");
-
-  // star
-  doc.setFillColor(180, 140, 50);
-
-  doc.circle(logoX + 4, logoY - 3, 1.2, "F");
-
-  // school text
+  // ======= TITLES =======
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(24);
+  doc.setTextColor(...EMERALD);
+  doc.text("CERTIFICATE OF QUR'AN MEMORIZATION", w / 2, 44, { align: "center" });
+
+  doc.setFont("Amiri", "normal");
+  doc.setFontSize(16);
+  doc.setTextColor(...GOLD);
+  doc.text("شهادة تحفيظ القرآن الكريم", w / 2, 53, { align: "center" });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.setTextColor(...MUTED);
+  doc.text("Sertifikat Tahfizh Al-Qur'an", w / 2, 60, { align: "center" });
+
+  // divider
+  doc.setDrawColor(...GOLD);
+  doc.setLineWidth(0.5);
+  doc.line(w / 2 - 60, 64, w / 2 + 60, 64);
+
+  // ======= NOMOR =======
   doc.setFontSize(9);
-  doc.setTextColor(22, 101, 52);
+  doc.setTextColor(...MUTED);
+  doc.text(`No: ${safeText(data.nomorSertifikat)}`, w / 2, 70, { align: "center" });
 
-  doc.text(
-    "SDIT",
-    logoX,
-    logoY + 15,
-    {
-      align: "center",
-    },
-  );
-
-  // ======================
-  // BISMILLAH
-  // ======================
-
-  doc.setFont("times", "italic");
-  doc.setFontSize(18);
-  doc.setTextColor(22, 101, 52);
-
-  doc.text(
-    "Bismillahirrahmanirrahim",
-    w / 2,
-    25,
-    {
-      align: "center",
-    },
-  );
-
-  // ======================
-  // TITLE
-  // ======================
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(28);
-
-  doc.text(
-    "SERTIFIKAT TAHFIZH AL-QUR'AN",
-    w / 2,
-    42,
-    {
-      align: "center",
-    },
-  );
-
-  doc.setDrawColor(22, 101, 52);
-  doc.setLineWidth(0.8);
-
-  doc.line(70, 46, w - 70, 46);
-
-  // subtitle
-
+  // ======= PRESENTED TO =======
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(11);
+  doc.setTextColor(...INK);
+  doc.text("This certificate is proudly presented to", w / 2, 80, { align: "center" });
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(12);
-  doc.setTextColor(180, 140, 50);
-
-  doc.text(
-    "CERTIFICATE OF QUR'AN MEMORIZATION",
-    w / 2,
-    54,
-    {
-      align: "center",
-    },
-  );
-
-  // ======================
-  // NOMOR
-  // ======================
-
   doc.setFontSize(10);
-  doc.setTextColor(100, 100, 100);
+  doc.setTextColor(...MUTED);
+  doc.text("Dengan bangga diberikan kepada", w / 2, 86, { align: "center" });
 
-  doc.text(
-    `No: ${safeText(data.nomorSertifikat)}`,
-    w / 2,
-    65,
-    {
-      align: "center",
-    },
-  );
-
-  // ======================
-  // CONTENT
-  // ======================
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(13);
-  doc.setTextColor(60, 60, 60);
-
-  doc.text(
-    "Diberikan kepada:",
-    w / 2,
-    82,
-    {
-      align: "center",
-    },
-  );
-
-  // ======================
-  // NAMA SISWA
-  // ======================
-
-  let nameSize = 28;
-
+  // ======= STUDENT NAME =======
+  let nameSize = 30;
   doc.setFont("helvetica", "bold");
-
-  while (
-    doc.getTextWidth(safeText(data.studentName)) > 170 &&
-    nameSize > 18
-  ) {
-    nameSize--;
+  doc.setFontSize(nameSize);
+  while (doc.getTextWidth(safeText(data.studentName)) > 200 && nameSize > 18) {
+    nameSize -= 1;
     doc.setFontSize(nameSize);
   }
+  doc.setTextColor(...EMERALD);
+  doc.text(safeText(data.studentName), w / 2, 102, { align: "center" });
 
-  doc.setFontSize(nameSize);
-  doc.setTextColor(22, 101, 52);
+  const nameW = doc.getTextWidth(safeText(data.studentName));
+  doc.setDrawColor(...GOLD);
+  doc.setLineWidth(0.4);
+  doc.line(w / 2 - nameW / 2 - 6, 106, w / 2 + nameW / 2 + 6, 106);
 
-  doc.text(
-    safeText(data.studentName),
-    w / 2,
-    100,
-    {
-      align: "center",
-    },
-  );
-
-  const lineWidth = doc.getTextWidth(
-    safeText(data.studentName),
-  );
-
-  doc.setDrawColor(180, 140, 50);
-
-  doc.line(
-    w / 2 - lineWidth / 2 - 4,
-    104,
-    w / 2 + lineWidth / 2 + 4,
-    104,
-  );
-
-  // ======================
-  // KELAS
-  // ======================
-
+  // class
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(12);
-  doc.setTextColor(60, 60, 60);
+  doc.setFontSize(11);
+  doc.setTextColor(...INK);
+  doc.text(`Class / Kelas: ${safeText(data.className)}`, w / 2, 113, { align: "center" });
 
+  // ======= DESCRIPTION =======
+  doc.setFontSize(10.5);
+  doc.setTextColor(...INK);
   doc.text(
-    `Kelas: ${safeText(data.className)}`,
+    `has successfully completed the Tahfizh Al-Qur'an certification examination for Juz ${safeText(data.juz)}`,
     w / 2,
-    116,
-    {
-      align: "center",
-    },
+    122,
+    { align: "center" },
   );
-
-  // ======================
-  // DESKRIPSI
-  // ======================
-
+  doc.setFontSize(9.5);
+  doc.setTextColor(...MUTED);
   doc.text(
-    `Telah menyelesaikan Ujian Sertifikasi Tahfizh Al-Qur'an`,
+    `Telah menyelesaikan ujian sertifikasi Tahfizh Al-Qur'an untuk Juz ${safeText(data.juz)} dengan hasil:`,
     w / 2,
     128,
-    {
-      align: "center",
-    },
+    { align: "center" },
   );
 
-  doc.text(
-    `untuk Juz ${safeText(data.juz)} dengan hasil:`,
-    w / 2,
-    138,
-    {
-      align: "center",
-    },
-  );
-
-  // ======================
-  // SCORE BOX
-  // ======================
-
-  const boxW = 120;
-  const boxH = 28;
+  // ======= SCORE BOX (3 columns) =======
+  const boxW = 180;
+  const boxH = 24;
   const boxX = (w - boxW) / 2;
-  const boxY = 146;
+  const boxY = 133;
 
   doc.setFillColor(240, 248, 240);
+  doc.roundedRect(boxX, boxY, boxW, boxH, 3, 3, "F");
+  doc.setDrawColor(...EMERALD);
+  doc.setLineWidth(0.6);
+  doc.roundedRect(boxX, boxY, boxW, boxH, 3, 3, "S");
 
-  doc.roundedRect(
-    boxX,
-    boxY,
-    boxW,
-    boxH,
-    4,
-    4,
-    "F",
-  );
+  const colW = boxW / 3;
+  // dividers
+  doc.setDrawColor(...GOLD);
+  doc.setLineWidth(0.3);
+  doc.line(boxX + colW, boxY + 4, boxX + colW, boxY + boxH - 4);
+  doc.line(boxX + colW * 2, boxY + 4, boxX + colW * 2, boxY + boxH - 4);
 
-  doc.setDrawColor(22, 101, 52);
-
-  doc.roundedRect(
-    boxX,
-    boxY,
-    boxW,
-    boxH,
-    4,
-    4,
-    "S",
-  );
+  const colCenter = (i: number) => boxX + colW * i + colW / 2;
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(100, 100, 100);
-
-  doc.text(
-    "Nilai Akhir",
-    boxX + 30,
-    boxY + 10,
-    {
-      align: "center",
-    },
-  );
-
-  doc.text(
-    "Predikat",
-    boxX + 90,
-    boxY + 10,
-    {
-      align: "center",
-    },
-  );
-
-  doc.line(
-    boxX + 60,
-    boxY + 5,
-    boxX + 60,
-    boxY + 23,
-  );
+  doc.setFontSize(8.5);
+  doc.setTextColor(...MUTED);
+  doc.text("SCORE / NILAI", colCenter(0), boxY + 7, { align: "center" });
+  doc.text("GRADE / PREDIKAT", colCenter(1), boxY + 7, { align: "center" });
+  doc.text("DATE / TANGGAL", colCenter(2), boxY + 7, { align: "center" });
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
-  doc.setTextColor(22, 101, 52);
+  doc.setTextColor(...EMERALD);
+  doc.text(String(data.nilaiAkhir ?? 0), colCenter(0), boxY + 17, { align: "center" });
 
-  doc.text(
-    String(data.nilaiAkhir || 0),
-    boxX + 30,
-    boxY + 21,
-    {
-      align: "center",
-    },
-  );
-
-  doc.setFontSize(
-    safeText(data.predikat).length > 15
-      ? 12
-      : 16,
-  );
-
-  doc.text(
-    safeText(data.predikat),
-    boxX + 90,
-    boxY + 21,
-    {
-      align: "center",
-    },
-  );
-
-  // ======================
-  // TANGGAL
-  // ======================
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(90, 90, 90);
-
-  doc.text(
-    `Ditetapkan pada tanggal ${safeDate(data.tanggal)}`,
-    w / 2,
-    188,
-    {
-      align: "center",
-    },
-  );
-
-  // ======================
-  // SIGNATURE
-  // ======================
-
-  const signY = 195;
-  const signBoxW = 70;
-  const signBoxH = 28;
-
-  // LEFT
-
-  const leftX = 32;
-
-  doc.setFillColor(252, 252, 252);
-
-  doc.roundedRect(
-    leftX,
-    signY,
-    signBoxW,
-    signBoxH,
-    2,
-    2,
-    "FD",
-  );
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.setTextColor(22, 101, 52);
-
-  doc.text(
-    "Koordinator Tahfizh",
-    leftX + signBoxW / 2,
-    signY + 8,
-    {
-      align: "center",
-    },
-  );
-
-  doc.setDrawColor(120, 120, 120);
-
-  doc.line(
-    leftX + 10,
-    signY + 18,
-    leftX + signBoxW - 10,
-    signY + 18,
-  );
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-
-  doc.text(
-    "Nama Koordinator",
-    leftX + signBoxW / 2,
-    signY + 23,
-    {
-      align: "center",
-    },
-  );
-
-  // RIGHT
-
-  const rightX = w - signBoxW - 32;
-
-  doc.roundedRect(
-    rightX,
-    signY,
-    signBoxW,
-    signBoxH,
-    2,
-    2,
-    "FD",
-  );
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-
-  doc.text(
-    "Kepala Sekolah",
-    rightX + signBoxW / 2,
-    signY + 8,
-    {
-      align: "center",
-    },
-  );
-
-  doc.line(
-    rightX + 10,
-    signY + 18,
-    rightX + signBoxW - 10,
-    signY + 18,
-  );
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-
-  doc.text(
-    "Nama Kepala Sekolah",
-    rightX + signBoxW / 2,
-    signY + 23,
-    {
-      align: "center",
-    },
-  );
-
-  // ======================
-  // FOOTER
-  // ======================
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.setTextColor(120, 120, 120);
-
-  doc.text(
-    "SDIT Luqmanul Hakim • Program Tahfizh Al-Qur'an",
-    w / 2,
-    h - 10,
-    {
-      align: "center",
-    },
-  );
-
-  // ======================
-  // QR CODE
-  // ======================
-
-  try {
-    const qrData = `SERTIFIKAT:${safeText(
-      data.nomorSertifikat,
-    )}`;
-
-    const qr = await QRCode.toDataURL(qrData, {
-      width: 200,
-      margin: 1,
-    });
-
-    doc.addImage(
-      qr,
-      "PNG",
-      w - 40,
-      h - 40,
-      22,
-      22,
-    );
-
-    doc.setFontSize(7);
-
-    doc.text(
-      "Verifikasi",
-      w - 29,
-      h - 14,
-      {
-        align: "center",
-      },
-    );
-  } catch (err) {
-    console.error("QR ERROR:", err);
+  const predikatLen = safeText(data.predikat).length;
+  doc.setFontSize(predikatLen > 13 ? 11 : 14);
+  doc.text(safeText(data.predikat), colCenter(1), boxY + 16, { align: "center" });
+  const arabicPredikat = PREDIKAT_ARABIC[data.predikat];
+  if (arabicPredikat) {
+    doc.setFont("Amiri", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(...GOLD);
+    doc.text(arabicPredikat, colCenter(1), boxY + 21, { align: "center" });
   }
 
-  // ======================
-  // OPEN + DOWNLOAD
-  // ======================
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(...EMERALD);
+  doc.text(safeDate(data.tanggal), colCenter(2), boxY + 17, { align: "center" });
 
-  const blobUrl = doc.output("bloburl");
+  // ======= SIGNATURES =======
+  const signY = 168;
+  const signBoxW = 70;
+  const signBoxH = 28;
+  const leftX = 28;
+  const rightX = w - signBoxW - 28;
 
-  window.open(blobUrl, "_blank");
+  const drawSignBlock = (
+    x: number,
+    titleEn: string,
+    titleId: string,
+    name: string,
+  ) => {
+    doc.setFillColor(252, 252, 248);
+    doc.setDrawColor(200, 180, 130);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(x, signY, signBoxW, signBoxH, 2, 2, "FD");
 
-  doc.save(
-    `Sertifikat_${safeFileName(
-      data.studentName,
-    )}.pdf`,
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...EMERALD);
+    doc.text(titleEn, x + signBoxW / 2, signY + 5, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(...MUTED);
+    doc.text(titleId, x + signBoxW / 2, signY + 9, { align: "center" });
+
+    // signature line
+    doc.setDrawColor(120, 120, 120);
+    doc.setLineWidth(0.3);
+    doc.line(x + 10, signY + 20, x + signBoxW - 10, signY + 20);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(...INK);
+    doc.text(name, x + signBoxW / 2, signY + 24, { align: "center" });
+  };
+
+  drawSignBlock(leftX, "Tahfizh Coordinator", "Koordinator Tahfizh", "(...........................)");
+  drawSignBlock(rightX, "Principal", "Kepala Sekolah", "(...........................)");
+
+  // ======= QR CODE between signatures =======
+  try {
+    const qrPayload = data.verificationUrl || `SERTIFIKAT:${safeText(data.nomorSertifikat)}`;
+    const qr = await QRCode.toDataURL(qrPayload, { width: 240, margin: 1 });
+    const qrSize = 24;
+    const qrX = (w - qrSize) / 2;
+    const qrY = signY + 1;
+    doc.addImage(qr, "PNG", qrX, qrY, qrSize, qrSize);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.5);
+    doc.setTextColor(...MUTED);
+    doc.text("Scan to verify · Pindai untuk verifikasi", w / 2, qrY + qrSize + 3, {
+      align: "center",
+    });
+  } catch (err) {
+    console.error("QR error:", err);
+  }
+
+  // ======= FOOTER =======
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(7.5);
+  doc.setTextColor(...MUTED);
+  doc.text(
+    "SDIT Luqmanul Hakim · Tahfizh Al-Qur'an Program · Internationally Standardised Certification",
+    w / 2,
+    h - 8,
+    { align: "center" },
   );
+
+  return doc;
 };
+
+export const downloadCertificatePDF = async (data: CertificateData) => {
+  const doc = await buildCertificatePDF(data);
+  doc.save(`Sertifikat_${safeFileName(data.studentName)}.pdf`);
+};
+
+export const generateCertificateBlobUrl = async (data: CertificateData): Promise<string> => {
+  const doc = await buildCertificatePDF(data);
+  const blob = doc.output("blob");
+  return URL.createObjectURL(blob);
+};
+
+// Backward-compatible alias (no popup); triggers download only.
+export const generateCertificatePDF = downloadCertificatePDF;

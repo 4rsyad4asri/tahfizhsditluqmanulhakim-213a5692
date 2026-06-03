@@ -10,11 +10,16 @@ import {
   type TahfizhSurahAssessment,
 } from "@/data/tahfizhSystem";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { Loader2, Download, Filter, CheckCircle2, XCircle, Edit2, FileText, X } from "lucide-react";
+import { Loader2, Download, Filter, CheckCircle2, XCircle, Edit2, FileText, X, Eye } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { exportJsonToExcel } from "@/utils/excel";
-import { generateCertificatePDF } from "@/utils/generateCertificatePDF";
+import {
+  downloadCertificatePDF,
+  type CertificateData,
+} from "@/utils/generateCertificatePDF";
+import CertificatePreviewDialog from "@/components/CertificatePreviewDialog";
+import { buildTahfizhVerificationUrl } from "@/utils/verificationUrl";
 
 interface RekapItem {
   id: string;
@@ -28,6 +33,7 @@ interface RekapItem {
   tanggal: string;
   nomorSertifikat: string;
   status: string;
+  verificationToken?: string | null;
 }
 
 interface EditModalState {
@@ -97,6 +103,8 @@ const RekapSertifikat = () => {
   const [filterJuz, setFilterJuz] = useState<string>("all");
   const [showAll, setShowAll] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [previewItem, setPreviewItem] = useState<RekapItem | null>(null);
   const [editModal, setEditModal] = useState<EditModalState>({
     isOpen: false,
     ujianId: null,
@@ -170,6 +178,7 @@ const RekapSertifikat = () => {
           tanggal: u.tanggal,
           nomorSertifikat,
           status: syncedResult.status,
+          verificationToken: (u as any).verification_token ?? null,
         };
         return item;
       });
@@ -541,36 +550,36 @@ const RekapSertifikat = () => {
                               {item.status === "Lulus" && (
                                 <>
                                   <button
+                                    onClick={() => setPreviewItem(item)}
+                                    className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                    title="Preview Sertifikat"
+                                  >
+                                    <Eye className="w-3 h-3" />
+                                  </button>
+                                  <button
                                     onClick={async () => {
                                       try {
-                                        setGeneratingId(item.id);
-
-                                        await generateCertificatePDF(item);
-
-                                        toast({
-                                          title: "Berhasil",
-                                          description: "Preview PDF berhasil dibuka",
-                                        });
-                                      } catch (error) {
-                                        console.error(error);
-
-                                        toast({
-                                          title: "Gagal",
-                                          description: "Gagal membuat PDF",
-                                          variant: "destructive",
-                                        });
+                                        setDownloadingId(item.id);
+                                        await downloadCertificatePDF({
+                                          ...item,
+                                          verificationUrl: buildTahfizhVerificationUrl(item.verificationToken),
+                                        } as CertificateData);
+                                        toast({ title: "Berhasil", description: "Sertifikat berhasil diunduh" });
+                                      } catch (err) {
+                                        console.error(err);
+                                        toast({ title: "Gagal", description: "Gagal membuat PDF", variant: "destructive" });
                                       } finally {
-                                        setGeneratingId(null);
+                                        setDownloadingId(null);
                                       }
                                     }}
-                                    disabled={generatingId === item.id}
-                                    className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
-                                    title="Cetak Sertifikat"
+                                    disabled={downloadingId === item.id}
+                                    className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium bg-success/10 text-success hover:bg-success/20 transition-colors disabled:opacity-50"
+                                    title="Download Sertifikat PDF"
                                   >
-                                    {generatingId === item.id ? (
+                                    {downloadingId === item.id ? (
                                       <Loader2 className="w-3 h-3 animate-spin" />
                                     ) : (
-                                      <FileText className="w-3 h-3" />
+                                      <Download className="w-3 h-3" />
                                     )}
                                   </button>
                                   <button
@@ -628,6 +637,26 @@ const RekapSertifikat = () => {
           </>
         )}
       </main>
+
+      <CertificatePreviewDialog
+        open={!!previewItem}
+        onOpenChange={(o) => { if (!o) setPreviewItem(null); }}
+        data={
+          previewItem
+            ? {
+                studentName: previewItem.studentName,
+                className: previewItem.className,
+                juz: previewItem.juz,
+                nilaiAkhir: previewItem.nilaiAkhir,
+                predikat: previewItem.predikat,
+                tanggal: previewItem.tanggal,
+                nomorSertifikat: previewItem.nomorSertifikat,
+                verificationToken: previewItem.verificationToken,
+                verificationUrl: buildTahfizhVerificationUrl(previewItem.verificationToken),
+              }
+            : null
+        }
+      />
 
       {/* Modal Edit Nomor Sertifikat */}
       {editModal.isOpen && (

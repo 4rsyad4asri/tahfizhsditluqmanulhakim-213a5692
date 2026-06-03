@@ -53,8 +53,22 @@ Deno.serve(async (req) => {
 
     const results: any[] = [];
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
     for (const u of users) {
       try {
+        if (!u?.email || typeof u.email !== "string" || !emailRegex.test(u.email.trim())) {
+          results.push({ email: u?.email, success: false, error: "Invalid email" });
+          continue;
+        }
+        if (!u?.password || typeof u.password !== "string" || u.password.length < 8) {
+          results.push({ email: u.email, success: false, error: "Password must be at least 8 characters" });
+          continue;
+        }
+        if (!u?.full_name || typeof u.full_name !== "string" || u.full_name.trim().length === 0 || u.full_name.length > 100) {
+          results.push({ email: u.email, success: false, error: "Name must be 1-100 characters" });
+          continue;
+        }
         // Create auth user
         const { data: newUser, error: createErr } = await adminClient.auth.admin.createUser({
           email: u.email.trim(),
@@ -86,16 +100,16 @@ Deno.serve(async (req) => {
         }
 
         results.push({ email: u.email, success: true, user_id: newUser.user.id });
-      } catch (err: any) {
-        results.push({ email: u.email, success: false, error: err.message });
+      } catch (_err) {
+        results.push({ email: u?.email, success: false, error: "Failed to create user" });
       }
     }
 
     return new Response(JSON.stringify({ results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), {
+  } catch (_err) {
+    return new Response(JSON.stringify({ error: "Operation failed" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

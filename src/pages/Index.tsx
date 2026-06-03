@@ -310,7 +310,7 @@ const Dashboard = () => {
       <div className="min-h-screen bg-[#F8FAF5]">
         <Header />
         <div className="flex items-center justify-center px-4 py-20 text-destructive">
-          Gagal memuat data: {(error as Error).message}
+          Gagal memuat data: {getSafeErrorMessage(error)}
         </div>
       </div>
     );

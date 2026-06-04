@@ -1,41 +1,23 @@
-# Kembalikan Data Rekap Sertifikat Tahfizh
+# Verifikasi: Rekap Sertifikat Menampilkan 15 Data
 
-## Masalah
-15 ujian Tahfizh ada di database tapi tidak muncul di halaman Rekap Sertifikat. Penyebab: kebijakan keamanan terakhir membatasi `SELECT` pada tabel `ujian` hanya untuk **admin** atau **penguji yang ditugaskan ke kelas siswa pemilik ujian tersebut**. Akibatnya:
-- Admin tetap bisa melihat semua (via `has_role`).
-- Penguji hanya melihat ujian milik kelas yang ditugaskan kepadanya — bukan rekap global.
-- Anon tidak melihat apapun (kecuali 1 ujian yang sudah Published).
+## Status
+Setelah migration RLS sebelumnya (`Admin and all penguji can read tahfizh ujian`), query existing pada `src/pages/RekapSertifikat.tsx` sudah cukup. Saya cek isi semua 15 baris Tahfizh:
 
-Sesuai jawaban: rekap harus bisa dilihat **admin dan semua penguji** (bukan publik).
+| Kondisi | Jumlah | Lolos filter `isTahfizhCertificateExam`? |
+|---|---|---|
+| `tahfizhMode` kosong (data lama) | 13 | Ya (cabang `!aspek.tahfizhMode`) |
+| `tahfizhMode = Reguler` dengan 13 entri | 2 | Ya (cabang `Reguler && entryCount >= 13`) |
 
-## Solusi (1 migration)
+Total = **15** baris akan tampil.
 
-Tambah policy `SELECT` permisif pada `ujian` khusus untuk mode Tahfizh, agar setiap user authenticated yang punya role `admin` atau `penguji` dapat membaca seluruh baris Tahfizh untuk keperluan rekap sertifikat.
+## Yang Perlu Dilakukan
+1. **Tidak ada perubahan kode** — query `.from("ujian").select("*").eq("mode","Tahfizh")` di `RekapSertifikat.tsx` sudah benar dan sekarang RLS mengizinkan admin & semua penguji membaca seluruh 15 baris.
+2. **Refresh halaman** Rekap Sertifikat (pastikan login sebagai admin atau penguji). React Query cache lama bisa dibersihkan dengan reload.
+3. Jika user mencentang "Tampilkan semua hasil ujian", semua 15 muncul. Default (tanpa centang) hanya menampilkan yang `status = Lulus` — kebetulan ke-15 baris semuanya Lulus, jadi tetap 15.
 
-```sql
--- Akses baca rekap sertifikat untuk admin & semua penguji
-CREATE POLICY "Admin and all penguji can read tahfizh ujian"
-ON public.ujian
-FOR SELECT
-TO authenticated
-USING (
-  mode = 'Tahfizh'
-  AND (
-    public.has_role(auth.uid(), 'admin'::public.app_role)
-    OR public.has_role(auth.uid(), 'penguji'::public.app_role)
-  )
-);
-```
+## Verifikasi Pasca-Reload
+- Card "Total Lulus" = 15.
+- Tabel berisi 15 baris dengan nomor sertifikat otomatis (mulai 134/SDITLH/...).
+- Chart "Jumlah Siswa Lulus per Kelas" terisi.
 
-Policy existing tetap berlaku:
-- `Admin or assigned penguji can read ujian` (untuk ujian Tahsin & detail kelas)
-- `Public can verify published ujian` (untuk QR verifikasi publik)
-- Tabel `setoran`, `students.catatan_penguji`, `penguji.user_id` **tidak diubah** — tetap terkunci.
-
-## Verifikasi
-1. Setelah migration jalan, query `ujian` mode Tahfizh sebagai penguji harus mengembalikan 15 baris.
-2. Buka halaman Rekap Sertifikat → tabel + chart terisi 15 siswa.
-3. Login penguji lain → tetap **tidak bisa** baca `setoran` / ujian Tahsin milik kelas lain (akses sensitif tetap terjaga).
-
-## Update Security Memory
-Catat bahwa baca-saja seluruh ujian Tahfizh oleh user authenticated (admin + penguji) adalah keputusan bisnis (rekap sertifikat internal sekolah), bukan kebocoran.
+Jika setelah reload data masih belum muncul, kemungkinan user sedang login dengan akun yang tidak punya role `admin` maupun `penguji` di tabel `user_roles` — tindakan: assign role lewat halaman Manage Users.

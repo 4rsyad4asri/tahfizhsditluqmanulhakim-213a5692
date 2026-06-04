@@ -1,23 +1,18 @@
-# Verifikasi: Rekap Sertifikat Menampilkan 15 Data
+# Rencana Perbaikan Rekap Sertifikat
 
-## Status
-Setelah migration RLS sebelumnya (`Admin and all penguji can read tahfizh ujian`), query existing pada `src/pages/RekapSertifikat.tsx` sudah cukup. Saya cek isi semua 15 baris Tahfizh:
+## Temuan Validasi
+- Di database, ada tepat **15** baris ujian dengan `mode = 'Tahfizh'`.
+- Halaman `/rekap-sertifikat` saat ini gagal mengambil data karena request ke `ujian` berakhir **403**.
+- Penyebab utamanya: policy baca `ujian` mengecek relasi ke tabel `penguji` dan `class_penguji`, tetapi tabel-tabel itu belum punya grant Data API yang dibutuhkan, sehingga evaluasi policy terhenti dengan error `permission denied for table penguji`.
+- Jadi masalahnya **bukan datanya hilang**, melainkan akses query di backend belum lengkap.
 
-| Kondisi | Jumlah | Lolos filter `isTahfizhCertificateExam`? |
-|---|---|---|
-| `tahfizhMode` kosong (data lama) | 13 | Ya (cabang `!aspek.tahfizhMode`) |
-| `tahfizhMode = Reguler` dengan 13 entri | 2 | Ya (cabang `Reguler && entryCount >= 13`) |
+## Yang Akan Saya Kerjakan
+1. Tambahkan grant Data API yang benar untuk tabel yang dipakai policy baca ujian Tahfizh, terutama `penguji` dan `class_penguji`.
+2. Verifikasi ulang bahwa policy `ujian` untuk admin dan penguji bisa dievaluasi tanpa error.
+3. Uji lagi query rekap agar halaman bisa membaca semua **15** ujian Tahfizh yang tersimpan.
+4. Pastikan hasil di `/rekap-sertifikat` kembali menampilkan total dan tabel sesuai 15 data tersebut.
 
-Total = **15** baris akan tampil.
-
-## Yang Perlu Dilakukan
-1. **Tidak ada perubahan kode** — query `.from("ujian").select("*").eq("mode","Tahfizh")` di `RekapSertifikat.tsx` sudah benar dan sekarang RLS mengizinkan admin & semua penguji membaca seluruh 15 baris.
-2. **Refresh halaman** Rekap Sertifikat (pastikan login sebagai admin atau penguji). React Query cache lama bisa dibersihkan dengan reload.
-3. Jika user mencentang "Tampilkan semua hasil ujian", semua 15 muncul. Default (tanpa centang) hanya menampilkan yang `status = Lulus` — kebetulan ke-15 baris semuanya Lulus, jadi tetap 15.
-
-## Verifikasi Pasca-Reload
-- Card "Total Lulus" = 15.
-- Tabel berisi 15 baris dengan nomor sertifikat otomatis (mulai 134/SDITLH/...).
-- Chart "Jumlah Siswa Lulus per Kelas" terisi.
-
-Jika setelah reload data masih belum muncul, kemungkinan user sedang login dengan akun yang tidak punya role `admin` maupun `penguji` di tabel `user_roles` — tindakan: assign role lewat halaman Manage Users.
+## Detail Teknis
+- Fokus perubahan ada di migration backend, bukan di filter React terlebih dahulu.
+- Query frontend `from('ujian').select('*').eq('mode', 'Tahfizh')` tampaknya sudah benar; bottleneck ada pada izin akses tabel yang disentuh policy RLS.
+- Setelah migration dijalankan, saya akan validasi lagi lewat query baca dan request halaman untuk memastikan hasilnya benar-benar muncul.

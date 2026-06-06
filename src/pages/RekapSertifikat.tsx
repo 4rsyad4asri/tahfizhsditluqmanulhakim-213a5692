@@ -74,9 +74,17 @@ const isTahfizhCertificateExam = (ujian: any) => {
     tahfizhMode?: string;
     verificationType?: string;
   };
+  const context = {
+    mode: ujian?.mode,
+    tahfizhMode: aspek.tahfizhMode,
+    verificationType: aspek.verificationType,
+    assessedBy: ujian?.assessed_by,
+    tanggal: ujian?.tanggal,
+  };
   return (
     aspek.tahfizhMode === "Sertifikat" ||
-    aspek.verificationType === "sertifikat-tahfizh"
+    aspek.verificationType === "sertifikat-tahfizh" ||
+    isLegacyTahfizhCertificateCandidate(context)
   );
 };
 

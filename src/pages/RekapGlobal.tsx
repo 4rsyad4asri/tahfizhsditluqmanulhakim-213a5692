@@ -299,7 +299,7 @@ export default function RekapGlobal() {
         r.nis,
         r.nisn
       );
-      const eff = buildEffectiveOpts(opts, data.verificationToken);
+      const eff = buildEffectiveOpts(opts, data);
       await downloadRaportPDF(data, header, assets, eff);
       toast.success(`Raport ${r.studentName} berhasil diunduh`);
     } catch (e) {
@@ -388,7 +388,7 @@ export default function RekapGlobal() {
               r.nis,
               r.nisn
             );
-            const eff = buildEffectiveOpts(opts, data.verificationToken);
+            const eff = buildEffectiveOpts(opts, data);
             const doc = await generateRaportPDF(data, header, assets, eff);
             const blob = doc.output("blob") as Blob;
             const fname = `Raport_${sanitize(r.mode)}_${sanitize(r.className)}_${sanitize(r.studentName)}.pdf`;

@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import QRCode from "qrcode";
 import { loadArabicFont } from "./loadArabicFont";
+import { buildVerificationUrl } from "@/utils/verificationUrl";
 
 export interface CertificateData {
   studentName: string;
@@ -194,7 +195,9 @@ const drawSignature = (
 const drawQrCode = async (doc: jsPDF, data: CertificateData) => {
   try {
     const qrPayload =
-      data.verificationUrl || `SERTIFIKAT:${safeText(data.nomorSertifikat)}`;
+      data.verificationUrl ||
+      buildVerificationUrl("sertifikat-tahfizh", data.verificationToken) ||
+      `SERTIFIKAT:${safeText(data.nomorSertifikat)}`;
     const qr = await QRCode.toDataURL(qrPayload, { width: 320, margin: 1 });
 
     const qrSize = 22;

@@ -1,7 +1,7 @@
 import { generateCatatanOtomatisFromUjian } from "@/utils/catatanOtomatis";
 import { aggregateTahfizhAssessmentsForDisplay } from "@/data/tahfizhSystem";
 import { getStandardExamGrading } from "@/data/grading";
-import { buildTahfizhVerificationUrl } from "@/utils/verificationUrl";
+import { buildVerificationUrlForExam } from "@/utils/verificationUrl";
 import type {
   RaportData,
   RaportHeader,
@@ -143,8 +143,10 @@ export function buildRaportData(
 
 export function buildEffectiveOpts(
   opts: RaportPdfOptions,
-  verificationToken?: string
+  data: Pick<RaportData, "mode" | "tahfizhMode" | "verificationToken">
 ): RaportPdfOptions {
-  const verifyUrl = buildTahfizhVerificationUrl(verificationToken) || opts.verifyUrl;
+  const verifyUrl =
+    buildVerificationUrlForExam(data.mode, data.tahfizhMode, data.verificationToken) ||
+    opts.verifyUrl;
   return { ...opts, verifyUrl };
 }

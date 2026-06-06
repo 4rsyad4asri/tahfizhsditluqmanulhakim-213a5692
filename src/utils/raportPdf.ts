@@ -3,7 +3,7 @@ import autoTable, { type RowInput } from "jspdf-autotable";
 import QRCode from "qrcode";
 import { loadArabicFont } from "@/utils/loadArabicFont";
 import generateCatatanOtomatis from "@/utils/catatanOtomatis";
-import { buildTahfizhVerificationUrl } from "@/utils/verificationUrl";
+import { buildVerificationUrlForExam } from "@/utils/verificationUrl";
 import {
   calculateNilaiTahsinDasar,
   calculateNilaiTahsinLanjutan,
@@ -1026,7 +1026,9 @@ export async function generateRaportPDF(
 
   const nomor = generateNomorDokumen(data.mode, data.ujianId);
 
-  const effectiveVerifyUrl = opts.verifyUrl || buildTahfizhVerificationUrl(data.verificationToken);
+  const effectiveVerifyUrl =
+    opts.verifyUrl ||
+    buildVerificationUrlForExam(data.mode, data.tahfizhMode, data.verificationToken);
   const verifyText =
     effectiveVerifyUrl ||
     `${data.mode}|${data.studentName}|${data.tanggal}|${data.nilaiAkhir}|${data.status}|${nomor}`;

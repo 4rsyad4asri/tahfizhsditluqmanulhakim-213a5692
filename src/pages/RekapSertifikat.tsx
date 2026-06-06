@@ -19,7 +19,7 @@ import {
   type CertificateData,
 } from "@/utils/generateCertificatePDF";
 import CertificatePreviewDialog from "@/components/CertificatePreviewDialog";
-import { buildTahfizhVerificationUrl } from "@/utils/verificationUrl";
+import { buildVerificationUrl } from "@/utils/verificationUrl";
 
 interface RekapItem {
   id: string;
@@ -562,7 +562,7 @@ const RekapSertifikat = () => {
                                         setDownloadingId(item.id);
                                         await downloadCertificatePDF({
                                           ...item,
-                                          verificationUrl: buildTahfizhVerificationUrl(item.verificationToken),
+                                          verificationUrl: buildVerificationUrl("sertifikat-tahfizh", item.verificationToken),
                                         } as CertificateData);
                                         toast({ title: "Berhasil", description: "Sertifikat berhasil diunduh" });
                                       } catch (err) {
@@ -652,7 +652,7 @@ const RekapSertifikat = () => {
                 tanggal: previewItem.tanggal,
                 nomorSertifikat: previewItem.nomorSertifikat,
                 verificationToken: previewItem.verificationToken,
-                verificationUrl: buildTahfizhVerificationUrl(previewItem.verificationToken),
+                verificationUrl: buildVerificationUrl("sertifikat-tahfizh", previewItem.verificationToken),
               }
             : null
         }

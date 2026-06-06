@@ -27,7 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { generateCatatanOtomatisFromUjian } from "@/utils/catatanOtomatis";
 import { aggregateTahfizhAssessmentsForDisplay } from "@/data/tahfizhSystem";
 import { getStandardExamGrading } from "@/data/grading";
-import { buildTahfizhVerificationUrl } from "@/utils/verificationUrl";
+import { buildVerificationUrlForExam } from "@/utils/verificationUrl";
 import {
   generateRaportPDF,
   downloadRaportPDF,
@@ -234,6 +234,9 @@ export default function RaportPreviewDialog({
   }, [open, activeUjian, assessorName]);
 
   const verificationToken = activeUjian?.verification_token || activeUjian?.nilai_aspek?.verificationToken;
+  const verificationType = activeUjian?.mode === "Tahfizh"
+    ? activeUjian?.nilai_aspek?.tahfizhMode || "Reguler"
+    : undefined;
 
   const data: RaportData = useMemo(() => {
     const aspek = activeUjian?.nilai_aspek || {};
@@ -284,8 +287,8 @@ export default function RaportPreviewDialog({
   }, [activeUjian, studentName, className, nis, nisn, assessorName, tanggal, finalCatatan, verificationToken]);
 
   const verifyUrl = useMemo(
-    () => buildTahfizhVerificationUrl(verificationToken) || opts.verifyUrl,
-    [opts.verifyUrl, verificationToken]
+    () => buildVerificationUrlForExam(activeUjian?.mode, verificationType, verificationToken) || opts.verifyUrl,
+    [activeUjian?.mode, opts.verifyUrl, verificationToken, verificationType]
   );
 
   const effectiveOpts: RaportPdfOptions = useMemo(

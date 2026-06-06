@@ -72,19 +72,12 @@ const hasCertificateNumber = (ujian: any) =>
   typeof ujian?.nomor_sertifikat === "string" &&
   ujian.nomor_sertifikat.trim().length > 0;
 
-const hasResolvableCertificateNumber = (ujian: any, student?: any) => {
-  if (hasCertificateNumber(ujian)) return true;
-  if (ujian?.mode !== "Tahfizh") return false;
-
+const isExplicitTahfizhRegularExam = (ujian: any) => {
   const aspek = ujian?.nilai_aspek || {};
-  if (
-    aspek.tahfizhMode === "Reguler" &&
+  return (
+    aspek.tahfizhMode === "Reguler" ||
     aspek.verificationType === "tahfizh-reguler"
-  ) {
-    return false;
-  }
-
-  return student?.status_sertifikasi === "Lulus";
+  );
 };
 
 const hasCertificateMetadata = (ujian: any) => {
@@ -96,28 +89,26 @@ const hasCertificateMetadata = (ujian: any) => {
   );
 };
 
-const shouldShowInCertificateRecap = (ujian: any, student?: any) => {
-  if (ujian?.mode !== "Tahfizh") return false;
+const hasLegacyCertificateResult = (ujian: any) =>
+  ujian?.mode === "Tahfizh" &&
+  ujian?.status === "Lulus" &&
+  !isExplicitTahfizhRegularExam(ujian);
 
-  const aspek = ujian?.nilai_aspek || {};
-  if (
-    aspek.tahfizhMode === "Reguler" &&
-    aspek.verificationType === "tahfizh-reguler"
-  ) {
-    return false;
-  }
+const shouldShowInCertificateRecap = (ujian: any) => {
+  if (ujian?.mode !== "Tahfizh") return false;
+  if (isExplicitTahfizhRegularExam(ujian)) return false;
 
   return (
     hasCertificateMetadata(ujian) ||
-    hasResolvableCertificateNumber(ujian, student) ||
+    hasCertificateNumber(ujian) ||
+    hasLegacyCertificateResult(ujian) ||
     isLegacyTahfizhCertificateCandidate({
       mode: ujian.mode,
       tahfizhMode: ujian?.nilai_aspek?.tahfizhMode,
       verificationType: ujian?.nilai_aspek?.verificationType,
       assessedBy: ujian.assessed_by,
       tanggal: ujian.tanggal,
-    }) ||
-    student?.status_sertifikasi === "Lulus"
+    })
   );
 };
 
@@ -205,9 +196,7 @@ const RekapSertifikat = () => {
 
       const studentMap = new Map((students || []).map((s) => [s.id, s]));
       const classMap = new Map((classes || []).map((c) => [c.id, c]));
-      const certificateUjianData = (ujianData || []).filter((u) =>
-        shouldShowInCertificateRecap(u, studentMap.get(u.student_id))
-      );
+      const certificateUjianData = (ujianData || []).filter(shouldShowInCertificateRecap);
 
       // Buat array dengan nomor urut berdasarkan urutan input
       let lulusIndex = 0;
@@ -218,7 +207,11 @@ const RekapSertifikat = () => {
         const syncedResult = getSyncedTahfizhCertificateResult(u);
         const entries = syncedResult.entries;
         const juzList = [...new Set(entries.map((e: any) => e.juz))].sort((a: number, b: number) => a - b);
-        const isLulus = syncedResult.status === "Lulus";
+        const storedStatus = u.status === "Lulus" || u.status === "Tidak Lulus"
+          ? u.status
+          : null;
+        const certificateStatus = storedStatus || syncedResult.status;
+        const isLulus = certificateStatus === "Lulus";
 
         const sequenceNumber = isLulus ? lulusIndex++ : -1;
 
@@ -235,11 +228,11 @@ const RekapSertifikat = () => {
           className: cls?.name || "Unknown",
           classGrade,
           juz: juzList.length > 0 ? juzList.join(", ") : "-",
-          nilaiAkhir: syncedResult.nilaiAkhir,
-          predikat: syncedResult.predikat,
+          nilaiAkhir: typeof u.nilai_akhir === "number" ? u.nilai_akhir : syncedResult.nilaiAkhir,
+          predikat: u.nilai_aspek?.predikat || syncedResult.predikat,
           tanggal: u.tanggal,
           nomorSertifikat,
-          status: syncedResult.status,
+          status: certificateStatus,
           verificationToken: (u as any).verification_token ?? null,
         };
         return item;

@@ -265,20 +265,6 @@ const ImportStudentsDialog = ({ open, onOpenChange }: ImportStudentsDialogProps)
         };
       }
 
-      const sameNameOtherClass = databaseStudents.find(
-        (item) => item.class_id !== classId && normalizeName(item.name) === normalizedName,
-      );
-      if (sameNameOtherClass) {
-        const matchedClass = classes.find((item) => item.id === sameNameOtherClass.class_id);
-        return {
-          ...student,
-          action: "conflict",
-          classId,
-          existingId: sameNameOtherClass.id,
-          note: `Nama sama sudah ada di ${matchedClass?.name || "rombel lain"}`,
-        };
-      }
-
       const closestInClass = databaseStudents
         .filter((item) => item.class_id === classId)
         .map((item) => ({ item, score: nameSimilarity(student.name, item.name) }))
@@ -459,6 +445,7 @@ const ImportStudentsDialog = ({ open, onOpenChange }: ImportStudentsDialogProps)
               <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
                 <span><strong>NIS</strong> - nomor induk siswa</span>
                 <span><strong>NISN</strong> - 10 digit, termasuk nol di depan</span>
+                <span><strong>NIS kosong</strong> - boleh diisi nanti oleh admin</span>
                 <span><strong>Nama</strong> — nama lengkap siswa</span>
                 <span><strong>Kelas</strong> — 1A, 2B, 3C, dll</span>
                 <span><strong>Target Juz</strong> — angka 1-30</span>

@@ -411,7 +411,7 @@ const filteredStudents: Student[] = (students || []).filter((s: Student) => {
                       inputMode="numeric"
                       value={form.nis}
                       onChange={(e) => setForm({ ...form, nis: e.target.value.replace(/\D/g, "").slice(0, 20) })}
-                      placeholder="Nomor induk siswa"
+                      placeholder="Boleh dikosongkan"
                       className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                   </div>

@@ -20,6 +20,7 @@ import {
   buildEffectiveOpts,
   loadRaportSettings,
 } from "@/utils/raportBuilder";
+import { inferTahfizhModeForExam } from "@/utils/verificationUrl";
 import { generateRaportPDF, downloadRaportPDF } from "@/utils/raportPdf";
 import JSZip from "jszip";
 import { toast } from "sonner";
@@ -97,7 +98,13 @@ function getSyncedUjian(ujian: any, classInfo?: any) {
   const entries = aggregateTahfizhAssessmentsForDisplay(rawEntries) as TahfizhSurahAssessment[];
   const result = calculateTahfizhExamResult(
     entries,
-    (aspek.tahfizhMode || "Reguler") as TahfizhExamMode,
+    (inferTahfizhModeForExam({
+      mode: ujian?.mode,
+      tahfizhMode: aspek.tahfizhMode,
+      verificationType: aspek.verificationType,
+      assessedBy: ujian?.assessed_by,
+      tanggal: ujian?.tanggal,
+    }) || "Reguler") as TahfizhExamMode,
     getTahfizhPenaltyConfig(aspek.config),
     aspek.manualStopReason || "",
     isLegacyClassSixExam(classInfo, ujian),
@@ -299,7 +306,7 @@ export default function RekapGlobal() {
         r.nis,
         r.nisn
       );
-      const eff = buildEffectiveOpts(opts, data);
+      const eff = buildEffectiveOpts(opts, data, r.ujian);
       await downloadRaportPDF(data, header, assets, eff);
       toast.success(`Raport ${r.studentName} berhasil diunduh`);
     } catch (e) {
@@ -388,7 +395,7 @@ export default function RekapGlobal() {
               r.nis,
               r.nisn
             );
-            const eff = buildEffectiveOpts(opts, data);
+            const eff = buildEffectiveOpts(opts, data, r.ujian);
             const doc = await generateRaportPDF(data, header, assets, eff);
             const blob = doc.output("blob") as Blob;
             const fname = `Raport_${sanitize(r.mode)}_${sanitize(r.className)}_${sanitize(r.studentName)}.pdf`;

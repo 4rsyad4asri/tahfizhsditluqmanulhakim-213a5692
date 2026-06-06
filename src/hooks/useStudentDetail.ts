@@ -12,6 +12,10 @@ import {
   type TahfizhPenaltyConfig,
   type TahfizhSurahAssessment,
 } from "@/data/tahfizhSystem";
+import {
+  getVerificationTypeForExam,
+  inferTahfizhModeForExam,
+} from "@/utils/verificationUrl";
 
 function createVerificationToken() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -397,12 +401,47 @@ export function useVerificationDocument(token: string | undefined) {
 
       if (error) throw error;
 
-      if (!data.assessed_by) return data;
+      const rawAspek =
+        data.nilai_aspek && typeof data.nilai_aspek === "object"
+          ? (data.nilai_aspek as Record<string, unknown>)
+          : {};
+      const tahfizhMode = inferTahfizhModeForExam({
+        mode: data.mode,
+        tahfizhMode: rawAspek.tahfizhMode as string | undefined,
+        verificationType: rawAspek.verificationType as string | undefined,
+        assessedBy: data.assessed_by,
+        tanggal: data.tanggal,
+      });
+      const normalizedAspek = tahfizhMode
+        ? {
+            ...rawAspek,
+            tahfizhMode,
+            reportType:
+              (rawAspek.reportType as string | undefined) ||
+              (tahfizhMode === "Sertifikat" ? "summary" : "detail"),
+            verificationType:
+              (rawAspek.verificationType as string | undefined) ||
+              getVerificationTypeForExam({
+                mode: data.mode,
+                tahfizhMode,
+                assessedBy: data.assessed_by,
+                tanggal: data.tanggal,
+              }),
+          }
+        : rawAspek;
+
+      if (!data.assessed_by) {
+        return {
+          ...data,
+          nilai_aspek: normalizedAspek,
+        };
+      }
 
       const assessorName = await getAssessorName(data.assessed_by);
 
       return {
         ...data,
+        nilai_aspek: normalizedAspek,
         assessor_name: assessorName,
       };
     },

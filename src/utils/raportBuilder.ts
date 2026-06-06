@@ -1,7 +1,7 @@
 import { generateCatatanOtomatisFromUjian } from "@/utils/catatanOtomatis";
 import { aggregateTahfizhAssessmentsForDisplay } from "@/data/tahfizhSystem";
 import { getStandardExamGrading } from "@/data/grading";
-import { buildVerificationUrlForExam } from "@/utils/verificationUrl";
+import { buildVerificationUrlForExam, inferTahfizhModeForExam } from "@/utils/verificationUrl";
 import type {
   RaportData,
   RaportHeader,
@@ -86,7 +86,14 @@ export function buildRaportData(
   const aspek = ujian?.nilai_aspek || {};
   const normalizedEntries = (aspek.entries || []).map(normalizeTahsinEntry);
   const rawTahfizhEntries = Array.isArray(aspek.surahEntries) ? aspek.surahEntries : [];
-  const tahfizhMode = aspek.tahfizhMode || "Reguler";
+  const tahfizhMode =
+    inferTahfizhModeForExam({
+      mode: ujian?.mode,
+      tahfizhMode: aspek.tahfizhMode,
+      verificationType: aspek.verificationType,
+      assessedBy: ujian?.assessed_by,
+      tanggal: ujian?.tanggal,
+    }) || "Reguler";
   const rawTahfizhJuzList = [
     ...new Set(rawTahfizhEntries.map((entry: any) => Number(entry.juz || 30))),
   ];
@@ -143,10 +150,20 @@ export function buildRaportData(
 
 export function buildEffectiveOpts(
   opts: RaportPdfOptions,
-  data: Pick<RaportData, "mode" | "tahfizhMode" | "verificationToken">
+  data: Pick<RaportData, "mode" | "tahfizhMode" | "verificationToken">,
+  ujian?: { assessed_by?: string | null; tanggal?: string | null; nilai_aspek?: Record<string, unknown> | null }
 ): RaportPdfOptions {
   const verifyUrl =
-    buildVerificationUrlForExam(data.mode, data.tahfizhMode, data.verificationToken) ||
+    buildVerificationUrlForExam(
+      {
+        mode: data.mode,
+        tahfizhMode: data.tahfizhMode,
+        verificationType: ujian?.nilai_aspek?.verificationType as string | undefined,
+        assessedBy: ujian?.assessed_by,
+        tanggal: ujian?.tanggal,
+      },
+      data.verificationToken
+    ) ||
     opts.verifyUrl;
   return { ...opts, verifyUrl };
 }

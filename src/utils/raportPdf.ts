@@ -1028,7 +1028,13 @@ export async function generateRaportPDF(
 
   const effectiveVerifyUrl =
     opts.verifyUrl ||
-    buildVerificationUrlForExam(data.mode, data.tahfizhMode, data.verificationToken);
+    buildVerificationUrlForExam(
+      {
+        mode: data.mode,
+        tahfizhMode: data.tahfizhMode,
+      },
+      data.verificationToken
+    );
   const verifyText =
     effectiveVerifyUrl ||
     `${data.mode}|${data.studentName}|${data.tanggal}|${data.nilaiAkhir}|${data.status}|${nomor}`;

@@ -27,7 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { generateCatatanOtomatisFromUjian } from "@/utils/catatanOtomatis";
 import { aggregateTahfizhAssessmentsForDisplay } from "@/data/tahfizhSystem";
 import { getStandardExamGrading } from "@/data/grading";
-import { buildVerificationUrlForExam } from "@/utils/verificationUrl";
+import { buildVerificationUrlForExam, inferTahfizhModeForExam } from "@/utils/verificationUrl";
 import {
   generateRaportPDF,
   downloadRaportPDF,
@@ -234,15 +234,26 @@ export default function RaportPreviewDialog({
   }, [open, activeUjian, assessorName]);
 
   const verificationToken = activeUjian?.verification_token || activeUjian?.nilai_aspek?.verificationToken;
-  const verificationType = activeUjian?.mode === "Tahfizh"
-    ? activeUjian?.nilai_aspek?.tahfizhMode || "Reguler"
-    : undefined;
+  const effectiveTahfizhMode = inferTahfizhModeForExam({
+    mode: activeUjian?.mode,
+    tahfizhMode: activeUjian?.nilai_aspek?.tahfizhMode,
+    verificationType: activeUjian?.nilai_aspek?.verificationType,
+    assessedBy: activeUjian?.assessed_by,
+    tanggal: activeUjian?.tanggal,
+  });
 
   const data: RaportData = useMemo(() => {
     const aspek = activeUjian?.nilai_aspek || {};
     const normalizedEntries = (aspek.entries || []).map(normalizeTahsinEntry);
     const rawTahfizhEntries = Array.isArray(aspek.surahEntries) ? aspek.surahEntries : [];
-    const tahfizhMode = aspek.tahfizhMode || "Reguler";
+    const tahfizhMode =
+      inferTahfizhModeForExam({
+        mode: activeUjian?.mode,
+        tahfizhMode: aspek.tahfizhMode,
+        verificationType: aspek.verificationType,
+        assessedBy: activeUjian?.assessed_by,
+        tanggal: activeUjian?.tanggal,
+      }) || "Reguler";
     const rawTahfizhJuzList = [...new Set(rawTahfizhEntries.map((entry: any) => Number(entry.juz || 30)))];
     const useRegularFiveQuestionDetail =
       activeUjian?.mode === "Tahfizh" &&
@@ -287,8 +298,26 @@ export default function RaportPreviewDialog({
   }, [activeUjian, studentName, className, nis, nisn, assessorName, tanggal, finalCatatan, verificationToken]);
 
   const verifyUrl = useMemo(
-    () => buildVerificationUrlForExam(activeUjian?.mode, verificationType, verificationToken) || opts.verifyUrl,
-    [activeUjian?.mode, opts.verifyUrl, verificationToken, verificationType]
+    () =>
+      buildVerificationUrlForExam(
+        {
+          mode: activeUjian?.mode,
+          tahfizhMode: effectiveTahfizhMode,
+          verificationType: activeUjian?.nilai_aspek?.verificationType,
+          assessedBy: activeUjian?.assessed_by,
+          tanggal: activeUjian?.tanggal,
+        },
+        verificationToken
+      ) || opts.verifyUrl,
+    [
+      activeUjian?.assessed_by,
+      activeUjian?.mode,
+      activeUjian?.nilai_aspek?.verificationType,
+      activeUjian?.tanggal,
+      effectiveTahfizhMode,
+      opts.verifyUrl,
+      verificationToken,
+    ]
   );
 
   const effectiveOpts: RaportPdfOptions = useMemo(

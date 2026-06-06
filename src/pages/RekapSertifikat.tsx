@@ -19,7 +19,7 @@ import {
   type CertificateData,
 } from "@/utils/generateCertificatePDF";
 import CertificatePreviewDialog from "@/components/CertificatePreviewDialog";
-import { buildVerificationUrl } from "@/utils/verificationUrl";
+import { buildVerificationUrl, inferTahfizhModeForExam } from "@/utils/verificationUrl";
 
 interface RekapItem {
   id: string;
@@ -59,12 +59,19 @@ const isTahfizhCertificateExam = (ujian: any) => {
   if (ujian?.mode !== "Tahfizh") return false;
   const aspek = (ujian?.nilai_aspek || {}) as { surahEntries?: unknown[]; tahfizhMode?: string };
   const entryCount = Array.isArray(aspek.surahEntries) ? aspek.surahEntries.length : 0;
+  const inferredMode = inferTahfizhModeForExam({
+    mode: ujian?.mode,
+    tahfizhMode: aspek.tahfizhMode,
+    verificationType: (ujian?.nilai_aspek || {}).verificationType,
+    assessedBy: ujian?.assessed_by,
+    tanggal: ujian?.tanggal,
+  });
 
-  if (aspek.tahfizhMode === "Sertifikat") return true;
-  if (!aspek.tahfizhMode) return true;
+  if (inferredMode === "Sertifikat") return true;
+  if (!inferredMode) return true;
 
   // Data Tahfizh lama belum dipisah rapi; beberapa sertifikat lama tersimpan sebagai Reguler.
-  return aspek.tahfizhMode === "Reguler" && entryCount >= 13;
+  return inferredMode === "Reguler" && entryCount >= 13;
 };
 
 const getSyncedTahfizhCertificateResult = (
@@ -82,7 +89,13 @@ const getSyncedTahfizhCertificateResult = (
 
   const result = calculateTahfizhExamResult(
     entries,
-    (aspek?.tahfizhMode || "Reguler") as TahfizhExamMode,
+    (inferTahfizhModeForExam({
+      mode: ujian?.mode,
+      tahfizhMode: aspek?.tahfizhMode,
+      verificationType: aspek?.verificationType,
+      assessedBy: ujian?.assessed_by,
+      tanggal: ujian?.tanggal,
+    }) || "Reguler") as TahfizhExamMode,
     aspek?.config as TahfizhPenaltyConfig | undefined,
     aspek?.manualStopReason || "",
     false,

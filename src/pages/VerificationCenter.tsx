@@ -2,6 +2,7 @@ import { AlertTriangle, CheckCircle2, Loader2, ShieldCheck } from "lucide-react"
 import { Navigate, useParams } from "react-router-dom";
 import { useVerificationDocument } from "@/hooks/useStudentDetail";
 import TahfizhVerification from "@/pages/TahfizhVerification";
+import { inferTahfizhModeForExam } from "@/utils/verificationUrl";
 
 const SUPPORTED_TYPES = [
   "rapor-tahsin",
@@ -100,7 +101,14 @@ export default function VerificationCenter() {
     verification.data?.nilai_aspek && typeof verification.data.nilai_aspek === "object"
       ? (verification.data.nilai_aspek as Record<string, unknown>)
       : {};
-  const isCertificateLegacy = aspek.tahfizhMode === "Sertifikat";
+  const inferredTahfizhMode = inferTahfizhModeForExam({
+    mode: verification.data?.mode,
+    tahfizhMode: aspek.tahfizhMode as string | undefined,
+    verificationType: aspek.verificationType as string | undefined,
+    assessedBy: verification.data?.assessed_by,
+    tanggal: verification.data?.tanggal,
+  });
+  const isCertificateLegacy = inferredTahfizhMode === "Sertifikat";
 
   if (type === "tahfizh-reguler" && token && isCertificateLegacy) {
     return <Navigate to={`/verifikasi/sertifikat-tahfizh/${encodeURIComponent(token)}`} replace />;

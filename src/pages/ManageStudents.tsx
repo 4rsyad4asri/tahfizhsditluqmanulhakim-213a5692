@@ -597,8 +597,8 @@ const filteredStudents: Student[] = (students || []).filter((s: Student) => {
             <div className="hidden md:block bg-card rounded-lg border border-border shadow-card overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/50">
+                  <thead className="sticky top-0 z-20">
+                    <tr className="border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Nama</th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">NIS</th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">NISN</th>
@@ -618,11 +618,11 @@ const filteredStudents: Student[] = (students || []).filter((s: Student) => {
                         <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{student.nisn || "-"}</td>
                         <td className="px-4 py-3 text-muted-foreground">{student.classes?.name}</td>
                         <td className="px-4 py-3 text-muted-foreground">Juz {student.target_juz}</td>
-                        <td className="px-4 py-3">
+                      <td className="px-4 py-3">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                       student.level === 'Tahfizh' ? 'bg-primary/10 text-primary' :
-                      student.level === 'Tahsin Lanjutan' ? 'bg-accent/10 text-accent' :
-                      'bg-muted text-muted-foreground'}`
+                      student.level === 'Tahsin Lanjutan' ? 'bg-orange-100 text-orange-800 border border-orange-200' :
+                      'bg-muted text-muted-foreground'}`}
                       }>{student.level}</span>
                         </td>
                         <td className="px-4 py-3">

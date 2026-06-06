@@ -10,7 +10,7 @@ import {
   type TahfizhSurahAssessment,
 } from "@/data/tahfizhSystem";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { Loader2, Download, Filter, CheckCircle2, XCircle, Edit2, FileText, X, Eye } from "lucide-react";
+import { Loader2, Download, Filter, CheckCircle2, XCircle, Edit2, FileText, X, Eye, RefreshCw } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { exportJsonToExcel } from "@/utils/excel";
@@ -19,7 +19,11 @@ import {
   type CertificateData,
 } from "@/utils/generateCertificatePDF";
 import CertificatePreviewDialog from "@/components/CertificatePreviewDialog";
-import { buildVerificationUrl, inferTahfizhModeForExam } from "@/utils/verificationUrl";
+import {
+  buildVerificationUrl,
+  inferTahfizhModeForExam,
+  isLegacyTahfizhCertificateCandidate,
+} from "@/utils/verificationUrl";
 
 interface RekapItem {
   id: string;
@@ -42,6 +46,15 @@ interface EditModalState {
   studentName: string;
   currentNomorSertifikat: string;
   newNomorSertifikat: string;
+}
+
+interface LegacyMigrationCandidate {
+  id: string;
+  student_id: string;
+  tanggal: string | null;
+  assessed_by: string | null;
+  verification_token?: string | null;
+  nilai_aspek?: Record<string, unknown> | null;
 }
 
 const BULAN_ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
@@ -202,6 +215,78 @@ const RekapSertifikat = () => {
 
       const uniqueClasses = [...new Set(items.map((i) => i.className))].sort();
       return { items, classes: uniqueClasses };
+    },
+  });
+
+  const legacyMigrationQuery = useQuery({
+    queryKey: ["legacy-tahfizh-certificate-candidates", isAdmin],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { data: rows, error } = await supabase
+        .from("ujian")
+        .select("id, student_id, tanggal, assessed_by, verification_token, nilai_aspek, mode")
+        .eq("mode", "Tahfizh")
+        .order("tanggal", { ascending: true });
+      if (error) throw error;
+
+      return ((rows || []) as any[]).filter((row) =>
+        isLegacyTahfizhCertificateCandidate({
+          mode: row.mode,
+          tahfizhMode: row?.nilai_aspek?.tahfizhMode,
+          verificationType: row?.nilai_aspek?.verificationType,
+          assessedBy: row.assessed_by,
+          tanggal: row.tanggal,
+        })
+      ) as LegacyMigrationCandidate[];
+    },
+  });
+
+  const migrateLegacyTahfizhMutation = useMutation({
+    mutationFn: async () => {
+      const rows = legacyMigrationQuery.data || [];
+      if (rows.length === 0) return 0;
+
+      for (const row of rows) {
+        const currentAspek =
+          row.nilai_aspek && typeof row.nilai_aspek === "object" && !Array.isArray(row.nilai_aspek)
+            ? row.nilai_aspek
+            : {};
+        const nextAspek = {
+          ...currentAspek,
+          tahfizhMode: "Sertifikat",
+          reportType: "summary",
+          verificationType: "sertifikat-tahfizh",
+        };
+
+        const { error } = await supabase
+          .from("ujian")
+          .update({ nilai_aspek: nextAspek as any })
+          .eq("id", row.id);
+        if (error) throw error;
+      }
+
+      return rows.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["rekap-sertifikat"] });
+      queryClient.invalidateQueries({ queryKey: ["rekap-ujian-global"] });
+      queryClient.invalidateQueries({ queryKey: ["student-detail"] });
+      queryClient.invalidateQueries({ queryKey: ["legacy-tahfizh-certificate-candidates"] });
+      toast({
+        title: "Migrasi selesai",
+        description:
+          count > 0
+            ? `${count} data Tahfizh lama berhasil diubah menjadi Sertifikat`
+            : "Tidak ada data legacy yang perlu dimigrasikan",
+      });
+    },
+    onError: (error) => {
+      console.error(error);
+      toast({
+        title: "Migrasi gagal",
+        description: "Gagal memperbarui metadata Tahfizh lama",
+        variant: "destructive",
+      });
     },
   });
 
@@ -387,6 +472,38 @@ const RekapSertifikat = () => {
             <p className="text-sm text-muted-foreground">Data siswa yang lulus sertifikasi Tahfizh</p>
           </div>
           <div className="flex gap-2">
+            {isAdmin && (
+              <button
+                onClick={() => {
+                  const count = legacyMigrationQuery.data?.length || 0;
+                  if (
+                    !confirm(
+                      count > 0
+                        ? `Migrasikan ${count} data Tahfizh lama menjadi Sertifikat sekarang?`
+                        : "Tidak ada data legacy yang terdeteksi. Tetap jalankan pengecekan ulang?"
+                    )
+                  ) {
+                    return;
+                  }
+
+                  if (count === 0) {
+                    legacyMigrationQuery.refetch();
+                    return;
+                  }
+
+                  migrateLegacyTahfizhMutation.mutate();
+                }}
+                disabled={legacyMigrationQuery.isLoading || migrateLegacyTahfizhMutation.isPending}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium border border-primary/30 text-primary hover:bg-primary/5 transition-colors disabled:opacity-50"
+              >
+                {legacyMigrationQuery.isLoading || migrateLegacyTahfizhMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+                Migrasi Tahfizh Lama
+              </button>
+            )}
             <button
               onClick={handleExportExcel}
               disabled={filtered.length === 0}
@@ -437,6 +554,37 @@ const RekapSertifikat = () => {
             </label>
           )}
         </div>
+
+        {isAdmin && (
+          <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 p-4">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Migrasi Praktis Tahfizh Lama</p>
+                <p className="text-xs text-muted-foreground">
+                  Kandidat legacy terdeteksi:{" "}
+                  {legacyMigrationQuery.isLoading ? "memuat..." : legacyMigrationQuery.data?.length ?? 0}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => legacyMigrationQuery.refetch()}
+                disabled={legacyMigrationQuery.isFetching}
+                className="inline-flex items-center gap-2 self-start rounded-md border border-input bg-background px-3 py-2 text-xs text-foreground hover:bg-muted disabled:opacity-50"
+              >
+                {legacyMigrationQuery.isFetching ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3.5 w-3.5" />
+                )}
+                Cek Ulang Kandidat
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Tombol ini hanya mengubah metadata `tahfizhMode`, `reportType`, dan `verificationType`.
+              Nilai, token, NIS/NISN, dan data ujian lain tidak diubah.
+            </p>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="flex items-center justify-center py-20">

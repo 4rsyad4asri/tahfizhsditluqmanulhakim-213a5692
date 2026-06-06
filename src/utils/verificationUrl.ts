@@ -63,6 +63,20 @@ export function isLegacyTahfizhCertificate(
   );
 }
 
+export function isLegacyTahfizhCertificateCandidate(
+  context: VerificationExamContext
+) {
+  if (context.mode !== "Tahfizh") return false;
+  if (context.tahfizhMode) return false;
+  if (context.verificationType) return false;
+
+  return (
+    !!context.assessedBy &&
+    LEGACY_TAHFIZH_CERTIFICATE_ASSESSOR_IDS.has(context.assessedBy) &&
+    isBeforeLegacyCutoff(context.tanggal)
+  );
+}
+
 export function inferTahfizhModeForExam(
   context: VerificationExamContext
 ): TahfizhVerificationMode | undefined {

@@ -70,21 +70,14 @@ const generateNomorSertifikat = (tanggal: string, index: number): string => {
 
 const isTahfizhCertificateExam = (ujian: any) => {
   if (ujian?.mode !== "Tahfizh") return false;
-  const aspek = (ujian?.nilai_aspek || {}) as { surahEntries?: unknown[]; tahfizhMode?: string };
-  const entryCount = Array.isArray(aspek.surahEntries) ? aspek.surahEntries.length : 0;
-  const inferredMode = inferTahfizhModeForExam({
-    mode: ujian?.mode,
-    tahfizhMode: aspek.tahfizhMode,
-    verificationType: (ujian?.nilai_aspek || {}).verificationType,
-    assessedBy: ujian?.assessed_by,
-    tanggal: ujian?.tanggal,
-  });
-
-  if (inferredMode === "Sertifikat") return true;
-  if (!inferredMode) return true;
-
-  // Data Tahfizh lama belum dipisah rapi; beberapa sertifikat lama tersimpan sebagai Reguler.
-  return inferredMode === "Reguler" && entryCount >= 13;
+  const aspek = (ujian?.nilai_aspek || {}) as {
+    tahfizhMode?: string;
+    verificationType?: string;
+  };
+  return (
+    aspek.tahfizhMode === "Sertifikat" ||
+    aspek.verificationType === "sertifikat-tahfizh"
+  );
 };
 
 const getSyncedTahfizhCertificateResult = (

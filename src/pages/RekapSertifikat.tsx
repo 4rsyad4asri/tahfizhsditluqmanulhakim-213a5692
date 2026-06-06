@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   aggregateTahfizhAssessmentsForDisplay,
   calculateTahfizhExamResult,
-  type TahfizhExamMode,
   type TahfizhPenaltyConfig,
   type TahfizhSurahAssessment,
 } from "@/data/tahfizhSystem";
@@ -21,7 +20,6 @@ import {
 import CertificatePreviewDialog from "@/components/CertificatePreviewDialog";
 import {
   buildVerificationUrl,
-  inferTahfizhModeForExam,
   isLegacyTahfizhCertificateCandidate,
 } from "@/utils/verificationUrl";
 
@@ -38,6 +36,7 @@ interface RekapItem {
   nomorSertifikat: string;
   status: string;
   verificationToken?: string | null;
+  forceIncluded?: boolean;
 }
 
 interface EditModalState {
@@ -94,8 +93,24 @@ const hasLegacyCertificateResult = (ujian: any) =>
   ujian?.status === "Lulus" &&
   !isExplicitTahfizhRegularExam(ujian);
 
-const shouldShowInCertificateRecap = (ujian: any) => {
+const normalizeStudentName = (name?: string) =>
+  (name || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+
+const isForcedCertificateStudent = (student?: { name?: string | null }) => {
+  const name = normalizeStudentName(student?.name || "");
+  return (
+    name.includes("zahidaqonita") ||
+    name.includes("zahidahqonita") ||
+    name.includes("husnafathania") ||
+    name.includes("husnafhataniah")
+  );
+};
+
+const shouldShowInCertificateRecap = (ujian: any, student?: { name?: string | null }) => {
   if (ujian?.mode !== "Tahfizh") return false;
+  if (isForcedCertificateStudent(student)) return true;
   if (isExplicitTahfizhRegularExam(ujian)) return false;
 
   return (
@@ -127,13 +142,7 @@ const getSyncedTahfizhCertificateResult = (
 
   const result = calculateTahfizhExamResult(
     entries,
-    (inferTahfizhModeForExam({
-      mode: ujian?.mode,
-      tahfizhMode: aspek?.tahfizhMode,
-      verificationType: aspek?.verificationType,
-      assessedBy: ujian?.assessed_by,
-      tanggal: ujian?.tanggal,
-    }) || "Reguler") as TahfizhExamMode,
+    "Sertifikat",
     aspek?.config as TahfizhPenaltyConfig | undefined,
     aspek?.manualStopReason || "",
     false,
@@ -196,7 +205,9 @@ const RekapSertifikat = () => {
 
       const studentMap = new Map((students || []).map((s) => [s.id, s]));
       const classMap = new Map((classes || []).map((c) => [c.id, c]));
-      const certificateUjianData = (ujianData || []).filter(shouldShowInCertificateRecap);
+      const certificateUjianData = (ujianData || []).filter((u) =>
+        shouldShowInCertificateRecap(u, studentMap.get(u.student_id))
+      );
 
       // Buat array dengan nomor urut berdasarkan urutan input
       let lulusIndex = 0;
@@ -207,17 +218,15 @@ const RekapSertifikat = () => {
         const syncedResult = getSyncedTahfizhCertificateResult(u);
         const entries = syncedResult.entries;
         const juzList = [...new Set(entries.map((e: any) => e.juz))].sort((a: number, b: number) => a - b);
-        const storedStatus = u.status === "Lulus" || u.status === "Tidak Lulus"
-          ? u.status
-          : null;
-        const certificateStatus = storedStatus || syncedResult.status;
-        const isLulus = certificateStatus === "Lulus";
+        const forceIncluded = isForcedCertificateStudent(student);
+        const isLulus = syncedResult.status === "Lulus";
+        const receivesCertificateNumber = isLulus || forceIncluded;
 
-        const sequenceNumber = isLulus ? lulusIndex++ : -1;
+        const sequenceNumber = receivesCertificateNumber ? lulusIndex++ : -1;
 
         // Gunakan nomor sertifikat dari database jika sudah ada, jika tidak generate otomatis
         const nomorSertifikatFromDb = (u as any).nomor_sertifikat;
-        const nomorSertifikat = isLulus 
+        const nomorSertifikat = receivesCertificateNumber
           ? (nomorSertifikatFromDb || generateNomorSertifikat(u.tanggal, sequenceNumber))
           : "-";
 
@@ -228,19 +237,22 @@ const RekapSertifikat = () => {
           className: cls?.name || "Unknown",
           classGrade,
           juz: juzList.length > 0 ? juzList.join(", ") : "-",
-          nilaiAkhir: typeof u.nilai_akhir === "number" ? u.nilai_akhir : syncedResult.nilaiAkhir,
-          predikat: u.nilai_aspek?.predikat || syncedResult.predikat,
+          nilaiAkhir: syncedResult.nilaiAkhir,
+          predikat: syncedResult.predikat,
           tanggal: u.tanggal,
           nomorSertifikat,
-          status: certificateStatus,
+          status: syncedResult.status,
           verificationToken: (u as any).verification_token ?? null,
+          forceIncluded,
         };
         return item;
       });
 
       // Reverse untuk menampilkan yang terakhir diinput di atas
       const allItems = itemsWithSequence.reverse();
-      const items = showAll ? allItems : allItems.filter((item) => item.status === "Lulus");
+      const items = showAll
+        ? allItems
+        : allItems.filter((item) => item.status === "Lulus" || item.forceIncluded);
 
       const uniqueClasses = [...new Set(items.map((i) => i.className))].sort();
       return { items, classes: uniqueClasses };

@@ -37,6 +37,8 @@ interface Row {
   status: string;
   predikat: string;
   ujian: any;
+  nis?: string | null;
+  nisn?: string | null;
   assessorName?: string;
 }
 
@@ -163,7 +165,7 @@ export default function RekapGlobal() {
 
       const studentIds = [...new Set((ujianData || []).map((u) => u.student_id))];
       const { data: students } = studentIds.length
-        ? await supabase.from("students").select("id, name, class_id").in("id", studentIds)
+        ? await supabase.from("students").select("id, name, class_id, nis, nisn").in("id", studentIds)
         : { data: [] as any[] };
       const classIds = [...new Set((students || []).map((s: any) => s.class_id))];
       const { data: classes } = classIds.length
@@ -198,6 +200,8 @@ export default function RekapGlobal() {
           status: syncedUjian.status,
           predikat: aspek?.predikat || "-",
           ujian: syncedUjian,
+          nis: s?.nis,
+          nisn: s?.nisn,
           assessorName: p?.full_name || aspek?.assessorName,
         };
       });
@@ -286,7 +290,15 @@ export default function RekapGlobal() {
     setDownloadingId(r.ujianId);
     try {
       const { header, assets, opts } = loadRaportSettings();
-      const data = buildRaportData(r.ujian, r.studentName, r.className, r.assessorName);
+      const data = buildRaportData(
+        r.ujian,
+        r.studentName,
+        r.className,
+        r.assessorName,
+        undefined,
+        r.nis,
+        r.nisn
+      );
       const eff = buildEffectiveOpts(opts, data.verificationToken);
       await downloadRaportPDF(data, header, assets, eff);
       toast.success(`Raport ${r.studentName} berhasil diunduh`);
@@ -367,7 +379,15 @@ export default function RekapGlobal() {
           }
 
           try {
-            const data = buildRaportData(r.ujian, r.studentName, r.className, r.assessorName);
+            const data = buildRaportData(
+              r.ujian,
+              r.studentName,
+              r.className,
+              r.assessorName,
+              undefined,
+              r.nis,
+              r.nisn
+            );
             const eff = buildEffectiveOpts(opts, data.verificationToken);
             const doc = await generateRaportPDF(data, header, assets, eff);
             const blob = doc.output("blob") as Blob;
@@ -729,6 +749,8 @@ export default function RekapGlobal() {
           ujian={previewRow.ujian}
           studentName={previewRow.studentName}
           className={previewRow.className}
+          nis={previewRow.nis}
+          nisn={previewRow.nisn}
           assessorName={previewRow.assessorName}
         />
       )}

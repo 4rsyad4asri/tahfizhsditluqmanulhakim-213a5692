@@ -1184,6 +1184,8 @@ const StudentDetail = () => {
           ujian={raportUjian}
           studentName={student.name}
           className={classInfo?.name || ''}
+          nis={student.nis}
+          nisn={student.nisn}
           assessorName={raportUjian.assessed_by ? assessorMap[raportUjian.assessed_by] : undefined}
         />
       )}

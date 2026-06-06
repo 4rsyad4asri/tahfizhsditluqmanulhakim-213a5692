@@ -79,7 +79,9 @@ export function buildRaportData(
   studentName: string,
   className: string,
   assessorName?: string,
-  tanggalOverride?: string
+  tanggalOverride?: string,
+  nis?: string | null,
+  nisn?: string | null
 ): RaportData {
   const aspek = ujian?.nilai_aspek || {};
   const normalizedEntries = (aspek.entries || []).map(normalizeTahsinEntry);
@@ -110,6 +112,8 @@ export function buildRaportData(
     mode: ujian?.mode,
     studentName,
     className,
+    nis: nis || undefined,
+    nisn: nisn || undefined,
     assessorName: assessorName || aspek?.assessorName,
     tanggal: tanggalOverride || ujian?.tanggal || new Date().toISOString().split("T")[0],
     nilaiAkhir: ujian?.nilai_akhir ?? 0,

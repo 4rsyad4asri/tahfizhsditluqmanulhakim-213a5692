@@ -57,6 +57,8 @@ export interface RaportData {
   mode: "Tahfizh" | "Tahsin Dasar" | "Tahsin Lanjutan";
   studentName: string;
   className: string;
+  nis?: string;
+  nisn?: string;
   assessorName?: string;
   tanggal: string;
   nilaiAkhir: number;
@@ -422,7 +424,7 @@ function drawStudentInfo(
     },
     body: [
       ["Nama Siswa", data.studentName, "Kelas", data.className],
-      ["Penguji", data.assessorName || "-", "Tanggal", fmtTanggal(data.tanggal)],
+      ["NIS/NISN", `${data.nis || "-"} / ${data.nisn || "-"}`, "Tanggal", fmtTanggal(data.tanggal)],
     ],
   });
 }

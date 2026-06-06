@@ -52,6 +52,8 @@ interface Props {
   ujian: any;
   studentName: string;
   className: string;
+  nis?: string | null;
+  nisn?: string | null;
   assessorName?: string;
 }
 
@@ -116,6 +118,8 @@ export default function RaportPreviewDialog({
   ujian,
   studentName,
   className,
+  nis,
+  nisn,
   assessorName,
 }: Props) {
   const [header, setHeader] = useState<RaportHeader>(DEFAULT_HEADER);
@@ -251,6 +255,8 @@ export default function RaportPreviewDialog({
       mode: activeUjian?.mode,
       studentName,
       className,
+      nis: nis || undefined,
+      nisn: nisn || undefined,
       assessorName,
       tanggal,
       nilaiAkhir: activeUjian?.nilai_akhir ?? 0,
@@ -275,7 +281,7 @@ export default function RaportPreviewDialog({
       waqafTest: aspek.waqafTest as WaqafSymbolTest | undefined,
       ujianId: activeUjian?.id,
     };
-  }, [activeUjian, studentName, className, assessorName, tanggal, finalCatatan, verificationToken]);
+  }, [activeUjian, studentName, className, nis, nisn, assessorName, tanggal, finalCatatan, verificationToken]);
 
   const verifyUrl = useMemo(
     () => buildTahfizhVerificationUrl(verificationToken) || opts.verifyUrl,

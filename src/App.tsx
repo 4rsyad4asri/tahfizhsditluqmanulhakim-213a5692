@@ -82,7 +82,7 @@ function AppRoutes() {
         <Route path="/" element={<Index />} />
         <Route path="/kelas/:classId" element={<ClassStudents />} />
         <Route path="/siswa/:studentId" element={<StudentDetail />} />
-        <Route path="/kelola-siswa" element={<ProtectedRoute><ManageStudents /></ProtectedRoute>} />
+        <Route path="/kelola-siswa" element={<ProtectedRoute requiredRole="admin"><ManageStudents /></ProtectedRoute>} />
         <Route path="/kelola-user" element={<ProtectedRoute requiredRole="admin"><ManageUsers /></ProtectedRoute>} />
         <Route path="/rekap-sertifikat" element={<ProtectedRoute><RekapSertifikat /></ProtectedRoute>} />
         <Route path="/rekap-global" element={<RekapGlobal />} />

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useMemo, useState, useRef } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Download, X, Loader2 } from "lucide-react";
@@ -11,9 +11,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { exportJsonToExcel, readExcelFile } from "@/utils/excel";
+import type { Database } from "@/integrations/supabase/types";
+
+type StudentLevel = Database["public"]["Enums"]["student_level"];
+type CertificationStatus = Database["public"]["Enums"]["certification_status"];
 
 interface ParsedStudent {
   name: string;
+  nis: string;
+  nisn: string;
   className: string; // e.g. "1A", "2B", "Kelas 3C"
   target_juz: number;
   level: string;
@@ -23,30 +29,93 @@ interface ParsedStudent {
   errors: string[];
 }
 
+interface ReconciledStudent extends ParsedStudent {
+  action: "update" | "insert" | "conflict";
+  classId: string;
+  existingId?: string;
+  note: string;
+}
+
 const VALID_LEVELS = ["Tahsin Dasar", "Tahsin Lanjutan", "Tahfizh"];
 const VALID_STATUS = ["Belum Ujian", "Lulus", "Tidak Lulus"];
 
 function parseClassName(raw: string): { grade: number; section: string } | null {
   if (!raw) return null;
+  const romanGrades: Record<string, number> = {
+    I: 1,
+    II: 2,
+    III: 3,
+    IV: 4,
+    V: 5,
+    VI: 6,
+  };
   const cleaned = raw.toString().replace(/^kelas\s*/i, "").trim().toUpperCase();
-  const match = cleaned.match(/^(\d)([A-D])$/);
+  const match = cleaned.match(/^(VI|IV|V|III|II|I|[1-6])\s*([A-D])$/);
   if (match) {
-    return { grade: parseInt(match[1]), section: match[2] };
+    return {
+      grade: romanGrades[match[1]] || parseInt(match[1], 10),
+      section: match[2],
+    };
   }
   return null;
 }
 
-function validateRow(row: any, idx: number): ParsedStudent {
+function normalizeName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function nameSimilarity(left: string, right: string) {
+  const a = normalizeName(left);
+  const b = normalizeName(right);
+  if (a === b) return 1;
+  if (!a.length || !b.length) return 0;
+
+  const previous = Array.from({ length: b.length + 1 }, (_, index) => index);
+  for (let i = 1; i <= a.length; i += 1) {
+    const current = [i];
+    for (let j = 1; j <= b.length; j += 1) {
+      current[j] = Math.min(
+        current[j - 1] + 1,
+        previous[j] + 1,
+        previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
+      );
+    }
+    previous.splice(0, previous.length, ...current);
+  }
+
+  return 1 - previous[b.length] / Math.max(a.length, b.length);
+}
+
+function getCell(row: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = row[key];
+    if (value !== undefined && value !== null && value !== "") {
+      return String(value).trim();
+    }
+  }
+  return "";
+}
+
+function validateRow(row: Record<string, unknown>): ParsedStudent {
   const errors: string[] = [];
-  const name = (row["Nama"] || row["Nama Siswa"] || row["name"] || "").toString().trim();
-  const className = (row["Kelas"] || row["Class"] || row["class"] || "").toString().trim();
-  const targetJuz = parseInt(row["Target Juz"] || row["target_juz"] || "30") || 30;
-  const level = (row["Level"] || row["level"] || "Tahsin Dasar").toString().trim();
-  const progress = parseInt(row["Progress"] || row["Progress Hafalan"] || row["progress_hafalan"] || "0") || 0;
-  const status = (row["Status"] || row["Status Sertifikasi"] || row["status_sertifikasi"] || "Belum Ujian").toString().trim();
+  const name = getCell(row, ["Nama", "Nama Siswa", "name"]);
+  const nis = getCell(row, ["NIS", "nis"]);
+  const rawNisn = getCell(row, ["NISN", "nisn"]);
+  const nisn = rawNisn ? rawNisn.padStart(10, "0") : "";
+  const className = getCell(row, ["Rombel Saat Ini", "Rombel", "Kelas", "Class", "class"]);
+  const targetJuz = parseInt(getCell(row, ["Target Juz", "target_juz"]) || "30", 10) || 30;
+  const level = getCell(row, ["Level", "level"]) || "Tahsin Dasar";
+  const progress = parseInt(getCell(row, ["Progress", "Progress Hafalan", "progress_hafalan"]) || "0", 10) || 0;
+  const status = getCell(row, ["Status", "Status Sertifikasi", "status_sertifikasi"]) || "Belum Ujian";
 
   if (!name) errors.push("Nama kosong");
   if (name.length > 100) errors.push("Nama terlalu panjang (max 100)");
+  if (nis && !/^\d{1,20}$/.test(nis)) errors.push("NIS harus berupa 1-20 digit");
+  if (nisn && !/^\d{10}$/.test(nisn)) errors.push("NISN harus berupa 10 digit");
   if (!className) errors.push("Kelas kosong");
   if (!parseClassName(className)) errors.push(`Format kelas "${className}" tidak valid (contoh: 1A, 2B)`);
   if (targetJuz < 1 || targetJuz > 30) errors.push("Target Juz harus 1-30");
@@ -56,6 +125,8 @@ function validateRow(row: any, idx: number): ParsedStudent {
 
   return {
     name,
+    nis,
+    nisn,
     className,
     target_juz: Math.max(1, Math.min(30, targetJuz)),
     level,
@@ -78,7 +149,7 @@ const ImportStudentsDialog = ({ open, onOpenChange }: ImportStudentsDialogProps)
   const [fileName, setFileName] = useState("");
   const [step, setStep] = useState<"upload" | "preview" | "done">("upload");
 
-  const { data: classes } = useQuery({
+  const { data: classes, isLoading: isLoadingClasses } = useQuery({
     queryKey: ["all-classes"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -91,41 +162,204 @@ const ImportStudentsDialog = ({ open, onOpenChange }: ImportStudentsDialogProps)
     },
   });
 
-  const importMutation = useMutation({
-    mutationFn: async (students: ParsedStudent[]) => {
-      const validStudents = students.filter((s) => s.valid);
-      const classMap = new Map(
-        (classes || []).map((c) => [`${c.grade}${c.section}`, c.id])
+  const { data: existingStudents, isLoading: isLoadingStudents } = useQuery({
+    queryKey: ["all-students-for-import"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("students")
+        .select("id, name, nis, nisn, class_id, target_juz, level, progress_hafalan, status_sertifikasi");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const reconciledData = useMemo<ReconciledStudent[]>(() => {
+    if (!classes || !existingStudents) return [];
+
+    const classMap = new Map(
+      classes.map((item) => [`${item.grade}${item.section}`, item.id]),
+    );
+    const databaseStudents = existingStudents;
+
+    return parsedData.map((student) => {
+      const parsedClass = parseClassName(student.className);
+      const classId = parsedClass
+        ? classMap.get(`${parsedClass.grade}${parsedClass.section}`) || ""
+        : "";
+
+      if (!student.valid || !classId) {
+        return {
+          ...student,
+          action: "conflict",
+          classId,
+          note: student.errors.join(", ") || "Rombel tidak ditemukan di database",
+        };
+      }
+
+      const normalizedName = normalizeName(student.name);
+      const duplicateIdentifierInFile = parsedData.find(
+        (other) => other !== student && (
+          (student.nis && other.nis === student.nis)
+          || (student.nisn && other.nisn === student.nisn)
+        ),
+      );
+      if (duplicateIdentifierInFile) {
+        return {
+          ...student,
+          action: "conflict",
+          classId,
+          note: `NIS/NISN juga dipakai oleh ${duplicateIdentifierInFile.name} di file`,
+        };
+      }
+
+      const exactInClass = databaseStudents.filter(
+        (item) => item.class_id === classId && normalizeName(item.name) === normalizedName,
       );
 
-      const rows = validStudents.map((s) => {
-        const parsed = parseClassName(s.className);
-        const classKey = parsed ? `${parsed.grade}${parsed.section}` : "";
+      if (exactInClass.length > 1) {
         return {
-          name: s.name.trim(),
-          class_id: classMap.get(classKey) || "",
-          target_juz: s.target_juz,
-          level: s.level as any,
-          progress_hafalan: s.progress_hafalan,
-          status_sertifikasi: s.status_sertifikasi as any,
+          ...student,
+          action: "conflict",
+          classId,
+          note: "Ada lebih dari satu siswa dengan nama dan rombel yang sama di database",
         };
-      }).filter((r) => r.class_id);
+      }
 
-      if (rows.length === 0) throw new Error("Tidak ada data valid untuk diimport");
+      const exactMatch = exactInClass[0];
+      const nisOwner = student.nis
+        ? databaseStudents.find((item) => item.nis === student.nis && item.id !== exactMatch?.id)
+        : undefined;
+      const nisnOwner = student.nisn
+        ? databaseStudents.find((item) => item.nisn === student.nisn && item.id !== exactMatch?.id)
+        : undefined;
 
-      // Insert in batches of 50
-      for (let i = 0; i < rows.length; i += 50) {
-        const batch = rows.slice(i, i + 50);
+      if (nisOwner || nisnOwner) {
+        const owner = nisOwner || nisnOwner;
+        return {
+          ...student,
+          action: "conflict",
+          classId,
+          note: `NIS/NISN sudah digunakan oleh ${owner?.name}`,
+        };
+      }
+
+      if (exactMatch) {
+        const nisDiffers = Boolean(student.nis && exactMatch.nis && student.nis !== exactMatch.nis);
+        const nisnDiffers = Boolean(student.nisn && exactMatch.nisn && student.nisn !== exactMatch.nisn);
+        if (nisDiffers || nisnDiffers) {
+          return {
+            ...student,
+            action: "conflict",
+            classId,
+            existingId: exactMatch.id,
+            note: "Nama dan rombel cocok, tetapi NIS/NISN berbeda dengan data database",
+          };
+        }
+
+        return {
+          ...student,
+          action: "update",
+          classId,
+          existingId: exactMatch.id,
+          note: `Cocok dengan ${exactMatch.name}`,
+        };
+      }
+
+      const sameNameOtherClass = databaseStudents.find(
+        (item) => item.class_id !== classId && normalizeName(item.name) === normalizedName,
+      );
+      if (sameNameOtherClass) {
+        const matchedClass = classes.find((item) => item.id === sameNameOtherClass.class_id);
+        return {
+          ...student,
+          action: "conflict",
+          classId,
+          existingId: sameNameOtherClass.id,
+          note: `Nama sama sudah ada di ${matchedClass?.name || "rombel lain"}`,
+        };
+      }
+
+      const closestInClass = databaseStudents
+        .filter((item) => item.class_id === classId)
+        .map((item) => ({ item, score: nameSimilarity(student.name, item.name) }))
+        .sort((left, right) => right.score - left.score)[0];
+
+      if (closestInClass && closestInClass.score >= 0.88) {
+        return {
+          ...student,
+          action: "conflict",
+          classId,
+          existingId: closestInClass.item.id,
+          note: `Nama mirip dengan ${closestInClass.item.name}`,
+        };
+      }
+
+      return {
+        ...student,
+        action: "insert",
+        classId,
+        note: "Siswa baru",
+      };
+    });
+  }, [classes, existingStudents, parsedData]);
+
+  const importMutation = useMutation({
+    mutationFn: async (students: ReconciledStudent[]) => {
+      const updates = students.filter((student) => student.action === "update");
+      const inserts = students.filter((student) => student.action === "insert");
+
+      if (updates.length === 0 && inserts.length === 0) {
+        throw new Error("Tidak ada data yang aman untuk diimport");
+      }
+
+      const existingMap = new Map((existingStudents || []).map((student) => [student.id, student]));
+      const updateRows = updates.flatMap((student) => {
+        const existing = student.existingId ? existingMap.get(student.existingId) : undefined;
+        if (!existing) return [];
+        return [{
+          ...existing,
+          nis: student.nis || existing.nis || null,
+          nisn: student.nisn || existing.nisn || null,
+        }];
+      });
+
+      for (let i = 0; i < updateRows.length; i += 50) {
+        const batch = updateRows.slice(i, i + 50);
+        const { error } = await supabase.from("students").upsert(batch, { onConflict: "id" });
+        if (error) throw error;
+      }
+
+      const insertRows = inserts.map((student) => ({
+        name: student.name.trim(),
+        nis: student.nis || null,
+        nisn: student.nisn || null,
+        class_id: student.classId,
+        target_juz: student.target_juz,
+        level: student.level as StudentLevel,
+        progress_hafalan: student.progress_hafalan,
+        status_sertifikasi: student.status_sertifikasi as CertificationStatus,
+      }));
+
+      for (let i = 0; i < insertRows.length; i += 50) {
+        const batch = insertRows.slice(i, i + 50);
         const { error } = await supabase.from("students").insert(batch);
         if (error) throw error;
       }
 
-      return rows.length;
+      return {
+        updated: updateRows.length,
+        inserted: insertRows.length,
+        conflicts: students.filter((student) => student.action === "conflict").length,
+      };
     },
-    onSuccess: (count) => {
+    onSuccess: ({ updated, inserted, conflicts }) => {
       queryClient.invalidateQueries({ queryKey: ["all-students"] });
+      queryClient.invalidateQueries({ queryKey: ["all-students-for-import"] });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
-      toast.success(`${count} siswa berhasil diimport!`);
+      toast.success(`${updated} siswa diperbarui, ${inserted} siswa baru ditambahkan.`);
+      if (conflicts > 0) {
+        toast.warning(`${conflicts} data konflik dilewati dan perlu diperiksa.`);
+      }
       setStep("done");
     },
     onError: (err) => toast.error(getSafeErrorMessage(err)),
@@ -144,8 +378,8 @@ const ImportStudentsDialog = ({ open, onOpenChange }: ImportStudentsDialogProps)
     setFileName(file.name);
     readExcelFile(file).then((jsonData) => {
       if (jsonData.length === 0) { toast.error("File kosong atau format tidak sesuai"); return; }
-      if (jsonData.length > 500) { toast.error("Maksimal 500 baris per import"); return; }
-      const parsed = jsonData.map((row: any, idx: number) => validateRow(row, idx));
+      if (jsonData.length > 1000) { toast.error("Maksimal 1.000 baris per import"); return; }
+      const parsed = jsonData.map(validateRow);
       setParsedData(parsed);
       setStep("preview");
     }).catch(() => toast.error("Gagal membaca file. Pastikan format Excel/CSV yang benar."));
@@ -155,6 +389,8 @@ const ImportStudentsDialog = ({ open, onOpenChange }: ImportStudentsDialogProps)
     const template = [
       {
         "Nama": "Ahmad Fauzan",
+        "NIS": "1501",
+        "NISN": "0123456789",
         "Kelas": "1A",
         "Target Juz": 30,
         "Level": "Tahsin Dasar",
@@ -163,6 +399,8 @@ const ImportStudentsDialog = ({ open, onOpenChange }: ImportStudentsDialogProps)
       },
       {
         "Nama": "Aisyah Putri",
+        "NIS": "1502",
+        "NISN": "0123456790",
         "Kelas": "2B",
         "Target Juz": 29,
         "Level": "Tahsin Lanjutan",
@@ -180,8 +418,11 @@ const ImportStudentsDialog = ({ open, onOpenChange }: ImportStudentsDialogProps)
     if (fileRef.current) fileRef.current.value = "";
   };
 
-  const validCount = parsedData.filter((s) => s.valid).length;
-  const invalidCount = parsedData.filter((s) => !s.valid).length;
+  const updateCount = reconciledData.filter((student) => student.action === "update").length;
+  const insertCount = reconciledData.filter((student) => student.action === "insert").length;
+  const conflictCount = reconciledData.filter((student) => student.action === "conflict").length;
+  const importableCount = updateCount + insertCount;
+  const isReferenceLoading = isLoadingClasses || isLoadingStudents;
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) resetDialog(); onOpenChange(o); }}>
@@ -216,6 +457,8 @@ const ImportStudentsDialog = ({ open, onOpenChange }: ImportStudentsDialogProps)
             <div className="bg-muted/30 rounded-lg p-3 border border-border">
               <p className="text-xs font-medium text-foreground mb-1.5">Format kolom yang diterima:</p>
               <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
+                <span><strong>NIS</strong> - nomor induk siswa</span>
+                <span><strong>NISN</strong> - 10 digit, termasuk nol di depan</span>
                 <span><strong>Nama</strong> — nama lengkap siswa</span>
                 <span><strong>Kelas</strong> — 1A, 2B, 3C, dll</span>
                 <span><strong>Target Juz</strong> — angka 1-30</span>
@@ -235,7 +478,7 @@ const ImportStudentsDialog = ({ open, onOpenChange }: ImportStudentsDialogProps)
                 Klik untuk pilih file atau drag & drop
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Format: .xlsx, .xls, .csv (Maks 5MB, 500 baris)
+                Format: .xlsx, .xls, .csv (Maks 5MB, 1.000 baris)
               </p>
               <input
                 ref={fileRef}
@@ -254,7 +497,7 @@ const ImportStudentsDialog = ({ open, onOpenChange }: ImportStudentsDialogProps)
               <div>
                 <p className="text-sm font-medium text-foreground">📄 {fileName}</p>
                 <p className="text-xs text-muted-foreground">
-                  {parsedData.length} baris ditemukan
+                  {isReferenceLoading ? "Mencocokkan dengan database..." : `${parsedData.length} baris ditemukan`}
                 </p>
               </div>
               <button
@@ -266,15 +509,19 @@ const ImportStudentsDialog = ({ open, onOpenChange }: ImportStudentsDialogProps)
             </div>
 
             {/* Summary */}
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-success/10 text-success text-xs font-medium">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                {validCount} valid
+                {updateCount} cocok, perbarui NIS/NISN
               </div>
-              {invalidCount > 0 && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary/10 text-primary text-xs font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                {insertCount} siswa baru
+              </div>
+              {conflictCount > 0 && (
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-destructive/10 text-destructive text-xs font-medium">
                   <AlertCircle className="w-3.5 h-3.5" />
-                  {invalidCount} error
+                  {conflictCount} konflik
                 </div>
               )}
             </div>
@@ -287,6 +534,8 @@ const ImportStudentsDialog = ({ open, onOpenChange }: ImportStudentsDialogProps)
                     <th className="px-3 py-2 text-left font-semibold text-muted-foreground">#</th>
                     <th className="px-3 py-2 text-left font-semibold text-muted-foreground">Status</th>
                     <th className="px-3 py-2 text-left font-semibold text-muted-foreground">Nama</th>
+                    <th className="px-3 py-2 text-left font-semibold text-muted-foreground">NIS</th>
+                    <th className="px-3 py-2 text-left font-semibold text-muted-foreground">NISN</th>
                     <th className="px-3 py-2 text-left font-semibold text-muted-foreground">Kelas</th>
                     <th className="px-3 py-2 text-left font-semibold text-muted-foreground">Juz</th>
                     <th className="px-3 py-2 text-left font-semibold text-muted-foreground">Level</th>
@@ -294,30 +543,34 @@ const ImportStudentsDialog = ({ open, onOpenChange }: ImportStudentsDialogProps)
                   </tr>
                 </thead>
                 <tbody>
-                  {parsedData.map((s, idx) => (
-                    <tr key={idx} className={`border-t border-border/50 ${!s.valid ? 'bg-destructive/5' : ''}`}>
+                  {reconciledData.map((s, idx) => (
+                    <tr key={idx} className={`border-t border-border/50 ${s.action === "conflict" ? "bg-destructive/5" : ""}`}>
                       <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
                       <td className="px-3 py-2">
-                        {s.valid ? (
+                        {s.action !== "conflict" ? (
                           <CheckCircle2 className="w-3.5 h-3.5 text-success" />
                         ) : (
                           <AlertCircle className="w-3.5 h-3.5 text-destructive" />
                         )}
                       </td>
                       <td className="px-3 py-2 text-foreground font-medium">{s.name || "—"}</td>
+                      <td className="px-3 py-2 font-mono text-muted-foreground">{s.nis || "-"}</td>
+                      <td className="px-3 py-2 font-mono text-muted-foreground">{s.nisn || "-"}</td>
                       <td className="px-3 py-2 text-muted-foreground">{s.className || "—"}</td>
                       <td className="px-3 py-2 text-muted-foreground">{s.target_juz}</td>
                       <td className="px-3 py-2 text-muted-foreground">{s.level}</td>
-                      <td className="px-3 py-2 text-destructive">{s.errors.join(", ")}</td>
+                      <td className={s.action === "conflict" ? "px-3 py-2 text-destructive" : "px-3 py-2 text-muted-foreground"}>
+                        {s.note}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
 
-            {invalidCount > 0 && (
+            {conflictCount > 0 && (
               <p className="text-xs text-muted-foreground">
-                ⚠️ Baris dengan error akan dilewati. Hanya {validCount} baris valid yang akan diimport.
+                Data konflik akan dilewati. Periksa keterangannya sebelum menentukan nama atau rombel yang benar.
               </p>
             )}
 
@@ -329,8 +582,8 @@ const ImportStudentsDialog = ({ open, onOpenChange }: ImportStudentsDialogProps)
                 Batal
               </button>
               <button
-                onClick={() => importMutation.mutate(parsedData)}
-                disabled={validCount === 0 || importMutation.isPending}
+                onClick={() => importMutation.mutate(reconciledData)}
+                disabled={isReferenceLoading || importableCount === 0 || importMutation.isPending}
                 className="px-4 py-2 rounded-md text-sm font-medium gradient-islamic text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {importMutation.isPending ? (
@@ -339,7 +592,7 @@ const ImportStudentsDialog = ({ open, onOpenChange }: ImportStudentsDialogProps)
                     Mengimport...
                   </span>
                 ) : (
-                  `Import ${validCount} Siswa`
+                  `Proses ${importableCount} Siswa`
                 )}
               </button>
             </div>

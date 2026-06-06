@@ -35,6 +35,8 @@ type CertStatus = Database["public"]["Enums"]["certification_status"];
 
 interface StudentForm {
   name: string;
+  nis: string;
+  nisn: string;
   class_id: string;
   target_juz: number;
   level: StudentLevel;
@@ -44,6 +46,8 @@ interface StudentForm {
 
 const emptyForm: StudentForm = {
   name: "",
+  nis: "",
+  nisn: "",
   class_id: "",
   target_juz: 30,
   level: "Tahsin Dasar",
@@ -53,6 +57,8 @@ const emptyForm: StudentForm = {
 interface Student {
   id: string;
   name: string;
+  nis: string | null;
+  nisn: string | null;
   class_id: string;
   target_juz: number;
   level: StudentLevel;
@@ -67,8 +73,7 @@ interface Student {
 }
 const ManageStudents = () => {
   const [syncing, setSyncing] = useState(false);
-  const { user } = useAuthContext();
-  const isLoggedIn = !!user;
+  const { isAdmin } = useAuthContext();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [selectedClass, setSelectedClass] = useState<string>("all");
@@ -142,6 +147,8 @@ const { data: classes } = useQuery({
     mutationFn: async (data: StudentForm) => {
       const { error } = await supabase.from("students").insert({
         name: data.name.trim(),
+        nis: data.nis.trim() || null,
+        nisn: data.nisn.trim() || null,
         class_id: data.class_id,
         target_juz: data.target_juz,
         level: data.level,
@@ -166,6 +173,8 @@ const { data: classes } = useQuery({
       from("students").
       update({
         name: data.name.trim(),
+        nis: data.nis.trim() || null,
+        nisn: data.nisn.trim() || null,
         class_id: data.class_id,
         target_juz: data.target_juz,
         level: data.level,
@@ -232,6 +241,8 @@ const deleteAllMutation = useMutation({
   const openEdit = (student: Student) => {
     setForm({
       name: student.name,
+      nis: student.nis || "",
+      nisn: student.nisn || "",
       class_id: student.class_id,
       target_juz: student.target_juz,
       level: student.level,
@@ -254,6 +265,14 @@ const deleteAllMutation = useMutation({
       toast.error("Pilih kelas terlebih dahulu!");
       return;
     }
+    if (form.nis && !/^\d{1,20}$/.test(form.nis)) {
+      toast.error("NIS hanya boleh berisi 1-20 digit!");
+      return;
+    }
+    if (form.nisn && !/^\d{10}$/.test(form.nisn)) {
+      toast.error("NISN harus terdiri dari tepat 10 digit!");
+      return;
+    }
 
     if (editingId) {
       updateMutation.mutate({ id: editingId, data: form });
@@ -262,14 +281,18 @@ const deleteAllMutation = useMutation({
     }
   };
 
-const filteredStudents: Student[] = (students || []).filter(
-  (s: Student) =>
-    (s.name || "").toLowerCase().includes(search.toLowerCase())
-);
+const filteredStudents: Student[] = (students || []).filter((s: Student) => {
+  const query = search.toLowerCase();
+  return (s.name || "").toLowerCase().includes(query)
+    || (s.nis || "").includes(query)
+    || (s.nisn || "").includes(query);
+});
 
   const handleExport = () => {
     const dataToExport = filteredStudents.map((s: Student) => ({
       "Nama": s.name,
+      "NIS": s.nis || "",
+      "NISN": s.nisn || "",
       "Kelas": s.classes?.name || "",
       "Target Juz": s.target_juz,
       "Level": s.level,
@@ -304,7 +327,7 @@ const filteredStudents: Student[] = (students || []).filter(
             </p>
           </div>
 
-          {isLoggedIn && (
+          {isAdmin && (
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setDeleteAllConfirm(true)}
@@ -378,6 +401,31 @@ const filteredStudents: Student[] = (students || []).filter(
                       maxLength={100}
                       className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
 
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">NIS</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={form.nis}
+                      onChange={(e) => setForm({ ...form, nis: e.target.value.replace(/\D/g, "").slice(0, 20) })}
+                      placeholder="Nomor induk siswa"
+                      className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">NISN</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={form.nisn}
+                      onChange={(e) => setForm({ ...form, nisn: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                      placeholder="10 digit NISN"
+                      className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -468,7 +516,7 @@ const filteredStudents: Student[] = (students || []).filter(
           </div>
           )}
 
-          {isLoggedIn && <ImportStudentsDialog open={importOpen} onOpenChange={setImportOpen} />}
+          {isAdmin && <ImportStudentsDialog open={importOpen} onOpenChange={setImportOpen} />}
         </div>
 
         {/* Filters */}
@@ -518,7 +566,7 @@ const filteredStudents: Student[] = (students || []).filter(
                       <h3 className="font-semibold text-foreground">{student.name}</h3>
                       <p className="text-xs text-muted-foreground">{student.classes?.name}</p>
                     </div>
-                    {isLoggedIn && (
+                    {isAdmin && (
                     <div className="flex gap-1">
                       <button
                     onClick={() => openEdit(student)}
@@ -534,6 +582,8 @@ const filteredStudents: Student[] = (students || []).filter(
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
+                    <span>NIS: <span className="text-foreground">{student.nis || "-"}</span></span>
+                    <span>NISN: <span className="text-foreground">{student.nisn || "-"}</span></span>
                     <span>Level: <span className="text-foreground">{student.level}</span></span>
                     <span>Juz: <span className="text-foreground">{student.target_juz}</span></span>
                     <span>Progress: <span className="text-foreground">{student.progress_hafalan}%</span></span>
@@ -550,6 +600,8 @@ const filteredStudents: Student[] = (students || []).filter(
                   <thead>
                     <tr className="border-b border-border bg-muted/50">
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Nama</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">NIS</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">NISN</th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Kelas</th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Target</th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Level</th>
@@ -562,6 +614,8 @@ const filteredStudents: Student[] = (students || []).filter(
                     {filteredStudents.map((student: Student, idx: number) =>
                   <tr key={student.id} className={`border-b border-border/50 hover:bg-muted/30 transition-colors ${idx % 2 ? 'bg-muted/10' : ''}`}>
                         <td className="px-4 py-3 font-medium text-foreground">{student.name}</td>
+                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{student.nis || "-"}</td>
+                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{student.nisn || "-"}</td>
                         <td className="px-4 py-3 text-muted-foreground">{student.classes?.name}</td>
                         <td className="px-4 py-3 text-muted-foreground">Juz {student.target_juz}</td>
                         <td className="px-4 py-3">
@@ -589,7 +643,7 @@ const filteredStudents: Student[] = (students || []).filter(
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right">
-                          {isLoggedIn && (
+                          {isAdmin && (
                           <div className="flex items-center justify-end gap-1">
                             <button
                           onClick={() => openEdit(student)}

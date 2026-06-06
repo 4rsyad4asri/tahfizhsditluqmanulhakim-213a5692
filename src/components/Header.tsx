@@ -49,7 +49,7 @@ const Header = () => {
               <span className="hidden text-center text-xs text-gray-950 sm:inline">Rekap Global</span>
             </button>
 
-            {user && (
+            {isAdmin && (
               <button onClick={() => navigate("/kelola-siswa")} className={navButtonClass(location.pathname === "/kelola-siswa")}>
                 <Settings className="h-4 w-4 bg-zinc-50 text-slate-950" />
                 <span className="hidden bg-[#f0f5fa] text-center text-xs text-gray-950 sm:inline">Kelola Siswa</span>

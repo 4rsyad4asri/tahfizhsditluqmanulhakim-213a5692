@@ -195,6 +195,8 @@ export type Database = {
           id: string
           level: Database["public"]["Enums"]["student_level"]
           name: string
+          nis: string | null
+          nisn: string | null
           progress_hafalan: number
           status_sertifikasi: Database["public"]["Enums"]["certification_status"]
           target_juz: number
@@ -207,6 +209,8 @@ export type Database = {
           id?: string
           level?: Database["public"]["Enums"]["student_level"]
           name: string
+          nis?: string | null
+          nisn?: string | null
           progress_hafalan?: number
           status_sertifikasi?: Database["public"]["Enums"]["certification_status"]
           target_juz?: number
@@ -219,6 +223,8 @@ export type Database = {
           id?: string
           level?: Database["public"]["Enums"]["student_level"]
           name?: string
+          nis?: string | null
+          nisn?: string | null
           progress_hafalan?: number
           status_sertifikasi?: Database["public"]["Enums"]["certification_status"]
           target_juz?: number

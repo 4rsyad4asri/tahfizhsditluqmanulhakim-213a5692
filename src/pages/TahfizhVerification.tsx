@@ -139,6 +139,9 @@ export default function TahfizhVerification({
   const scoringEntries = aggregateTahfizhAssessmentsForDisplay(surahEntriesSource).map(normalizeTahfizhAssessment);
   const detailEntries = rawEntries.length ? rawEntries : scoringEntries;
   const reportType = aspek.reportType || (aspek.tahfizhMode === "Sertifikat" ? "summary" : "detail");
+  const isCertificateVerification = aspek.tahfizhMode === "Sertifikat";
+  const showSummaryTable = reportType === "summary";
+  const showDetailTable = detailEntries.length > 0 && (reportType === "detail" || isCertificateVerification);
   const summaries = calculateTahfizhSummary(scoringEntries, aspek.config);
   const student = (data as any).students;
   const classInfo = student?.classes;
@@ -217,6 +220,7 @@ export default function TahfizhVerification({
             <div className="grid gap-3 sm:grid-cols-2">
               <DataRow label="Nama Siswa" value={student?.name || "-"} />
               <DataRow label="Kelas" value={classInfo?.name || "-"} />
+              <DataRow label="NIS/NISN" value={`${getFallback(student?.nis)} / ${getFallback(student?.nisn)}`} />
               <DataRow label="Tanggal Ujian" value={formatDate(data.tanggal)} />
               <DataRow label="Penguji" value={assessor} />
             </div>
@@ -245,7 +249,7 @@ export default function TahfizhVerification({
             <span className="text-sm font-semibold text-muted-foreground">Mode Ujian: {getFallback(aspek.tahfizhMode || data.mode)}</span>
           </div>
 
-          {reportType === "summary" ? (
+          {showSummaryTable && (
             <div className="overflow-x-auto rounded-md border border-border">
               <table className="w-full min-w-[640px] text-sm">
                 <thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground">
@@ -278,25 +282,36 @@ export default function TahfizhVerification({
                 </tbody>
               </table>
             </div>
-          ) : (
-            <div className="overflow-x-auto rounded-md border border-border">
-              <table className="w-full min-w-[760px] text-sm">
-                <thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-3">Surat</th>
-                    <th className="px-3 py-3">Juz</th>
-                    <th className="px-3 py-3">Ayat</th>
-                    <th className="px-3 py-3">LJ</th>
-                    <th className="px-3 py-3">LK</th>
-                    <th className="px-3 py-3">Waqaf</th>
-                    <th className="px-3 py-3">Sambung</th>
-                    <th className="px-3 py-3">Catatan</th>
-                    <th className="px-3 py-3">Nilai</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {detailEntries.length ? (
-                    detailEntries.map((entry, index) => (
+          )}
+
+          {showDetailTable ? (
+            <div className={showSummaryTable ? "mt-5" : ""}>
+              {showSummaryTable && (
+                <div className="mb-3">
+                  <h3 className="text-sm font-semibold text-foreground">Detail Seluruh Surat yang Diinput</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Seluruh surat dan kesalahan yang diinput pada ujian ini ditampilkan di bawah.
+                  </p>
+                </div>
+              )}
+
+              <div className="overflow-x-auto rounded-md border border-border">
+                <table className="w-full min-w-[760px] text-sm">
+                  <thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-3">Surat</th>
+                      <th className="px-3 py-3">Juz</th>
+                      <th className="px-3 py-3">Ayat</th>
+                      <th className="px-3 py-3">LJ</th>
+                      <th className="px-3 py-3">LK</th>
+                      <th className="px-3 py-3">Waqaf</th>
+                      <th className="px-3 py-3">Sambung</th>
+                      <th className="px-3 py-3">Catatan</th>
+                      <th className="px-3 py-3">Nilai</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detailEntries.map((entry, index) => (
                       <tr key={`${entry.surah || "surah"}-${index}`} className="border-t border-border">
                         <td className="px-3 py-3 font-semibold">{entry.surah || "-"}</td>
                         <td className="px-3 py-3">{entry.juz || "-"}</td>
@@ -318,14 +333,20 @@ export default function TahfizhVerification({
                           }, "baru")}
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <EmptyTableRow colSpan={9} />
-                  )}
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : !showSummaryTable ? (
+            <div className="overflow-x-auto rounded-md border border-border">
+              <table className="w-full min-w-[760px] text-sm">
+                <tbody>
+                  <EmptyTableRow colSpan={9} />
                 </tbody>
               </table>
             </div>
-          )}
+          ) : null}
         </section>
 
         <section className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">

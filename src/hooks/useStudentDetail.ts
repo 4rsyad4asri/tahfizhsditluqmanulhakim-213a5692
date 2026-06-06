@@ -394,7 +394,7 @@ export function useVerificationDocument(token: string | undefined) {
 
       const { data, error } = await supabase
         .from("ujian")
-        .select("*, students(name, class_id, classes(name, grade, section))")
+        .select("*, students(name, nis, nisn, class_id, classes(name, grade, section))")
         .eq("verification_token", token)
         .eq("document_status", "Published")
         .single();

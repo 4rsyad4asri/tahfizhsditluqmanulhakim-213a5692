@@ -307,7 +307,8 @@ export default function RaportPreviewDialog({
         const doc = await generateRaportPDF(data, header, assets, effectiveOpts);
         if (seq !== previewSeqRef.current) return;
 
-        const url = doc.output("bloburl") as unknown as string;
+        const blob = doc.output("blob") as Blob;
+        const url = URL.createObjectURL(blob);
 
         setPreviewUrl((prev) => {
           if (prev) URL.revokeObjectURL(prev);
@@ -377,6 +378,11 @@ export default function RaportPreviewDialog({
   const handleOpenVerification = () => {
     if (!verifyUrl) return;
     window.open(verifyUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const handleOpenPdfPreview = () => {
+    if (!previewUrl) return;
+    window.open(previewUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleCopyVerification = async () => {
@@ -479,6 +485,12 @@ export default function RaportPreviewDialog({
           </div>
 
           <div className="flex gap-2">
+            {previewUrl && (
+              <Button variant="outline" size="sm" onClick={handleOpenPdfPreview}>
+                <ExternalLink className="w-4 h-4 mr-1" /> Buka Preview
+              </Button>
+            )}
+
             {verifyUrl && (
               <Button variant="outline" size="sm" onClick={handleOpenVerification}>
                 <ExternalLink className="w-4 h-4 mr-1" /> Buka Verifikasi
@@ -723,12 +735,18 @@ export default function RaportPreviewDialog({
           )}
 
           {previewUrl ? (
-            <iframe
-              title="Preview Raport PDF"
-              src={previewUrl}
+            <object
+              data={previewUrl}
+              type="application/pdf"
               className="w-full h-full"
-              style={{ border: 0 }}
-            />
+            >
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center text-sm text-muted-foreground">
+                <p>Browser memblokir preview PDF di dalam halaman ini.</p>
+                <Button type="button" variant="outline" size="sm" onClick={handleOpenPdfPreview}>
+                  <ExternalLink className="w-4 h-4 mr-1" /> Buka Preview di Tab Baru
+                </Button>
+              </div>
+            </object>
           ) : (
             <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
               <RefreshCw className="w-4 h-4 mr-1 animate-spin" />

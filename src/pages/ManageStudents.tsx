@@ -619,11 +619,11 @@ const filteredStudents: Student[] = (students || []).filter((s: Student) => {
                         <td className="px-4 py-3 text-muted-foreground">{student.classes?.name}</td>
                         <td className="px-4 py-3 text-muted-foreground">Juz {student.target_juz}</td>
                       <td className="px-4 py-3">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                       student.level === 'Tahfizh' ? 'bg-primary/10 text-primary' :
                       student.level === 'Tahsin Lanjutan' ? 'bg-orange-100 text-orange-800 border border-orange-200' :
-                      'bg-muted text-muted-foreground'}`}
-                      }>{student.level}</span>
+                      'bg-muted text-muted-foreground'
+                    }`}>{student.level}</span>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">

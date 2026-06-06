@@ -72,6 +72,21 @@ const hasCertificateNumber = (ujian: any) =>
   typeof ujian?.nomor_sertifikat === "string" &&
   ujian.nomor_sertifikat.trim().length > 0;
 
+const hasResolvableCertificateNumber = (ujian: any, student?: any) => {
+  if (hasCertificateNumber(ujian)) return true;
+  if (ujian?.mode !== "Tahfizh") return false;
+
+  const aspek = ujian?.nilai_aspek || {};
+  if (
+    aspek.tahfizhMode === "Reguler" &&
+    aspek.verificationType === "tahfizh-reguler"
+  ) {
+    return false;
+  }
+
+  return student?.status_sertifikasi === "Lulus";
+};
+
 const hasCertificateMetadata = (ujian: any) => {
   const aspek = ujian?.nilai_aspek || {};
   return (
@@ -94,7 +109,7 @@ const shouldShowInCertificateRecap = (ujian: any, student?: any) => {
 
   return (
     hasCertificateMetadata(ujian) ||
-    hasCertificateNumber(ujian) ||
+    hasResolvableCertificateNumber(ujian, student) ||
     isLegacyTahfizhCertificateCandidate({
       mode: ujian.mode,
       tahfizhMode: ujian?.nilai_aspek?.tahfizhMode,

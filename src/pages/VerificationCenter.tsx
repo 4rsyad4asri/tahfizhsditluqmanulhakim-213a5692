@@ -1,5 +1,5 @@
 import { AlertTriangle, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import { useVerificationDocument } from "@/hooks/useStudentDetail";
 import TahfizhVerification from "@/pages/TahfizhVerification";
 
@@ -72,6 +72,7 @@ function BasicVerificationPage({
 
 export default function VerificationCenter() {
   const { type, token } = useParams<{ type: string; token: string }>();
+  const verification = useVerificationDocument(token);
 
   if (!isVerificationType(type)) {
     return (
@@ -93,6 +94,16 @@ export default function VerificationCenter() {
 
   if (type === "rapor-tahsin-lanjutan") {
     return <BasicVerificationPage token={token} title="Rapor Tahsin Lanjutan Terverifikasi" />;
+  }
+
+  const aspek =
+    verification.data?.nilai_aspek && typeof verification.data.nilai_aspek === "object"
+      ? (verification.data.nilai_aspek as Record<string, unknown>)
+      : {};
+  const isCertificateLegacy = aspek.tahfizhMode === "Sertifikat";
+
+  if (type === "tahfizh-reguler" && token && isCertificateLegacy) {
+    return <Navigate to={`/verifikasi/sertifikat-tahfizh/${encodeURIComponent(token)}`} replace />;
   }
 
   if (type === "sertifikat-tahfizh") {

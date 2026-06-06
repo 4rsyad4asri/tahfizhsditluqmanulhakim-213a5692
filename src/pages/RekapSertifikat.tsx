@@ -68,23 +68,41 @@ const generateNomorSertifikat = (tanggal: string, index: number): string => {
   return `${nomorUrut}/SDITLH/STQ/2526/${bulanRoman}/2026`;
 };
 
-const isTahfizhCertificateExam = (ujian: any) => {
-  if (ujian?.mode !== "Tahfizh") return false;
-  const aspek = (ujian?.nilai_aspek || {}) as {
-    tahfizhMode?: string;
-    verificationType?: string;
-  };
-  const context = {
-    mode: ujian?.mode,
-    tahfizhMode: aspek.tahfizhMode,
-    verificationType: aspek.verificationType,
-    assessedBy: ujian?.assessed_by,
-    tanggal: ujian?.tanggal,
-  };
+const hasCertificateNumber = (ujian: any) =>
+  typeof ujian?.nomor_sertifikat === "string" &&
+  ujian.nomor_sertifikat.trim().length > 0;
+
+const hasCertificateMetadata = (ujian: any) => {
+  const aspek = ujian?.nilai_aspek || {};
   return (
     aspek.tahfizhMode === "Sertifikat" ||
     aspek.verificationType === "sertifikat-tahfizh" ||
-    isLegacyTahfizhCertificateCandidate(context)
+    aspek.reportType === "summary"
+  );
+};
+
+const shouldShowInCertificateRecap = (ujian: any, student?: any) => {
+  if (ujian?.mode !== "Tahfizh") return false;
+
+  const aspek = ujian?.nilai_aspek || {};
+  if (
+    aspek.tahfizhMode === "Reguler" &&
+    aspek.verificationType === "tahfizh-reguler"
+  ) {
+    return false;
+  }
+
+  return (
+    hasCertificateMetadata(ujian) ||
+    hasCertificateNumber(ujian) ||
+    isLegacyTahfizhCertificateCandidate({
+      mode: ujian.mode,
+      tahfizhMode: ujian?.nilai_aspek?.tahfizhMode,
+      verificationType: ujian?.nilai_aspek?.verificationType,
+      assessedBy: ujian.assessed_by,
+      tanggal: ujian.tanggal,
+    }) ||
+    student?.status_sertifikasi === "Lulus"
   );
 };
 
@@ -156,13 +174,12 @@ const RekapSertifikat = () => {
       const { data: ujianData, error: ujianError } = await query;
       if (ujianError) throw ujianError;
 
-      const certificateUjianData = (ujianData || []).filter(isTahfizhCertificateExam);
-      const studentIds = [...new Set(certificateUjianData.map((u) => u.student_id))];
+      const studentIds = [...new Set((ujianData || []).map((u) => u.student_id))];
       if (studentIds.length === 0) return { items: [] as RekapItem[], classes: [] as string[] };
 
       const { data: students } = await supabase
         .from("students")
-        .select("id, name, class_id")
+        .select("id, name, class_id, status_sertifikasi")
         .in("id", studentIds);
 
       const classIds = [...new Set((students || []).map((s) => s.class_id))];
@@ -173,6 +190,9 @@ const RekapSertifikat = () => {
 
       const studentMap = new Map((students || []).map((s) => [s.id, s]));
       const classMap = new Map((classes || []).map((c) => [c.id, c]));
+      const certificateUjianData = (ujianData || []).filter((u) =>
+        shouldShowInCertificateRecap(u, studentMap.get(u.student_id))
+      );
 
       // Buat array dengan nomor urut berdasarkan urutan input
       let lulusIndex = 0;

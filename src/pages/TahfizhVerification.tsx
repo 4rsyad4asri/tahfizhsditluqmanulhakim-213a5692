@@ -14,7 +14,7 @@ import {
   UserCheck,
   type LucideIcon,
 } from "lucide-react";
-import { useTahfizhVerification } from "@/hooks/useStudentDetail";
+import { useVerificationDocument } from "@/hooks/useStudentDetail";
 import {
   aggregateTahfizhAssessmentsForDisplay,
   calculateTahfizhExamResult,
@@ -87,9 +87,20 @@ function isUuidLike(value?: string | null) {
   return !!value && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
 
-export default function TahfizhVerification() {
-  const { token } = useParams<{ token: string }>();
-  const { data, isLoading, error } = useTahfizhVerification(token);
+interface TahfizhVerificationProps {
+  token?: string;
+  title?: string;
+  description?: string;
+}
+
+export default function TahfizhVerification({
+  token: tokenProp,
+  title = "Verifikasi Dokumen Tahfizh",
+  description = "Portal verifikasi resmi SDIT Luqmanul Hakim untuk memastikan raport dan sertifikat Tahfizh yang sudah dipublish.",
+}: TahfizhVerificationProps = {}) {
+  const { token: routeToken } = useParams<{ token: string }>();
+  const token = tokenProp || routeToken;
+  const { data, isLoading, error } = useVerificationDocument(token);
   const verifiedAt = useMemo(() => formatDateTime(new Date().toISOString()), []);
 
   if (isLoading) {
@@ -162,9 +173,9 @@ export default function TahfizhVerification() {
                 <ShieldCheck className="h-4 w-4" />
                 DOKUMEN ASLI & TERVERIFIKASI
               </div>
-              <h1 className="mt-4 text-3xl font-bold text-slate-950 sm:text-4xl">Verifikasi Dokumen Tahfizh</h1>
+              <h1 className="mt-4 text-3xl font-bold text-slate-950 sm:text-4xl">{title}</h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                Portal verifikasi resmi SDIT Luqmanul Hakim untuk memastikan raport dan sertifikat Tahfizh yang sudah dipublish.
+                {description}
               </p>
             </div>
 

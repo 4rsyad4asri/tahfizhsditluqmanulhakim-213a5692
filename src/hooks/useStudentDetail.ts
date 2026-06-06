@@ -382,9 +382,9 @@ export function usePublishUjian() {
   });
 }
 
-export function useTahfizhVerification(token: string | undefined) {
+export function useVerificationDocument(token: string | undefined) {
   return useQuery({
-    queryKey: ["tahfizh-verification", token],
+    queryKey: ["verification-document", token],
     queryFn: async () => {
       if (!token) throw new Error("Token verifikasi tidak valid");
 
@@ -410,6 +410,8 @@ export function useTahfizhVerification(token: string | undefined) {
     retry: false,
   });
 }
+
+export const useTahfizhVerification = useVerificationDocument;
 
 export function useDeleteUjian() {
   const queryClient = useQueryClient();

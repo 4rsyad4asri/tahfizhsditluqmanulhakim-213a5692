@@ -21,6 +21,7 @@ import ChangePassword from "./pages/ChangePassword";
 import ProfilPenguji from "./pages/ProfilPenguji";
 import NotFound from "./pages/NotFound";
 import TahfizhVerification from "./pages/TahfizhVerification";
+import VerificationCenter from "./pages/VerificationCenter";
 
 const queryClient = new QueryClient();
 
@@ -102,6 +103,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path="/verifikasi/:type/:token" element={<VerificationCenter />} />
           <Route path="/verifikasi/tahfizh/:token" element={<TahfizhVerification />} />
           <Route path="/*" element={<AppRoutes />} />
         </Routes>

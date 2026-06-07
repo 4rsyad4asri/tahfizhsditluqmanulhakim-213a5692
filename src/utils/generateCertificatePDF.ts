@@ -183,21 +183,31 @@ const drawMetricCard = (
   labelID: string,
   value: string,
   topY: number,
+  variant: MetricVariant = "gold",
 ) => {
+  const palette =
+    variant === "green"
+      ? { stroke: GREEN_STROKE, value: GREEN_VALUE }
+      : variant === "purple"
+        ? { stroke: PURPLE_STROKE, value: PURPLE_VALUE }
+        : { stroke: GOLD_STROKE, value: GOLD_VALUE };
   const w = 58;
   const h = 26;
   const x = centerX - w / 2;
-  doc.setDrawColor(...GOLD);
-  doc.setLineWidth(0.4);
+  doc.setDrawColor(...palette.stroke);
+  doc.setLineWidth(0.5);
   doc.roundedRect(x, topY, w, h, 2, 2);
+  // top accent bar
+  doc.setFillColor(...palette.stroke);
+  doc.roundedRect(x, topY, w, 1.6, 0.8, 0.8, "F");
 
   setTextStyle(doc, 7.5, MUTED, "normal");
   doc.text(labelEN.toUpperCase(), centerX, topY + 5.5, { align: "center" });
   setTextStyle(doc, 7, MUTED, "italic", "times");
   doc.text(labelID, centerX, topY + 9.5, { align: "center" });
 
-  setTextStyle(doc, 18, NAVY, "bold");
-  fitFontSize(doc, value, w - 8, 18, 11);
+  setTextStyle(doc, 18, palette.value, "bold");
+  fitFontSize(doc, value, w - 8, 18, 10);
   doc.text(value, centerX, topY + 20, { align: "center", maxWidth: w - 8 });
 };
 
@@ -294,7 +304,7 @@ export const buildCertificatePDF = async (
   doc.line(CENTER_X - 55, 82, CENTER_X + 55, 82);
 
   setTextStyle(doc, 10, BODY, "normal");
-  drawCenteredText(doc, `Kelas / Class: ${safeText(data.className)}`, 89);
+  drawCenteredText(doc, `Class / Kelas: ${formatClassName(data.className)}`, 89);
 
   // ===== STATEMENT (trilingual) =====
   const juz = safeText(data.juz);
@@ -318,21 +328,15 @@ export const buildCertificatePDF = async (
     NAVY,
   );
 
-  // ===== METRICS =====
-  drawMetricCard(doc, 78, "Final Score", "Nilai Akhir", safeScore(data.nilaiAkhir), 122);
-  drawMetricCard(doc, 219, "Grade", "Predikat", safeText(data.predikat), 122);
+  // ===== METRICS (3 columns) =====
+  drawMetricCard(doc, 70, "Final Score", "Nilai Akhir", safeScore(data.nilaiAkhir), 122, "green");
+  drawMetricCard(doc, 148.5, "Grade", "Predikat", safeText(data.predikat), 122, "gold");
+  drawMetricCard(doc, 227, "Date", "Tanggal", safeDate(data.tanggal), 122, "purple");
 
   // ===== QR =====
   await drawQrCode(doc, data);
 
   // ===== FOOTER =====
-  setTextStyle(doc, 8, MUTED, "italic", "times");
-  drawCenteredText(
-    doc,
-    `Issued on ${safeDateEN(data.tanggal)}  ·  Ditetapkan pada ${safeDate(data.tanggal)}`,
-    168,
-  );
-
   drawSignature(doc, 65, "Koordinator Tahfizh", "Tahfizh Coordinator");
   drawSignature(doc, 232, "Kepala Sekolah", "Principal");
 

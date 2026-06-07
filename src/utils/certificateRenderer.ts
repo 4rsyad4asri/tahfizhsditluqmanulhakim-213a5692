@@ -290,7 +290,6 @@ export const renderCertificateImage = async (
   const dateLayout: CertificateElementLayout = {
     ...layout.date,
     width: 190,
-    fontSize: Math.min(layout.date.fontSize, 19),
   };
   drawSpacedText(
     ctx,
@@ -349,7 +348,7 @@ export const CERTIFICATE_EDITOR_BOUNDS: Record<
 > = {
   studentName: { width: 930, height: 76 },
   certificateNumber: { width: 330, height: 42 },
-  className: { width: 190, height: 46 },
+  className: { width: 220, height: 46 },
   juzInfo: { width: 960, height: 86 },
   qrCode: { width: 150, height: 150 },
   date: { width: 230, height: 52 },

@@ -91,7 +91,7 @@ export const DEFAULT_CERTIFICATE_LAYOUT: CertificateLayout = {
     x: 1082,
     y: 729,
     width: 230,
-    fontSize: 20,
+    fontSize: 19,
     fontFamily: "Arial",
     fontWeight: 700,
     letterSpacing: 0,

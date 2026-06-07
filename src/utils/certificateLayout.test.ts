@@ -10,6 +10,7 @@ describe("certificate layout", () => {
     expect(DEFAULT_CERTIFICATE_LAYOUT.certificateNumber.fontSize).toBe(18);
     expect(DEFAULT_CERTIFICATE_LAYOUT.studentName.fontSize).toBe(48);
     expect(DEFAULT_CERTIFICATE_LAYOUT.className.fontSize).toBe(27);
+    expect(DEFAULT_CERTIFICATE_LAYOUT.date.fontSize).toBe(19);
     expect(DEFAULT_CERTIFICATE_LAYOUT.studentName.fontWeight).toBe(700);
   });
 

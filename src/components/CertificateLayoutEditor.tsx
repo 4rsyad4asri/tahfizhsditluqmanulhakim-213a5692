@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { Move, RotateCcw, Save } from "lucide-react";
+import { Download, Move, RotateCcw, Save, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,8 @@ import {
   CERTIFICATE_HEIGHT,
   CERTIFICATE_WIDTH,
   DEFAULT_CERTIFICATE_LAYOUT,
+  exportCertificateLayout,
+  importCertificateLayout,
   saveCertificateLayout,
   type CertificateElementId,
   type CertificateElementLayout,
@@ -78,6 +80,7 @@ const CertificateLayoutEditor = ({
     scale: number;
   } | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) setLayout(cloneLayout(initialLayout));
@@ -167,6 +170,33 @@ const CertificateLayoutEditor = ({
       toast.error("Layout belum tersimpan. Pastikan migrasi database sudah diterapkan.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleExport = () => {
+    const blob = new Blob([exportCertificateLayout(layout)], {
+      type: "application/json;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "layout-sertifikat-tahfizh.json";
+    anchor.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    toast.success("File layout berhasil diekspor");
+  };
+
+  const handleImport = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      const imported = importCertificateLayout(JSON.parse(await file.text()));
+      setLayout(imported);
+      toast.success("Layout berhasil diimpor. Klik Save Layout untuk menyimpan.");
+    } catch (error) {
+      console.error("File layout tidak dapat diimpor:", error);
+      toast.error(error instanceof Error ? error.message : "File layout tidak valid");
+    } finally {
+      if (importInputRef.current) importInputRef.current.value = "";
     }
   };
 
@@ -331,7 +361,24 @@ const CertificateLayoutEditor = ({
           </aside>
         </div>
 
-        <DialogFooter className="border-t px-5 py-3">
+        <DialogFooter className="flex-wrap border-t px-5 py-3">
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={(event) => handleImport(event.target.files?.[0])}
+          />
+          <Button type="button" variant="outline" onClick={handleExport}>
+            <Download className="mr-2 h-4 w-4" /> Export Layout
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => importInputRef.current?.click()}
+          >
+            <Upload className="mr-2 h-4 w-4" /> Import Layout
+          </Button>
           <Button
             type="button"
             variant="outline"

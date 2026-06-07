@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_CERTIFICATE_LAYOUT,
+  exportCertificateLayout,
+  importCertificateLayout,
   normalizeCertificateLayout,
 } from "./certificateLayout";
 import { buildCertificateJuzStatements } from "./certificateRenderer";
@@ -47,5 +49,12 @@ describe("certificate layout", () => {
     expect(placement.imageX).toBeGreaterThanOrEqual(5);
     expect(placement.imageY).toBeGreaterThanOrEqual(5);
     expect(placement.imageWidth / placement.imageHeight).toBeCloseTo(4 / 3, 5);
+  });
+
+  it("exports and imports a portable admin layout file", () => {
+    const exported = exportCertificateLayout(DEFAULT_CERTIFICATE_LAYOUT);
+    const imported = importCertificateLayout(JSON.parse(exported));
+
+    expect(imported).toEqual(DEFAULT_CERTIFICATE_LAYOUT);
   });
 });

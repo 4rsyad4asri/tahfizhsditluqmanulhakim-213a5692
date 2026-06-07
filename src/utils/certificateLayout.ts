@@ -226,6 +226,35 @@ export const saveCertificateLayout = async (value: CertificateLayout) => {
   }
 };
 
+export const exportCertificateLayout = (value: CertificateLayout) =>
+  JSON.stringify(
+    {
+      type: "tahfizh-certificate-layout",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      layout: normalizeCertificateLayout(value),
+    },
+    null,
+    2,
+  );
+
+export const importCertificateLayout = (value: unknown): CertificateLayout => {
+  if (!value || typeof value !== "object") {
+    throw new Error("File layout tidak valid");
+  }
+
+  const raw = value as {
+    type?: unknown;
+    version?: unknown;
+    layout?: unknown;
+  };
+  if (raw.type !== "tahfizh-certificate-layout" || raw.version !== 1) {
+    throw new Error("Format file bukan layout sertifikat Tahfizh");
+  }
+
+  return normalizeCertificateLayout(raw.layout);
+};
+
 export const resetCertificateLayoutCache = () => {
   cachedLayout = null;
 };

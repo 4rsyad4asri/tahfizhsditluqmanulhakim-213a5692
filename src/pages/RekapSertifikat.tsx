@@ -791,16 +791,19 @@ const RekapSertifikat = () => {
                                     onClick={async () => {
                                       try {
                                         setDownloadingId(item.id);
-                                        await downloadCertificatePDF({
-                                          ...item,
-                                          documentNumber: buildReportDocumentNumber(
-                                            "Tahfizh",
-                                            item.id,
-                                            null,
-                                            item.tanggal,
-                                          ),
-                                          verificationUrl: buildVerificationUrl("sertifikat-tahfizh", item.verificationToken),
-                                        } as CertificateData);
+                                        await downloadCertificatePDF(
+                                          {
+                                            ...item,
+                                            documentNumber: buildReportDocumentNumber(
+                                              "Tahfizh",
+                                              item.id,
+                                              null,
+                                              item.tanggal,
+                                            ),
+                                            verificationUrl: buildVerificationUrl("sertifikat-tahfizh", item.verificationToken),
+                                          } as CertificateData,
+                                          "a4-landscape",
+                                        );
                                         toast({ title: "Berhasil", description: "Sertifikat berhasil diunduh" });
                                       } catch (err) {
                                         console.error(err);

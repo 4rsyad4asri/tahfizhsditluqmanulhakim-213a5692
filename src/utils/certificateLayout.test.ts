@@ -4,6 +4,7 @@ import {
   normalizeCertificateLayout,
 } from "./certificateLayout";
 import { buildCertificateJuzStatements } from "./certificateRenderer";
+import { getCertificatePdfPlacement } from "./generateCertificatePDF";
 
 describe("certificate layout", () => {
   it("keeps the requested default visual hierarchy", () => {
@@ -36,5 +37,15 @@ describe("certificate layout", () => {
     expect(statements.indonesian).toBe(
       "Lulus sertifikasi Tahfizh Al-Qur'an Juz 30, 29, 28, 27, 1, 2 dengan hasil:",
     );
+  });
+
+  it("places the certificate on A4 landscape without stretching it", () => {
+    const placement = getCertificatePdfPlacement("a4-landscape");
+
+    expect(placement.pageWidth).toBe(297);
+    expect(placement.pageHeight).toBe(210);
+    expect(placement.imageX).toBeGreaterThanOrEqual(5);
+    expect(placement.imageY).toBeGreaterThanOrEqual(5);
+    expect(placement.imageWidth / placement.imageHeight).toBeCloseTo(4 / 3, 5);
   });
 });

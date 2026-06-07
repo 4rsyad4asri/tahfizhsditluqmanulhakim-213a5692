@@ -9,6 +9,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import CertificateLayoutEditor from "@/components/CertificateLayoutEditor";
 import {
   DEFAULT_CERTIFICATE_LAYOUT,
@@ -18,6 +25,7 @@ import {
 import { renderCertificateImage } from "@/utils/certificateRenderer";
 import {
   type CertificateData,
+  type CertificatePdfFormat,
   buildCertificatePDF,
   safeFileName,
 } from "@/utils/generateCertificatePDF";
@@ -37,6 +45,7 @@ const CertificatePreviewDialog = ({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [pdfFormat, setPdfFormat] = useState<CertificatePdfFormat>("a4-landscape");
   const [layout, setLayout] = useState<CertificateLayout>(DEFAULT_CERTIFICATE_LAYOUT);
   const [leftLogo, setLeftLogo] = useState<string>();
   const [rightLogo, setRightLogo] = useState<string>();
@@ -100,7 +109,7 @@ const CertificatePreviewDialog = ({
 
   const handleDownload = async () => {
     if (!customizedData) return;
-    const doc = await buildCertificatePDF(customizedData, layout);
+    const doc = await buildCertificatePDF(customizedData, layout, pdfFormat);
     doc.save(`Sertifikat_${safeFileName(customizedData.studentName)}.pdf`);
   };
 
@@ -159,6 +168,18 @@ const CertificatePreviewDialog = ({
           </div>
 
           <DialogFooter className="flex-row justify-end gap-2 border-t px-6 py-4 sm:gap-2">
+            <Select
+              value={pdfFormat}
+              onValueChange={(value) => setPdfFormat(value as CertificatePdfFormat)}
+            >
+              <SelectTrigger className="mr-auto w-[210px]">
+                <SelectValue placeholder="Format PDF" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="a4-landscape">A4 Landscape (Cetak)</SelectItem>
+                <SelectItem value="original">Rasio Asli 4:3</SelectItem>
+              </SelectContent>
+            </Select>
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               <X className="mr-1 h-4 w-4" /> Tutup
             </Button>

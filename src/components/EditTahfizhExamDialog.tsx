@@ -62,7 +62,9 @@ export default function EditTahfizhExamDialog({
     if (open && ujian) {
       // Convert dari format lama ke format baru
       const surahEntries = ujian.nilai_aspek?.surahEntries || [];
-      const converted: TahfizhSurahAssessment[] = surahEntries.map(normalizeTahfizhAssessment);
+      const converted: TahfizhSurahAssessment[] = surahEntries.map((entry: unknown) =>
+        normalizeTahfizhAssessment(entry)
+      );
       const savedConfig = normalizeTahfizhPenaltyConfig(ujian.nilai_aspek?.config);
       const savedMode = ujian.nilai_aspek?.tahfizhMode || "Reguler";
 

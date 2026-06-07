@@ -64,7 +64,11 @@ function getSelectedJuzList(assessments: TahfizhSurahAssessment[]) {
 }
 
 function getInitialJuz(initialAssessments?: TahfizhSurahAssessment[]) {
-  const [firstJuz] = getSelectedJuzList((initialAssessments || []).map(normalizeTahfizhAssessment));
+  const [firstJuz] = getSelectedJuzList(
+    (initialAssessments || []).map((assessment) =>
+      normalizeTahfizhAssessment(assessment)
+    )
+  );
   return firstJuz || 30;
 }
 

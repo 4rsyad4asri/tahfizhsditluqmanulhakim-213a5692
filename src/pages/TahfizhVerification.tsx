@@ -129,10 +129,12 @@ export default function TahfizhVerification({
 
   const aspek = (data.nilai_aspek || {}) as any;
   const rawEntries: TahfizhSurahAssessment[] = Array.isArray(aspek.surahEntries)
-    ? aspek.surahEntries.map(normalizeTahfizhAssessment)
+    ? aspek.surahEntries.map((entry: unknown) => normalizeTahfizhAssessment(entry))
     : [];
   const surahEntriesSource = Array.isArray(aspek.surahEntries) ? aspek.surahEntries : [];
-  const scoringEntries = aggregateTahfizhAssessmentsForDisplay(surahEntriesSource).map(normalizeTahfizhAssessment);
+  const scoringEntries = aggregateTahfizhAssessmentsForDisplay(surahEntriesSource).map((entry) =>
+    normalizeTahfizhAssessment(entry)
+  );
   const detailEntries = rawEntries.length ? rawEntries : scoringEntries;
   const reportType = aspek.reportType || (aspek.tahfizhMode === "Sertifikat" ? "summary" : "detail");
   const isCertificateVerification = aspek.tahfizhMode === "Sertifikat";

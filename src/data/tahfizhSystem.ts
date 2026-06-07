@@ -260,21 +260,25 @@ export function normalizeTahfizhAssessment(
   fallbackAssessment?: TahfizhSurahAssessment
 ): TahfizhSurahAssessment {
   const raw = (entry || {}) as RawTahfizhAssessment;
-  const fallback = fallbackAssessment || {
-    surah: "",
-    juz: 30,
-    kelancaran: 90,
-    lahnJali: 0,
-    lahnKhofi: 0,
-    waqaf: 0,
-    salahSambung: 0,
-  };
+  const fallback =
+    fallbackAssessment && typeof fallbackAssessment === "object"
+      ? fallbackAssessment
+      : {
+          surah: "",
+          juz: 30,
+          kelancaran: 90,
+          lahnJali: 0,
+          lahnKhofi: 0,
+          waqaf: 0,
+          salahSambung: 0,
+        };
   const juz = toSafeNumber(raw.juz, fallback.juz);
   const rawSurahValue = raw.surah ?? raw.namaSurat;
-  const rawSurah =
+  const rawSurah = String(
     typeof rawSurahValue === "string" && rawSurahValue.trim()
       ? rawSurahValue
-      : fallback.surah;
+      : fallback.surah ?? ""
+  );
   const groupedJuz30Label = juz === 30 ? getJuz30GroupLabel(rawSurah) : undefined;
 
   return {
@@ -299,7 +303,9 @@ export function normalizeTahfizhAssessment(
 export function aggregateTahfizhAssessmentsForDisplay(
   assessments: unknown[]
 ): TahfizhSurahAssessment[] {
-  const normalized = assessments.map(normalizeTahfizhAssessment);
+  const normalized = assessments.map((assessment) =>
+    normalizeTahfizhAssessment(assessment)
+  );
   const grouped = new Map<string, { base: TahfizhSurahAssessment; kelancaranTotal: number; count: number; order: number }>();
   const passthrough: TahfizhSurahAssessment[] = [];
 

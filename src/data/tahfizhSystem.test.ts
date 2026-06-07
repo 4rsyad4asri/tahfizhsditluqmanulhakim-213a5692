@@ -7,6 +7,17 @@ import {
 } from "@/data/tahfizhSystem";
 
 describe("Tahfizh scoring", () => {
+  it("does not treat array indexes as fallback assessments", () => {
+    const assessments = [
+      { surah: "", juz: 30, kelancaran: 90 },
+      { surah: "", juz: 30, kelancaran: 90 },
+    ].map(normalizeTahfizhAssessment);
+
+    expect(assessments).toHaveLength(2);
+    expect(assessments[1].surah).toBe("");
+    expect(assessments[1].kelancaran).toBe(90);
+  });
+
   it("uses kelancaran 90 for an empty stored value", () => {
     const assessment = normalizeTahfizhAssessment({
       surah: "An-Naba",

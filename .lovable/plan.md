@@ -1,68 +1,56 @@
-# Rencana: Remake Sertifikat Tahfizh (Template + Layout PDF)
+# Rencana: Penyesuaian Sertifikat Tahfizh
 
-## Tujuan
-Mengganti total template sertifikat Tahfizh dengan versi baru yang bersih, tajam, presisi (bukan tambalan), pas untuk A4 Landscape (297×210 mm / rasio 1.414:1), serta menambah teks trilingual (Arab, Inggris, Indonesia) selayaknya sertifikat tahfizh internasional. Bingkai QR juga dirapikan agar ukurannya pas dengan QR.
+## 1. Format Nama Kelas → Angka Romawi
+Di `src/utils/generateCertificatePDF.ts`, tambahkan helper `formatClassName(raw: string)` yang:
+- Menghapus kata "Kelas" (case-insensitive) dari awal string.
+- Mendeteksi angka pertama (1–6) dan mengubahnya jadi Romawi (`I, II, III, IV, V, VI`).
+- Mempertahankan huruf rombel di belakang (A/B/C/D...), dipisah satu spasi.
+- Contoh: `"Kelas 6D"` → `"VI D"`, `"6A"` → `"VI A"`, `"Kelas 3"` → `"III"`.
 
-## Hasil Akhir
-- File `public/certificate-template-tahfizh.png` baru (1754×1240 px, rasio A4 landscape, render bersih).
-- `src/utils/generateCertificatePDF.ts` diperbarui: layout, tipografi trilingual, dan frame QR yang presisi.
-- Dukungan font Arab (`Amiri`) dipakai di PDF (memanfaatkan `src/utils/loadArabicFont.ts` yang sudah ada).
-- Tidak ada perubahan logika data / query (rekap sertifikat tetap).
+Dipakai saat render baris kelas:
+`Class / Kelas: ${formatClassName(data.className)}`.
 
-## Desain Template Baru (image)
-Gaya: Islamic luxury, hijau emerald + emas, ornamen geometris Islami presisi (bukan tambal sulam).
-Komposisi:
-- Bingkai ganda emas tipis di seluruh tepi, sudut ornamen arabesque simetris kiri-kanan-atas-bawah.
-- Header: rosette/medali emas di tengah atas + dua lentera tergantung simetris (kiri & kanan), lebih halus & tajam.
-- Watermark tipis kaligrafi/geometric pattern di tengah, opacity rendah agar teks tetap terbaca.
-- Footer band emerald gelap dengan ornamen bintang 8.
-- Area konten putih bersih di tengah, tanpa elemen kotak metrik yang sebelumnya kaku (metrik akan digambar via PDF, bukan ditanam di image).
-- Tidak ada logo/tulisan eksternal yang menempel di template (logo dibiarkan kosong supaya PDF yang menambah teks).
+## 2. Tiga Kartu Metrik Berwarna (Final Score · Grade · Date)
+Saat ini hanya 2 kartu (Final Score di x=78, Grade di x=219). Ubah jadi 3 kartu sejajar di tengah halaman A4 landscape (lebar 297 mm):
 
-Render via `imagegen--generate_image` quality `premium` (penting untuk ornamen halus), 1792×1280, kemudian crop/resize ke 1754×1240 jika perlu. QA dengan zoom_image.
+```text
+[ Final Score ]      [ Grade / Predikat ]      [ Date / Tanggal ]
+   x ≈ 70mm                x ≈ 148.5mm                x ≈ 227mm
+```
 
-## Layout PDF (A4 Landscape 297×210 mm)
-Header trilingual (atas, center):
-- Arab: «شَهَادَةُ تَحْفِيظِ الْقُرْآنِ الْكَرِيمِ» (font Amiri, ±20pt, navy)
-- English: "CERTIFICATE OF QUR'AN MEMORIZATION" (Helvetica bold small caps, ±13pt, gold)
-- Indonesia: "Sertifikat Tahfizh Al-Qur'an" (Helvetica bold italic, ±12pt, navy)
-- Nomor sertifikat di bawah header (gold, ±9pt)
+- Lebar kartu tetap 58 mm, tinggi 26 mm, posisi Y tetap (122 mm).
+- `drawMetricCard` diperluas menerima parameter `variant: "green" | "gold" | "purple"` yang menentukan:
+  - Warna stroke bingkai
+  - Warna pita header tipis (opsional fill 0.4 mm di atas kartu)
+  - Warna teks nilai utama
 
-Body:
-- Label trilingual "This is to certify that / Diberikan kepada / يُشْهَدُ بِأَنَّ" (italic, kecil)
-- Nama siswa: navy, bold, besar (auto-fit hingga 27pt)
-- Kelas + sekolah (1 baris)
-- Pernyataan trilingual ringkas:
-  - EN: "has successfully completed the Tahfizh examination for Juz {X} with the following result:"
-  - ID: "telah menyelesaikan ujian Tahfizh Al-Qur'an Juz {X} dengan hasil sebagai berikut:"
-  - AR: «قَدْ أَتَمَّ اخْتِبَارَ تَحْفِيظِ الْجُزْءِ {X} بِالنَّتِيجَةِ الْآتِيَةِ»
+Palette (selaras tema Islami emerald-emas yang sudah ada):
+- **Green (Final Score)**: stroke `#1F7A4D` (hijau emerald), value `#0F5132`.
+- **Gold (Grade)**: stroke `#B2841C` (gold, tetap), value `#7A5A0F`.
+- **Purple (Date)**: stroke `#5B2A86` (royal purple), value `#3D1F66`.
 
-Metrik (2 kolom di kiri-tengah & kanan-tengah, digambar via PDF, bukan template):
-- Nilai Akhir / Final Score: angka besar gold
-- Predikat / Grade: teks gold
+Label tetap dua baris: EN uppercase kecil di atas, ID italic di bawah. Untuk kartu Date, nilai memakai `safeDate(data.tanggal)` (Indonesia) — caption EN `safeDateEN` ditiadakan dari footer agar tidak duplikasi (footer hanya menyisakan baris tanda tangan / dihapus baris "Issued on …").
 
-QR Code (kanan-bawah area metrik, terpusat):
-- Ukuran QR: 26×26 mm
-- Frame: kotak rounded emas (stroke 0.5 mm) berukuran 30×30 mm dengan padding 2 mm; QR di-center dalam frame
-- Caption trilingual kecil di bawah frame: "Scan to verify · Verifikasi · للتحقق"
+## 3. Ornamen Template: Bingkai Tegas (Bukan Awan Blur)
+Render ulang `public/certificate-template-tahfizh.png` (1792×1280, A4 landscape) memakai `imagegen--generate_image` quality **premium** dengan arahan:
 
-Footer (bawah):
-- Kiri: tanda tangan "Koordinator Tahfizh / Tahfizh Coordinator"
-- Kanan: tanda tangan "Kepala Sekolah / Principal"
-- Tengah-bawah: tanggal trilingual "Ditetapkan pada {tanggal} · Issued on {date}"
-- Garis tanda tangan emas tipis
+- **Hapus** semua wash cat air / awan blur di empat sudut.
+- **Ganti dengan bingkai berlapis yang tegas**:
+  - Outer border: garis emas tebal (≈8 px) mengelilingi seluruh tepi, jarak 40 px dari sisi.
+  - Inner border: garis emas tipis (≈2 px) 18 px di dalamnya — klasik double frame.
+  - Empat sudut: ornamen arabesque/geometris Islami simetris di dalam bingkai (bukan watercolor), garis emas tajam dengan isian tipis warna emerald `#0d6e6a`.
+  - Tepi tengah atas: rosette emas kecil (tetap, seperti versi sekarang).
+  - Tepi tengah bawah: pita navy `#072346` ramping dengan 5 bintang segi-8 emas (tetap, dirapikan).
+  - Latar pusat ivory `#fbf8f1` polos — tidak ada watermark blur besar; boleh watermark geometric pattern sangat halus (opacity ≤ 6%) di tengah.
+- Palet sama persis dengan versi sebelumnya: teal/emerald `#0d6e6a`/`#2a9d8f`, royal purple `#5b2a86`, gold `#c9a84c`, navy `#072346`, ivory `#fbf8f1`.
+- Komposisi simetris penuh, garis presisi (seperti engraving sertifikat resmi), bukan brushstroke.
 
-## Implementasi (Build Mode)
-1. Generate image template baru (premium) → simpan ke `public/certificate-template-tahfizh.png` (overwrite). QA visual: pastikan tidak ada teks acak/garis tambal, ornamen simetris, tajam.
-2. Update `src/utils/generateCertificatePDF.ts`:
-   - Import & panggil `loadArabicFont` di `buildCertificatePDF`.
-   - Tambah helper `drawTrilingualBlock(doc, ar, en, id, y, opts)`.
-   - Ganti seluruh layout konten (header, body, metrik, QR frame, footer) sesuai spesifikasi di atas.
-   - Sesuaikan posisi QR + frame (rounded rect via `doc.roundedRect`) presisi dengan ukuran QR.
-3. Tidak menyentuh `RekapSertifikat.tsx`, dialog, atau query — preview & download tetap menggunakan `buildCertificatePDF`.
-4. QA: render satu preview lewat dialog, screenshot, verifikasi semua teks tidak overflow, frame QR pas, font Arab tampil benar.
+QA: zoom_image ke 4 sudut + tengah atas/bawah untuk memastikan garis tajam, ornamen sudut simetris, tidak ada residu awan/blur.
 
-## Catatan Teknis
-- `jsPDF` mendukung Arab via Amiri (sudah tersedia di `public/fonts/Amiri-Regular.ttf`). Teks Arab perlu dirender dengan `doc.setFont("Amiri","normal")` dan `align: "center"`. Shaping dasar didukung; gunakan kalimat pendek.
-- Semua koordinat dalam mm; gunakan konstanta agar mudah disesuaikan.
-- Tidak mengubah signature `CertificateData` agar pemanggil tidak perlu diubah.
+## 4. Yang Tidak Diubah
+- Layout header trilingual, body trilingual, QR frame, dan tanda tangan tetap seperti sekarang (hanya baris "Issued on …" dipindah ke kartu Date — lihat poin 2).
+- Tidak ada perubahan pada `RekapSertifikat.tsx`, dialog preview, atau query data.
+
+## File Terdampak
+- `src/utils/generateCertificatePDF.ts` — helper Romawi, 3 kartu metrik berwarna, hapus baris tanggal footer.
+- `public/certificate-template-tahfizh.png` — render ulang dengan bingkai tegas.

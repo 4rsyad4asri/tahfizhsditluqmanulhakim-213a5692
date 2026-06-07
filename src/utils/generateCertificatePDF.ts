@@ -25,6 +25,31 @@ const GOLD: [number, number, number] = [178, 132, 28];
 const BODY: [number, number, number] = [55, 58, 64];
 const MUTED: [number, number, number] = [110, 115, 125];
 
+const GREEN_STROKE: [number, number, number] = [31, 122, 77];
+const GREEN_VALUE: [number, number, number] = [15, 81, 50];
+const GOLD_STROKE: [number, number, number] = [178, 132, 28];
+const GOLD_VALUE: [number, number, number] = [122, 90, 15];
+const PURPLE_STROKE: [number, number, number] = [91, 42, 134];
+const PURPLE_VALUE: [number, number, number] = [61, 31, 102];
+
+type MetricVariant = "green" | "gold" | "purple";
+
+const romanMap: Record<string, string> = {
+  "1": "I", "2": "II", "3": "III", "4": "IV", "5": "V", "6": "VI",
+  "7": "VII", "8": "VIII", "9": "IX", "10": "X",
+};
+
+const formatClassName = (raw: string): string => {
+  const cleaned = safeText(raw, "").replace(/^kelas\s*/i, "").trim();
+  if (!cleaned) return "-";
+  const m = cleaned.match(/^(\d+)\s*([A-Za-z]*)$/);
+  if (m) {
+    const roman = romanMap[m[1]] ?? m[1];
+    return m[2] ? `${roman} ${m[2].toUpperCase()}` : roman;
+  }
+  return cleaned;
+};
+
 let certificateTemplatePromise: Promise<string> | null = null;
 
 const safeText = (value: unknown, fallback = "-") => {

@@ -11,7 +11,9 @@ export type CertificateElementId =
   | "className"
   | "juzInfo"
   | "qrCode"
-  | "date";
+  | "date"
+  | "coordinatorSignature"
+  | "principalSignature";
 
 export type CertificateTextAlign = "left" | "center" | "right";
 
@@ -33,6 +35,13 @@ export interface CertificateQrLayout {
   size: number;
 }
 
+export interface CertificateImageLayout {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface CertificateLayout {
   studentName: CertificateElementLayout;
   certificateNumber: CertificateElementLayout;
@@ -40,6 +49,8 @@ export interface CertificateLayout {
   juzInfo: CertificateElementLayout;
   qrCode: CertificateQrLayout;
   date: CertificateElementLayout;
+  coordinatorSignature: CertificateImageLayout;
+  principalSignature: CertificateImageLayout;
 }
 
 export const DEFAULT_CERTIFICATE_LAYOUT: CertificateLayout = {
@@ -103,6 +114,18 @@ export const DEFAULT_CERTIFICATE_LAYOUT: CertificateLayout = {
     y: 862,
     size: 118,
   },
+  coordinatorSignature: {
+    x: 400,
+    y: 874,
+    width: 240,
+    height: 78,
+  },
+  principalSignature: {
+    x: 1048,
+    y: 874,
+    width: 240,
+    height: 78,
+  },
 };
 
 let cachedLayout: CertificateLayout | null = null;
@@ -140,6 +163,22 @@ const normalizeTextElement = (
   };
 };
 
+const normalizeImageElement = (
+  value: unknown,
+  fallback: CertificateImageLayout,
+): CertificateImageLayout => {
+  const raw = value && typeof value === "object"
+    ? value as Partial<CertificateImageLayout>
+    : {};
+
+  return {
+    x: clamp(raw.x, fallback.x, 0, CERTIFICATE_WIDTH),
+    y: clamp(raw.y, fallback.y, 0, CERTIFICATE_HEIGHT),
+    width: clamp(raw.width, fallback.width, 40, CERTIFICATE_WIDTH),
+    height: clamp(raw.height, fallback.height, 20, CERTIFICATE_HEIGHT),
+  };
+};
+
 export const normalizeCertificateLayout = (value: unknown): CertificateLayout => {
   const raw = value && typeof value === "object"
     ? value as Partial<CertificateLayout>
@@ -162,6 +201,14 @@ export const normalizeCertificateLayout = (value: unknown): CertificateLayout =>
       y: clamp(qr.y, DEFAULT_CERTIFICATE_LAYOUT.qrCode.y, 0, CERTIFICATE_HEIGHT),
       size: clamp(qr.size, DEFAULT_CERTIFICATE_LAYOUT.qrCode.size, 48, 260),
     },
+    coordinatorSignature: normalizeImageElement(
+      raw.coordinatorSignature,
+      DEFAULT_CERTIFICATE_LAYOUT.coordinatorSignature,
+    ),
+    principalSignature: normalizeImageElement(
+      raw.principalSignature,
+      DEFAULT_CERTIFICATE_LAYOUT.principalSignature,
+    ),
   };
 };
 

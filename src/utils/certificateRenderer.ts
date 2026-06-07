@@ -336,8 +336,22 @@ export const renderCertificateImage = async (
     );
   }
 
-  await drawContainedImage(ctx, data.coordinatorSignatureDataUrl, 400, 874, 240, 78);
-  await drawContainedImage(ctx, data.principalSignatureDataUrl, 1048, 874, 240, 78);
+  await drawContainedImage(
+    ctx,
+    data.coordinatorSignatureDataUrl,
+    layout.coordinatorSignature.x,
+    layout.coordinatorSignature.y,
+    layout.coordinatorSignature.width,
+    layout.coordinatorSignature.height,
+  );
+  await drawContainedImage(
+    ctx,
+    data.principalSignatureDataUrl,
+    layout.principalSignature.x,
+    layout.principalSignature.y,
+    layout.principalSignature.width,
+    layout.principalSignature.height,
+  );
 
   return canvas.toDataURL("image/png", 1);
 };
@@ -352,6 +366,8 @@ export const CERTIFICATE_EDITOR_BOUNDS: Record<
   juzInfo: { width: 960, height: 86 },
   qrCode: { width: 150, height: 150 },
   date: { width: 230, height: 52 },
+  coordinatorSignature: { width: 240, height: 78 },
+  principalSignature: { width: 240, height: 78 },
 };
 
 export const CERTIFICATE_SAMPLE_DATA: CertificateData = {

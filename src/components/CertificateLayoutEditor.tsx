@@ -19,6 +19,7 @@ import {
   saveCertificateLayout,
   type CertificateElementId,
   type CertificateElementLayout,
+  type CertificateImageLayout,
   type CertificateLayout,
   type CertificateTextAlign,
 } from "@/utils/certificateLayout";
@@ -43,6 +44,8 @@ const EDITABLE_ELEMENTS: Array<{ id: CertificateElementId; label: string }> = [
   { id: "juzInfo", label: "Informasi Juz" },
   { id: "qrCode", label: "QR Code" },
   { id: "date", label: "Tanggal" },
+  { id: "coordinatorSignature", label: "TTD Koordinator Tahfizh" },
+  { id: "principalSignature", label: "TTD Kepala Sekolah" },
 ];
 
 const FONT_OPTIONS = [
@@ -107,6 +110,8 @@ const CertificateLayoutEditor = ({
 
   const selectedValue = layout[selected];
   const selectedIsQr = selected === "qrCode";
+  const selectedIsSignature =
+    selected === "coordinatorSignature" || selected === "principalSignature";
 
   const updateSelected = (patch: Record<string, string | number>) => {
     setLayout((current) => ({
@@ -202,7 +207,7 @@ const CertificateLayoutEditor = ({
 
   const renderNumberField = (
     label: string,
-    key: "x" | "y" | "fontSize" | "fontWeight" | "letterSpacing" | "width" | "size",
+    key: "x" | "y" | "fontSize" | "fontWeight" | "letterSpacing" | "width" | "height" | "size",
     min?: number,
     max?: number,
     step = 1,
@@ -244,6 +249,11 @@ const CertificateLayoutEditor = ({
                 const value = layout[id];
                 const bounds = id === "qrCode"
                   ? { width: value.size, height: value.size }
+                  : id === "coordinatorSignature" || id === "principalSignature"
+                    ? {
+                        width: (value as CertificateImageLayout).width,
+                        height: (value as CertificateImageLayout).height,
+                      }
                   : CERTIFICATE_EDITOR_BOUNDS[id];
                 return (
                   <button
@@ -300,6 +310,16 @@ const CertificateLayoutEditor = ({
                   <div>{renderNumberField("Ukuran QR", "size", 48, 260)}</div>
                   <p className="rounded-md bg-blue-50 px-3 py-2 text-xs text-blue-800">
                     QR Code dapat digeser langsung pada preview atau diatur presisi melalui X Position dan Y Position.
+                  </p>
+                </div>
+              ) : selectedIsSignature ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    {renderNumberField("Lebar TTD", "width", 40, 600)}
+                    {renderNumberField("Tinggi TTD", "height", 20, 300)}
+                  </div>
+                  <p className="rounded-md bg-blue-50 px-3 py-2 text-xs text-blue-800">
+                    Tanda tangan dapat digeser langsung pada preview. Gunakan PNG transparan agar hasilnya menyatu dengan sertifikat.
                   </p>
                 </div>
               ) : (

@@ -15,6 +15,12 @@ describe("certificate layout", () => {
     expect(DEFAULT_CERTIFICATE_LAYOUT.className.fontSize).toBe(27);
     expect(DEFAULT_CERTIFICATE_LAYOUT.date.fontSize).toBe(19);
     expect(DEFAULT_CERTIFICATE_LAYOUT.studentName.fontWeight).toBe(700);
+    expect(DEFAULT_CERTIFICATE_LAYOUT.coordinatorSignature).toEqual({
+      x: 400,
+      y: 874,
+      width: 240,
+      height: 78,
+    });
   });
 
   it("normalizes unsafe layout values", () => {
@@ -56,5 +62,21 @@ describe("certificate layout", () => {
     const imported = importCertificateLayout(JSON.parse(exported));
 
     expect(imported).toEqual(DEFAULT_CERTIFICATE_LAYOUT);
+  });
+
+  it("adds movable signature defaults to older saved layouts", () => {
+    const oldLayout = {
+      ...DEFAULT_CERTIFICATE_LAYOUT,
+      coordinatorSignature: undefined,
+      principalSignature: undefined,
+    };
+    const normalized = normalizeCertificateLayout(oldLayout);
+
+    expect(normalized.coordinatorSignature).toEqual(
+      DEFAULT_CERTIFICATE_LAYOUT.coordinatorSignature,
+    );
+    expect(normalized.principalSignature).toEqual(
+      DEFAULT_CERTIFICATE_LAYOUT.principalSignature,
+    );
   });
 });

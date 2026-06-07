@@ -15,6 +15,7 @@ import type {
   TahsinPenaltyConfig,
   WaqafSymbolTest,
 } from "@/data/tahsinScoring";
+import { loadRaportVisualLayout } from "@/utils/pdfAssetsLayout";
 
 const STORAGE_KEY = "raport_settings_v3";
 
@@ -165,5 +166,9 @@ export function buildEffectiveOpts(
       data.verificationToken
     ) ||
     opts.verifyUrl;
-  return { ...opts, verifyUrl };
+  return {
+    ...opts,
+    verifyUrl,
+    visualLayout: loadRaportVisualLayout(data.mode, opts.orientation),
+  };
 }

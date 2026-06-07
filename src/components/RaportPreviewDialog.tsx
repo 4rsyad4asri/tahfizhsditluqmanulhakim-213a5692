@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import PdfAssetsLayoutEditor from "@/components/PdfAssetsLayoutEditor";
 import {
   Download,
   Printer,
@@ -18,6 +19,7 @@ import {
   Upload,
   X,
   ImageIcon,
+  Move,
   RefreshCw,
   ExternalLink,
   Copy,
@@ -41,7 +43,13 @@ import {
   type RaportAssets,
   type RaportPdfOptions,
   type Orientation,
+  type RaportMode,
 } from "@/utils/raportPdf";
+import {
+  loadRaportVisualLayout,
+  saveRaportVisualLayout,
+  type RaportVisualLayout,
+} from "@/utils/pdfAssetsLayout";
 import type {
   TahsinDasarEntry,
   TahsinLanjutanEntry,
@@ -130,12 +138,18 @@ export default function RaportPreviewDialog({
   const [assets, setAssets] = useState<RaportAssets>({});
   const [opts, setOpts] = useState<RaportPdfOptions>(DEFAULT_OPTS);
   const [editing, setEditing] = useState(false);
+  const [assetEditing, setAssetEditing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [localUjian, setLocalUjian] = useState<any | null>(ujian);
   const previewSeqRef = useRef(0);
   const activeUjian = localUjian || ujian;
+  const activeMode = (activeUjian?.mode || "Tahfizh") as RaportMode;
+  const [visualLayout, setVisualLayout] = useState<RaportVisualLayout>(() =>
+    loadRaportVisualLayout(activeMode, DEFAULT_OPTS.orientation)
+  );
 
   const generatedCatatan = useMemo(
     () => generateCatatanOtomatisFromUjian(activeUjian, studentName),
@@ -153,6 +167,11 @@ export default function RaportPreviewDialog({
   useEffect(() => {
     setLocalUjian(ujian);
   }, [ujian]);
+
+  useEffect(() => {
+    if (!open) return;
+    setVisualLayout(loadRaportVisualLayout(activeMode, opts.orientation));
+  }, [activeMode, open, opts.orientation]);
 
   useEffect(() => {
     try {
@@ -339,8 +358,8 @@ export default function RaportPreviewDialog({
   );
 
   const effectiveOpts: RaportPdfOptions = useMemo(
-    () => ({ ...opts, verifyUrl }),
-    [opts, verifyUrl]
+    () => ({ ...opts, verifyUrl, visualLayout }),
+    [opts, verifyUrl, visualLayout]
   );
 
   useEffect(() => {
@@ -357,6 +376,7 @@ export default function RaportPreviewDialog({
         const blob = doc.output("blob") as Blob;
         const url = URL.createObjectURL(blob);
 
+        setPreviewBlob(blob);
         setPreviewUrl((prev) => {
           if (prev) URL.revokeObjectURL(prev);
           return url;
@@ -442,6 +462,19 @@ export default function RaportPreviewDialog({
     } catch {
       toast.error("Gagal menyalin link verifikasi");
     }
+  };
+
+  const refreshPreview = () => {
+    previewSeqRef.current += 1;
+    setPreviewBlob(null);
+    setPreviewUrl(null);
+    setVisualLayout((current) => ({ ...current }));
+  };
+
+  const handleSaveVisualLayout = () => {
+    const saved = saveRaportVisualLayout(activeMode, opts.orientation, visualLayout);
+    setVisualLayout(saved);
+    toast.success(`Layout aset ${activeMode} berhasil disimpan`);
   };
 
   if (!activeUjian) return null;
@@ -546,6 +579,15 @@ export default function RaportPreviewDialog({
 
             <Button variant="outline" size="sm" onClick={handlePrint}>
               <Printer className="w-4 h-4 mr-1" /> Cetak
+            </Button>
+
+            <Button
+              variant={assetEditing ? "default" : "outline"}
+              size="sm"
+              onClick={() => setAssetEditing((value) => !value)}
+            >
+              <Move className="mr-1 h-4 w-4" />
+              {assetEditing ? "Tutup Pengaturan Aset" : "Pengaturan Aset PDF"}
             </Button>
 
             <Button size="sm" onClick={handleDownload} disabled={exporting}>
@@ -770,10 +812,22 @@ export default function RaportPreviewDialog({
           </div>
         )}
 
-        <div
-          className="relative bg-muted/30 rounded-md border overflow-hidden"
-          style={{ height: "70vh" }}
-        >
+        {assetEditing ? (
+          <PdfAssetsLayoutEditor
+            orientation={opts.orientation}
+            assets={assets}
+            layout={visualLayout}
+            pdfBlob={previewBlob}
+            onChange={setVisualLayout}
+            onSave={handleSaveVisualLayout}
+            onApply={refreshPreview}
+            onPreviewAgain={refreshPreview}
+          />
+        ) : (
+          <div
+            className="relative bg-muted/30 rounded-md border overflow-hidden"
+            style={{ height: "70vh" }}
+          >
           {loadingPreview && (
             <div className="absolute inset-0 flex items-center justify-center bg-background/60 z-10 backdrop-blur-sm">
               <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -800,7 +854,8 @@ export default function RaportPreviewDialog({
               Memuat preview...
             </div>
           )}
-        </div>
+          </div>
+        )}
 
         <p className="text-[11px] text-muted-foreground italic text-center">
           Preview di atas adalah PDF persis yang akan diunduh & dicetak (single

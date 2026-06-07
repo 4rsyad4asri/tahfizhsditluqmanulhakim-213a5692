@@ -22,8 +22,13 @@ import {
   type TahfizhExamMode,
   type TahfizhPenaltyConfig,
 } from "@/data/tahfizhSystem";
+import {
+  normalizeRaportVisualLayout,
+  type RaportVisualLayout,
+} from "@/utils/pdfAssetsLayout";
 
 export type Orientation = "portrait" | "landscape";
+export type RaportMode = "Tahfizh" | "Tahsin Dasar" | "Tahsin Lanjutan";
 
 export interface RaportHeader {
   schoolName: string;
@@ -51,10 +56,11 @@ export interface RaportPdfOptions {
   showWatermark: boolean;
   showQR: boolean;
   verifyUrl?: string;
+  visualLayout?: RaportVisualLayout;
 }
 
 export interface RaportData {
-  mode: "Tahfizh" | "Tahsin Dasar" | "Tahsin Lanjutan";
+  mode: RaportMode;
   studentName: string;
   className: string;
   nis?: string;
@@ -90,6 +96,16 @@ const EMERALD_SOFT: [number, number, number] = [236, 253, 245];
 const GOLD: [number, number, number] = [180, 140, 50];
 const GRAY_LINE: [number, number, number] = [209, 213, 219];
 const GRAY_TEXT: [number, number, number] = [55, 65, 81];
+
+function hexToRgb(value: string): [number, number, number] {
+  const match = /^#([0-9a-f]{6})$/i.exec(value);
+  if (!match) return GRAY_TEXT;
+  return [
+    Number.parseInt(match[1].slice(0, 2), 16),
+    Number.parseInt(match[1].slice(2, 4), 16),
+    Number.parseInt(match[1].slice(4, 6), 16),
+  ];
+}
 
 function getSalahTasydid(entry: any) {
   return Number(entry.salah_tasydid ?? entry.salah_makhraj ?? 0);
@@ -242,7 +258,8 @@ function drawHeader(
   margin: number,
   qrDataUrl?: string,
   nomorDokumen?: string,
-  verifyUrl?: string
+  verifyUrl?: string,
+  visualLayout?: RaportVisualLayout,
 ) {
   const headerH = 24;
 
@@ -250,20 +267,27 @@ function drawHeader(
   doc.setLineWidth(0.7);
   doc.line(margin, margin + headerH, pageW - margin, margin + headerH);
 
-  const logoSize = 17;
+  const layout = visualLayout?.assets;
 
-  if (assets.logoLeft) {
-    safeAddImage(doc, assets.logoLeft, margin, margin, logoSize, logoSize);
+  if (assets.logoLeft && layout?.leftLogo.visible) {
+    safeAddImage(
+      doc,
+      assets.logoLeft,
+      layout.leftLogo.x,
+      layout.leftLogo.y,
+      layout.leftLogo.width,
+      layout.leftLogo.height,
+    );
   }
 
-  if (assets.logoRight) {
+  if (assets.logoRight && layout?.rightLogo.visible) {
     safeAddImage(
       doc,
       assets.logoRight,
-      pageW - margin - logoSize,
-      margin,
-      logoSize,
-      logoSize
+      layout.rightLogo.x,
+      layout.rightLogo.y,
+      layout.rightLogo.width,
+      layout.rightLogo.height,
     );
   }
 
@@ -281,7 +305,8 @@ function drawHeader(
   });
 
   doc.setFontSize(7.5);
-  doc.setTextColor(...GRAY_TEXT);
+  doc.setTextColor(...hexToRgb(visualLayout?.text.color || "#374151"));
+  doc.setFont("helvetica", visualLayout?.text.bold ? "bold" : "normal");
   doc.text(header.address, pageW / 2, margin + 15, {
     align: "center",
   });
@@ -310,21 +335,22 @@ function drawHeader(
     });
   }
 
-  if (qrDataUrl) {
-    const qrX = pageW - margin - 16;
-    const qrY = margin + headerH + 1;
-    const qrSize = 16;
+  if (qrDataUrl && layout?.qrCode.visible) {
+    const qrX = layout.qrCode.x;
+    const qrY = layout.qrCode.y;
+    const qrWidth = layout.qrCode.width;
+    const qrHeight = layout.qrCode.height;
 
-    safeAddImage(doc, qrDataUrl, qrX, qrY, qrSize, qrSize);
+    safeAddImage(doc, qrDataUrl, qrX, qrY, qrWidth, qrHeight);
 
     if (verifyUrl) {
-      doc.link(qrX, qrY, qrSize, qrSize, { url: verifyUrl });
+      doc.link(qrX, qrY, qrWidth, qrHeight, { url: verifyUrl });
     }
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(5.5);
-    doc.setTextColor(...GRAY_TEXT);
-    doc.text("Verifikasi Online", qrX + qrSize / 2, qrY + qrSize + 2.5, {
+    doc.setTextColor(...hexToRgb(visualLayout?.text.color || "#374151"));
+    doc.text("Verifikasi Online", qrX + qrWidth / 2, qrY + qrHeight + 2.5, {
       align: "center",
     });
   }
@@ -382,8 +408,10 @@ function drawStudentInfo(
   data: RaportData,
   pageW: number,
   margin: number,
-  startY: number
+  startY: number,
+  visualLayout: RaportVisualLayout,
 ) {
+  const textColor = hexToRgb(visualLayout.text.color);
   autoTable(doc, {
     startY,
     margin: {
@@ -397,7 +425,8 @@ function drawStudentInfo(
       cellPadding: 1,
       lineColor: GRAY_LINE,
       lineWidth: 0.15,
-      textColor: [40, 40, 40],
+      textColor,
+      fontStyle: visualLayout.text.bold ? "bold" : "normal",
     },
     columnStyles: {
       0: {
@@ -879,7 +908,8 @@ function drawCatatan(
   catatan: string,
   pageW: number,
   margin: number,
-  startY: number
+  startY: number,
+  visualLayout: RaportVisualLayout,
 ): number {
   doc.setFillColor(...EMERALD);
   doc.rect(margin, startY, pageW - margin * 2, 4, "F");
@@ -892,11 +922,14 @@ function drawCatatan(
   const text = catatan || "-";
   const isArabicText = /[\u0600-\u06FF]/.test(text);
 
-  doc.setFont(isArabicText ? "Amiri" : "helvetica", "normal");
+  doc.setFont(
+    isArabicText ? "Amiri" : "helvetica",
+    visualLayout.text.bold ? "bold" : "normal",
+  );
   doc.setFontSize(6.8);
   doc.setCharSpace(0);
   doc.setLineHeightFactor(1.3);
-  doc.setTextColor(...GRAY_TEXT);
+  doc.setTextColor(...hexToRgb(visualLayout.text.color));
 
   const textWidth = pageW - margin * 2 - 6;
   const lines = doc.splitTextToSize(text, textWidth);
@@ -931,7 +964,9 @@ function drawSignatures(
   opts: RaportPdfOptions,
   pageW: number,
   margin: number,
-  startY: number
+  startY: number,
+  assets: RaportAssets,
+  visualLayout: RaportVisualLayout,
 ) {
   const colW = (pageW - margin * 2) / 3;
 
@@ -966,8 +1001,9 @@ function drawSignatures(
       y += 4;
     }
 
-    doc.setFont("helvetica", "normal");
+    doc.setFont("helvetica", visualLayout.text.bold ? "bold" : "normal");
     doc.setFontSize(opts.fontSize - 1);
+    doc.setTextColor(...hexToRgb(visualLayout.text.color));
     doc.text(p.title1, x, y, {
       align: "center",
     });
@@ -999,6 +1035,28 @@ function drawSignatures(
       });
     }
   });
+
+  const imageLayout = visualLayout.assets;
+  if (assets.sigExaminer && imageLayout.examinerSignature.visible) {
+    safeAddImage(
+      doc,
+      assets.sigExaminer,
+      imageLayout.examinerSignature.x,
+      imageLayout.examinerSignature.y,
+      imageLayout.examinerSignature.width,
+      imageLayout.examinerSignature.height,
+    );
+  }
+  if (assets.sigHeadmaster && imageLayout.headmasterSignature.visible) {
+    safeAddImage(
+      doc,
+      assets.sigHeadmaster,
+      imageLayout.headmasterSignature.x,
+      imageLayout.headmasterSignature.y,
+      imageLayout.headmasterSignature.width,
+      imageLayout.headmasterSignature.height,
+    );
+  }
 }
 
 export async function generateRaportPDF(
@@ -1018,6 +1076,10 @@ export async function generateRaportPDF(
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 10;
+  const visualLayout = normalizeRaportVisualLayout(
+    opts.visualLayout,
+    opts.orientation,
+  );
 
   const nomor = generateNomorDokumen(data.mode, data.ujianId);
 
@@ -1034,14 +1096,27 @@ export async function generateRaportPDF(
     effectiveVerifyUrl ||
     `${data.mode}|${data.studentName}|${data.tanggal}|${data.nilaiAkhir}|${data.status}|${nomor}`;
 
-  const qrUrl = opts.showQR ? await makeQR(verifyText) : undefined;
+  const qrUrl = opts.showQR && visualLayout.assets.qrCode.visible
+    ? await makeQR(verifyText)
+    : undefined;
 
   drawWatermark(doc, header, assets, opts, pageW, pageH);
-  drawHeader(doc, data, header, assets, pageW, margin, qrUrl, nomor, effectiveVerifyUrl);
+  drawHeader(
+    doc,
+    data,
+    header,
+    assets,
+    pageW,
+    margin,
+    qrUrl,
+    nomor,
+    effectiveVerifyUrl,
+    visualLayout,
+  );
 
   let y = margin + 26 + 16;
 
-  drawStudentInfo(doc, data, pageW, margin, y);
+  drawStudentInfo(doc, data, pageW, margin, y, visualLayout);
 
   y = (doc as any).lastAutoTable.finalY + 3;
 
@@ -1162,9 +1237,9 @@ export async function generateRaportPDF(
     }
   }
 
-  y = drawCatatan(doc, catatanFinal, pageW, margin, y);
+  y = drawCatatan(doc, catatanFinal, pageW, margin, y, visualLayout);
 
-  drawSignatures(doc, data, header, opts, pageW, margin, y);
+  drawSignatures(doc, data, header, opts, pageW, margin, y, assets, visualLayout);
 
   const totalPages = doc.getNumberOfPages();
 

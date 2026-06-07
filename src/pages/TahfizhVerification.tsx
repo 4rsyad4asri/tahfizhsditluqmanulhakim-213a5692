@@ -24,6 +24,7 @@ import {
   type TahfizhSurahAssessment,
 } from "@/data/tahfizhSystem";
 import { getEffectiveCatatanGuru } from "@/utils/catatanOtomatis";
+import { buildReportDocumentNumber } from "@/utils/documentNumber";
 import { usesLegacyTahfizhScoring } from "@/utils/verificationUrl";
 
 function formatDate(date?: string | null) {
@@ -60,18 +61,6 @@ function maskToken(token?: string) {
   if (!token) return "-";
   if (token.length <= 10) return token;
   return `${token.slice(0, 4)}****${token.slice(-4)}`;
-}
-
-function getDocumentNumber(mode?: string, id?: string, publishedAt?: string | null, tanggal?: string | null) {
-  const sourceDate = publishedAt || tanggal || new Date().toISOString();
-  const date = new Date(sourceDate);
-  const year = Number.isNaN(date.getTime()) ? new Date().getFullYear() : date.getFullYear();
-  const month = Number.isNaN(date.getTime()) ? new Date().getMonth() + 1 : date.getMonth() + 1;
-  const ym = `${year}${String(month).padStart(2, "0")}`;
-  const code = (mode || "Tahfizh").replace(/\s+/g, "").toUpperCase();
-  const shortId = (id || "VERIFY").slice(0, 6).toUpperCase();
-
-  return `RPT/${code}/${ym}/${shortId}`;
 }
 
 function getFallback(value: unknown) {
@@ -167,7 +156,12 @@ export default function TahfizhVerification({
       };
   const effectiveCatatanGuru = getEffectiveCatatanGuru(data, student?.name || "Siswa");
   const nilaiAkhir = scoringEntries.length > 0 ? normalized.nilaiAkhir : data.nilai_akhir;
-  const documentNumber = getDocumentNumber(data.mode, data.id, data.published_at, data.tanggal);
+  const documentNumber = buildReportDocumentNumber(
+    data.mode,
+    data.id,
+    data.published_at,
+    data.tanggal,
+  );
   const assessor = (data as any).assessor_name || aspek.assessorName || (isUuidLike(data.assessed_by) ? "-" : data.assessed_by) || "-";
 
   return (

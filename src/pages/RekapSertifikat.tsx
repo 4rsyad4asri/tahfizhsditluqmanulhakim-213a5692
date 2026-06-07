@@ -24,6 +24,7 @@ import {
   isLegacyTahfizhCertificateCandidate,
   usesLegacyTahfizhScoring,
 } from "@/utils/verificationUrl";
+import { buildReportDocumentNumber } from "@/utils/documentNumber";
 
 interface RekapItem {
   id: string;
@@ -239,7 +240,13 @@ const RekapSertifikat = () => {
         const classGrade = cls?.grade || 0;
         const syncedResult = getSyncedTahfizhCertificateResult(u);
         const entries = syncedResult.entries;
-        const juzList = [...new Set(entries.map((e: any) => e.juz))].sort((a: number, b: number) => a - b);
+        const juzList = [
+          ...new Set(
+            entries
+              .map((entry: any) => String(entry.juz ?? "").trim())
+              .filter(Boolean),
+          ),
+        ];
         const forceIncluded = isForcedCertificateStudent(student);
         const isLulus = syncedResult.status === "Lulus";
         const receivesCertificateNumber = isLulus || forceIncluded;
@@ -786,6 +793,12 @@ const RekapSertifikat = () => {
                                         setDownloadingId(item.id);
                                         await downloadCertificatePDF({
                                           ...item,
+                                          documentNumber: buildReportDocumentNumber(
+                                            "Tahfizh",
+                                            item.id,
+                                            null,
+                                            item.tanggal,
+                                          ),
                                           verificationUrl: buildVerificationUrl("sertifikat-tahfizh", item.verificationToken),
                                         } as CertificateData);
                                         toast({ title: "Berhasil", description: "Sertifikat berhasil diunduh" });
@@ -875,6 +888,12 @@ const RekapSertifikat = () => {
                 predikat: previewItem.predikat,
                 tanggal: previewItem.tanggal,
                 nomorSertifikat: previewItem.nomorSertifikat,
+                documentNumber: buildReportDocumentNumber(
+                  "Tahfizh",
+                  previewItem.id,
+                  null,
+                  previewItem.tanggal,
+                ),
                 verificationToken: previewItem.verificationToken,
                 verificationUrl: buildVerificationUrl("sertifikat-tahfizh", previewItem.verificationToken),
               }

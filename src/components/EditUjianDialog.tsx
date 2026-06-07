@@ -19,13 +19,15 @@ import {
   type RumusVersion,
 } from "@/data/tahsinScoring";
 import generateCatatanOtomatis from "@/utils/catatanOtomatis";
+import { usesLegacyTahfizhScoring } from "@/utils/verificationUrl";
 import { Loader2 } from "lucide-react";
 import {
-  DEFAULT_TAHFIZH_PENALTY,
   aggregateTahfizhAssessmentsForDisplay,
-  calculateTahfizhExamResult,
   calculateTahfizhSummary,
   calculateTahfizhSurahScore,
+  normalizeTahfizhPayload,
+  normalizeTahfizhPenaltyConfig,
+  toSafeNumber,
   toLegacyTahfizhEntry,
   type TahfizhExamMode,
   type TahfizhPenaltyConfig,
@@ -91,12 +93,7 @@ function normalizeTahsinEntry<T extends Record<string, any>>(entry: T): T {
 }
 
 function getTahfizhPenaltyConfig(config: any): TahfizhPenaltyConfig {
-  return {
-    lahnJali: Number(config?.lahnJali ?? config?.penalti_lahn_jali ?? DEFAULT_TAHFIZH_PENALTY.lahnJali),
-    lahnKhofi: Number(config?.lahnKhofi ?? config?.penalti_lahn_khofi ?? DEFAULT_TAHFIZH_PENALTY.lahnKhofi),
-    waqaf: Number(config?.waqaf ?? config?.penalti_waqaf ?? DEFAULT_TAHFIZH_PENALTY.waqaf),
-    salahSambung: Number(config?.salahSambung ?? config?.penalti_salah_sambung ?? DEFAULT_TAHFIZH_PENALTY.salahSambung),
-  };
+  return normalizeTahfizhPenaltyConfig(config);
 }
 
 function getEntryAyatLabel(entry: TahfizhSurahAssessment) {
@@ -107,17 +104,11 @@ function getEntryAyatLabel(entry: TahfizhSurahAssessment) {
   return "-";
 }
 
-function isLegacyClassSixExam(classInfo: any, ujian: any) {
-  const grade = Number(classInfo?.grade ?? String(classInfo?.name || "").match(/\d+/)?.[0]);
-  return grade === 6 && !!ujian?.id;
-}
-
 export default function EditUjianDialog({
   open,
   onClose,
   ujian,
   studentName,
-  classInfo,
   onSave,
   isSaving,
 }: Props) {
@@ -209,14 +200,21 @@ export default function EditUjianDialog({
 
   const computed = useMemo(() => {
     if (mode === "Tahfizh") {
-      const r = calculateTahfizhExamResult(
-        tahfizhEntries,
+      const legacyScoring = usesLegacyTahfizhScoring({
+        mode: ujian?.mode,
+        assessedBy: ujian?.assessed_by,
+        tanggal: ujian?.tanggal,
+      });
+      const normalized = normalizeTahfizhPayload({
+        entries: tahfizhEntries,
+        nilaiAspek: aspek,
         tahfizhMode,
-        tahfizhConfig,
-        manualStopReason,
-        isLegacyClassSixExam(classInfo, ujian),
-        aspek.autoFailConfig
-      );
+        config: tahfizhConfig,
+        manualStopReason: legacyScoring ? "" : manualStopReason,
+        ignoreAutoFail: legacyScoring,
+        autoFailConfig: aspek.autoFailConfig,
+      });
+      const r = normalized.result;
 
       return {
         nilai_akhir: r.nilaiAkhir,
@@ -265,7 +263,6 @@ export default function EditUjianDialog({
     tahfizhConfig,
     tahfizhMode,
     manualStopReason,
-    classInfo,
     ujian,
     dasarEntries,
     dasarConfig,
@@ -416,7 +413,7 @@ export default function EditUjianDialog({
         nilaiPerJuz: tahfizhResult?.nilaiPerJuz || [],
         autoFailLog: tahfizhResult?.autoFail?.log || aspek.autoFailLog || "",
         statusLabel: tahfizhResult?.statusLabel || computed.status,
-        rumus,
+        rumus: "baru",
         catatanGuru,
         catatanMode,
         predikat: computed.predikat,
@@ -575,7 +572,10 @@ export default function EditUjianDialog({
                         value={e.juz}
                         onChange={(ev) => {
                           const updated = [...tahfizhEntries];
-                          updated[i] = { ...updated[i], juz: parseInt(ev.target.value) || 30 };
+                          updated[i] = {
+                            ...updated[i],
+                            juz: Math.min(30, Math.max(1, toSafeNumber(ev.target.value, updated[i].juz))),
+                          };
                           setTahfizhEntries(updated);
                         }}
                         className="w-full px-2 py-1.5 rounded-md border border-input bg-background text-foreground text-sm"
@@ -613,12 +613,18 @@ export default function EditUjianDialog({
                           type="number"
                           min={0}
                           max={100}
-                          value={(e as any)[f.k] ?? 0}
+                          value={(e as any)[f.k] ?? (f.k === "kelancaran" ? 90 : 0)}
                           onChange={(ev) => {
                             const updated = [...tahfizhEntries];
                             updated[i] = {
                               ...updated[i],
-                              [f.k]: parseInt(ev.target.value) || 0,
+                              [f.k]: Math.max(
+                                0,
+                                toSafeNumber(
+                                  ev.target.value,
+                                  (updated[i] as any)[f.k] ?? (f.k === "kelancaran" ? 90 : 0)
+                                )
+                              ),
                             };
                             setTahfizhEntries(updated);
                           }}

@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   aggregateTahfizhAssessmentsForDisplay,
-  calculateTahfizhExamResult,
+  normalizeTahfizhPayload,
+  toSafeNumber,
   type TahfizhPenaltyConfig,
   type TahfizhSurahAssessment,
 } from "@/data/tahfizhSystem";
@@ -21,6 +22,7 @@ import CertificatePreviewDialog from "@/components/CertificatePreviewDialog";
 import {
   buildVerificationUrl,
   isLegacyTahfizhCertificateCandidate,
+  usesLegacyTahfizhScoring,
 } from "@/utils/verificationUrl";
 
 interface RekapItem {
@@ -137,24 +139,44 @@ const getSyncedTahfizhCertificateResult = (
   status: "Lulus" | "Tidak Lulus";
 } => {
   const aspek = ujian.nilai_aspek as any;
-  const rawEntries = Array.isArray(aspek?.surahEntries) ? aspek.surahEntries : [];
+  const rawEntries = Array.isArray(aspek?.surahEntries)
+    ? aspek.surahEntries
+    : Array.isArray(aspek?.entries)
+      ? aspek.entries
+      : [];
   const entries = aggregateTahfizhAssessmentsForDisplay(rawEntries) as TahfizhSurahAssessment[];
 
-  const result = calculateTahfizhExamResult(
+  if (entries.length === 0) {
+    return {
+      entries: [],
+      nilaiAkhir: toSafeNumber(ujian.nilai_akhir, 0),
+      predikat: aspek?.predikat || "-",
+      grade: ujian.grade || "-",
+      status: ujian.status || "Tidak Lulus",
+    };
+  }
+
+  const legacyScoring = usesLegacyTahfizhScoring({
+    mode: ujian.mode,
+    assessedBy: ujian.assessed_by,
+    tanggal: ujian.tanggal,
+  });
+  const normalized = normalizeTahfizhPayload({
     entries,
-    "Sertifikat",
-    aspek?.config as TahfizhPenaltyConfig | undefined,
-    aspek?.manualStopReason || "",
-    false,
-    aspek?.autoFailConfig,
-  );
+    nilaiAspek: aspek,
+    tahfizhMode: "Sertifikat",
+    config: aspek?.config as TahfizhPenaltyConfig | undefined,
+    manualStopReason: legacyScoring ? "" : aspek?.manualStopReason || "",
+    ignoreAutoFail: legacyScoring,
+    autoFailConfig: aspek?.autoFailConfig,
+  });
 
   return {
-    entries,
-    nilaiAkhir: result.nilaiAkhir,
-    predikat: result.predikat,
-    grade: result.grade,
-    status: result.status,
+    entries: normalized.assessments,
+    nilaiAkhir: normalized.nilaiAkhir,
+    predikat: normalized.predikat,
+    grade: normalized.grade,
+    status: normalized.status,
   };
 };
 

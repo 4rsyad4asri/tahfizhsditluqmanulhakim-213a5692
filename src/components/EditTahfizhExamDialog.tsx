@@ -10,6 +10,9 @@ import { Button } from '@/components/ui/button';
 import {
   calculateTahfizhExamResult,
   calculateTahfizhSurahScore,
+  normalizeTahfizhAssessment,
+  normalizeTahfizhPenaltyConfig,
+  toSafeNumber,
   type TahfizhSurahAssessment,
   type TahfizhPenaltyConfig,
   type TahfizhJuzResult,
@@ -59,21 +62,16 @@ export default function EditTahfizhExamDialog({
     if (open && ujian) {
       // Convert dari format lama ke format baru
       const surahEntries = ujian.nilai_aspek?.surahEntries || [];
-      const converted: TahfizhSurahAssessment[] = surahEntries.map((entry: any) => ({
-        surah: entry.surah,
-        juz: entry.juz,
-        kelancaran: entry.kelancaran,
-        lahnJali: entry.lahn_jali || 0,
-        lahnKhofi: entry.lahn_khofi || 0,
-        waqaf: entry.waqaf_ibtida || 0,
-        salahSambung: entry.salah_sambung_ayat || 0,
-      }));
+      const converted: TahfizhSurahAssessment[] = surahEntries.map(normalizeTahfizhAssessment);
+      const savedConfig = normalizeTahfizhPenaltyConfig(ujian.nilai_aspek?.config);
+      const savedMode = ujian.nilai_aspek?.tahfizhMode || "Reguler";
 
       setEntries(converted);
       setCatatanGuru(ujian.nilai_aspek?.catatanGuru || '');
+      setPenaltiConfig(savedConfig);
 
       // Kalkulasi hasil baru
-      const newResult = calculateTahfizhExamResult(converted);
+      const newResult = calculateTahfizhExamResult(converted, savedMode, savedConfig);
       setResult(newResult);
     }
   }, [open, ujian]);
@@ -81,7 +79,11 @@ export default function EditTahfizhExamDialog({
   // Auto-calculate saat entries berubah
   useEffect(() => {
     if (entries.length > 0) {
-      const newResult = calculateTahfizhExamResult(entries, ujian?.mode || 'Reguler', penaltiConfig);
+      const newResult = calculateTahfizhExamResult(
+        entries,
+        ujian?.nilai_aspek?.tahfizhMode || 'Reguler',
+        penaltiConfig
+      );
       setResult(newResult);
     }
   }, [entries, penaltiConfig]);
@@ -181,7 +183,13 @@ export default function EditTahfizhExamDialog({
                       onChange={(e) =>
                         setPenaltiConfig({
                           ...penaltiConfig,
-                          [field.key]: parseFloat(e.target.value) || 0,
+                          [field.key]: Math.max(
+                            0,
+                            toSafeNumber(
+                              e.target.value,
+                              penaltiConfig[field.key as keyof TahfizhPenaltyConfig]
+                            )
+                          ),
                         })
                       }
                       className="w-full px-2 py-1.5 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
@@ -275,7 +283,7 @@ export default function EditTahfizhExamDialog({
                           min={0}
                           value={entry.lahnJali}
                           onChange={(e) =>
-                            handleUpdateEntry(index, 'lahnJali', parseInt(e.target.value) || 0)
+                            handleUpdateEntry(index, 'lahnJali', Math.max(0, toSafeNumber(e.target.value, entry.lahnJali)))
                           }
                           className="w-12 px-2 py-1 rounded-md border border-input bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-ring text-center"
                         />
@@ -286,7 +294,7 @@ export default function EditTahfizhExamDialog({
                           min={0}
                           value={entry.lahnKhofi}
                           onChange={(e) =>
-                            handleUpdateEntry(index, 'lahnKhofi', parseInt(e.target.value) || 0)
+                            handleUpdateEntry(index, 'lahnKhofi', Math.max(0, toSafeNumber(e.target.value, entry.lahnKhofi)))
                           }
                           className="w-12 px-2 py-1 rounded-md border border-input bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-ring text-center"
                         />
@@ -297,7 +305,7 @@ export default function EditTahfizhExamDialog({
                           min={0}
                           value={entry.waqaf}
                           onChange={(e) =>
-                            handleUpdateEntry(index, 'waqaf', parseInt(e.target.value) || 0)
+                            handleUpdateEntry(index, 'waqaf', Math.max(0, toSafeNumber(e.target.value, entry.waqaf)))
                           }
                           className="w-12 px-2 py-1 rounded-md border border-input bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-ring text-center"
                         />
@@ -308,7 +316,7 @@ export default function EditTahfizhExamDialog({
                           min={0}
                           value={entry.salahSambung}
                           onChange={(e) =>
-                            handleUpdateEntry(index, 'salahSambung', parseInt(e.target.value) || 0)
+                            handleUpdateEntry(index, 'salahSambung', Math.max(0, toSafeNumber(e.target.value, entry.salahSambung)))
                           }
                           className="w-12 px-2 py-1 rounded-md border border-input bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-ring text-center"
                         />

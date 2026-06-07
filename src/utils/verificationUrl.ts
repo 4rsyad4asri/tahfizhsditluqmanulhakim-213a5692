@@ -77,6 +77,17 @@ export function isLegacyTahfizhCertificateCandidate(
   );
 }
 
+export function usesLegacyTahfizhScoring(
+  context: VerificationExamContext
+) {
+  return (
+    context.mode === "Tahfizh" &&
+    !!context.assessedBy &&
+    LEGACY_TAHFIZH_CERTIFICATE_ASSESSOR_IDS.has(context.assessedBy) &&
+    isBeforeLegacyCutoff(context.tanggal)
+  );
+}
+
 export function inferTahfizhModeForExam(
   context: VerificationExamContext
 ): TahfizhVerificationMode | undefined {

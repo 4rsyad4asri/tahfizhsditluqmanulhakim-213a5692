@@ -4,13 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   aggregateTahfizhAssessmentsForDisplay,
-  calculateTahfizhExamResult,
-  DEFAULT_TAHFIZH_PENALTY,
+  normalizeTahfizhPayload,
+  normalizeTahfizhPenaltyConfig,
   type TahfizhExamMode,
   type TahfizhPenaltyConfig,
   type TahfizhSurahAssessment,
 } from "@/data/tahfizhSystem";
-import { getStandardExamGrading } from "@/data/grading";
 import { Loader2, Download, BarChart3, Award, BookOpen, Users, Eye, FileArchive, RotateCcw, XCircle } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from "recharts";
 import { exportJsonToExcel } from "@/utils/excel";
@@ -20,7 +19,7 @@ import {
   buildEffectiveOpts,
   loadRaportSettings,
 } from "@/utils/raportBuilder";
-import { inferTahfizhModeForExam } from "@/utils/verificationUrl";
+import { inferTahfizhModeForExam, usesLegacyTahfizhScoring } from "@/utils/verificationUrl";
 import { generateRaportPDF, downloadRaportPDF } from "@/utils/raportPdf";
 import JSZip from "jszip";
 import { toast } from "sonner";
@@ -67,25 +66,10 @@ const MODE_COLORS: Record<string, string> = {
 const BULK_BATCH_SIZE = 10;
 
 function getTahfizhPenaltyConfig(config: any): TahfizhPenaltyConfig {
-  return {
-    lahnJali: Number(config?.lahnJali ?? config?.penalti_lahn_jali ?? DEFAULT_TAHFIZH_PENALTY.lahnJali),
-    lahnKhofi: Number(config?.lahnKhofi ?? config?.penalti_lahn_khofi ?? DEFAULT_TAHFIZH_PENALTY.lahnKhofi),
-    waqaf: Number(config?.waqaf ?? config?.penalti_waqaf ?? DEFAULT_TAHFIZH_PENALTY.waqaf),
-    salahSambung: Number(config?.salahSambung ?? config?.penalti_salah_sambung ?? DEFAULT_TAHFIZH_PENALTY.salahSambung),
-  };
+  return normalizeTahfizhPenaltyConfig(config);
 }
 
-function isLegacyClassSixExam(classInfo: any, ujian: any) {
-  const grade = Number(classInfo?.grade ?? String(classInfo?.name || "").match(/\d+/)?.[0]);
-  return grade === 6 && !!ujian?.id;
-}
-
-function getLegacyClassSixTahfizhState(nilai: number) {
-  const grading = getStandardExamGrading(nilai);
-  return { ...grading, statusLabel: grading.status };
-}
-
-function getSyncedUjian(ujian: any, classInfo?: any) {
+function getSyncedUjian(ujian: any) {
   if (ujian?.mode !== "Tahfizh") return ujian;
 
   const aspek =
@@ -96,34 +80,37 @@ function getSyncedUjian(ujian: any, classInfo?: any) {
   if (rawEntries.length === 0) return ujian;
 
   const entries = aggregateTahfizhAssessmentsForDisplay(rawEntries) as TahfizhSurahAssessment[];
-  const result = calculateTahfizhExamResult(
+  const legacyScoring = usesLegacyTahfizhScoring({
+    mode: ujian.mode,
+    assessedBy: ujian.assessed_by,
+    tanggal: ujian.tanggal,
+  });
+  const normalized = normalizeTahfizhPayload({
     entries,
-    (inferTahfizhModeForExam({
+    nilaiAspek: aspek,
+    tahfizhMode: (inferTahfizhModeForExam({
       mode: ujian?.mode,
       tahfizhMode: aspek.tahfizhMode,
       verificationType: aspek.verificationType,
       assessedBy: ujian?.assessed_by,
       tanggal: ujian?.tanggal,
     }) || "Reguler") as TahfizhExamMode,
-    getTahfizhPenaltyConfig(aspek.config),
-    aspek.manualStopReason || "",
-    isLegacyClassSixExam(classInfo, ujian),
-    aspek.autoFailConfig,
-  );
-  const legacyState = isLegacyClassSixExam(classInfo, ujian)
-    ? getLegacyClassSixTahfizhState(result.nilaiAkhir || result.rataRataAkhir)
-    : undefined;
-  const finalState = legacyState || result;
+    config: getTahfizhPenaltyConfig(aspek.config),
+    manualStopReason: legacyScoring ? "" : aspek.manualStopReason || "",
+    ignoreAutoFail: legacyScoring,
+    autoFailConfig: aspek.autoFailConfig,
+  });
+  const result = normalized.result;
 
   return {
     ...ujian,
     nilai_akhir: result.nilaiAkhir,
-    status: finalState.status,
-    grade: finalState.grade,
+    status: result.status,
+    grade: result.grade,
     nilai_aspek: {
       ...aspek,
-      predikat: finalState.predikat,
-      statusLabel: finalState.statusLabel,
+      predikat: result.predikat,
+      statusLabel: result.statusLabel,
     },
   };
 }
@@ -192,7 +179,7 @@ export default function RekapGlobal() {
         const s = sMap.get(u.student_id) as any;
         const c = s ? cMap.get(s.class_id) as any : null;
         const p = u.assessed_by ? (pMap.get(u.assessed_by) as any) : null;
-        const syncedUjian = getSyncedUjian(u, c);
+        const syncedUjian = getSyncedUjian(u);
         const aspek = syncedUjian.nilai_aspek as any;
         return {
           ujianId: syncedUjian.id,

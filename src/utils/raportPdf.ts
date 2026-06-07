@@ -14,11 +14,11 @@ import {
 } from "@/data/tahsinScoring";
 import type { TahfizhSurahEntry } from "@/data/mockData";
 import {
-  DEFAULT_TAHFIZH_PENALTY,
   aggregateTahfizhAssessmentsForDisplay,
   calculateTahfizhSummary,
   calculateTahfizhSurahScore,
   normalizeTahfizhAssessment,
+  normalizeTahfizhPenaltyConfig,
   type TahfizhExamMode,
   type TahfizhPenaltyConfig,
 } from "@/data/tahfizhSystem";
@@ -111,12 +111,7 @@ function getRataKelancaran(entries: { kelancaran?: number }[]) {
 }
 
 function getTahfizhPenaltyConfig(config: any): TahfizhPenaltyConfig {
-  return {
-    lahnJali: Number(config?.lahnJali ?? config?.penalti_lahn_jali ?? DEFAULT_TAHFIZH_PENALTY.lahnJali),
-    lahnKhofi: Number(config?.lahnKhofi ?? config?.penalti_lahn_khofi ?? DEFAULT_TAHFIZH_PENALTY.lahnKhofi),
-    waqaf: Number(config?.waqaf ?? config?.penalti_waqaf ?? DEFAULT_TAHFIZH_PENALTY.waqaf),
-    salahSambung: Number(config?.salahSambung ?? config?.penalti_salah_sambung ?? DEFAULT_TAHFIZH_PENALTY.salahSambung),
-  };
+  return normalizeTahfizhPenaltyConfig(config);
 }
 
 function getTahfizhAyatLabel(entry: any) {

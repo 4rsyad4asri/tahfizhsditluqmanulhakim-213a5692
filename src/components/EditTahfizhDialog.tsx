@@ -7,7 +7,13 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { calculateNilaiSurahNew, calculateNilaiTahfizh, type TahfizhSurahEntry } from "@/data/mockData";
+import type { TahfizhSurahEntry } from "@/data/mockData";
+import {
+  calculateTahfizhSurahScore,
+  normalizeTahfizhAssessment,
+  normalizeTahfizhPayload,
+  toSafeNumber,
+} from "@/data/tahfizhSystem";
 import { getSurahsForJuz, getSurahLabel } from "@/data/quranData";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -54,16 +60,23 @@ export default function EditTahfizhDialog({
       setEntries(tahfizhData.nilai_aspek.surahEntries);
       setCatatan(tahfizhData.nilai_aspek.catatanGuru || "");
       setTanggal(tahfizhData.tanggal || "");
+      const config = tahfizhData.nilai_aspek.config || {};
+      setPenaltiConfig({
+        lj: toSafeNumber(config.lahnJali ?? config.lj, DEFAULT_PENALTY.lj),
+        lk: toSafeNumber(config.lahnKhofi ?? config.lk, DEFAULT_PENALTY.lk),
+        waqaf: toSafeNumber(config.waqaf, DEFAULT_PENALTY.waqaf),
+        sambung: toSafeNumber(config.salahSambung ?? config.sambung, DEFAULT_PENALTY.sambung),
+      });
     }
   }, [tahfizhData]);
 
-  const calculateNilaiSurah = (entry: TahfizhSurahEntry): number => {
-    const nilai = entry.kelancaran
-      - (entry.lahn_jali * penaltiConfig.lj)
-      - (entry.lahn_khofi * penaltiConfig.lk)
-      - (entry.waqaf_ibtida * penaltiConfig.waqaf)
-      - ((entry.salah_sambung_ayat || 0) * penaltiConfig.sambung);
-    return Math.round(Math.max(0, Math.min(100, nilai)));
+  const calculateCurrentTahfizhScore = (entry: TahfizhSurahEntry): number => {
+    return calculateTahfizhSurahScore(normalizeTahfizhAssessment(entry), {
+      lahnJali: penaltiConfig.lj,
+      lahnKhofi: penaltiConfig.lk,
+      waqaf: penaltiConfig.waqaf,
+      salahSambung: penaltiConfig.sambung,
+    });
   };
 
   const handleUpdateEntry = (
@@ -104,17 +117,25 @@ export default function EditTahfizhDialog({
   };
 
   const handleSave = () => {
-    const result = calculateNilaiTahfizh(entries);
+    const normalized = normalizeTahfizhPayload({
+      entries,
+      nilaiAspek: tahfizhData?.nilai_aspek,
+      tahfizhMode: tahfizhData?.nilai_aspek?.tahfizhMode || "Reguler",
+      config: {
+        lahnJali: penaltiConfig.lj,
+        lahnKhofi: penaltiConfig.lk,
+        waqaf: penaltiConfig.waqaf,
+        salahSambung: penaltiConfig.sambung,
+      },
+    });
     onSave({
       nilai_aspek: {
-        surahEntries: entries,
+        ...normalized.nilaiAspek,
         catatanGuru: catatan,
-        config: penaltiConfig,
-        predikat: result.predikat,
       },
-      nilai_akhir: result.nilaiAkhir,
-      status: result.status,
-      grade: result.grade,
+      nilai_akhir: normalized.nilaiAkhir,
+      status: normalized.status,
+      grade: normalized.grade,
       tanggal,
     });
   };
@@ -148,7 +169,10 @@ export default function EditTahfizhDialog({
                   <label className="block text-xs font-medium text-muted-foreground mb-1">{label}</label>
                   <input type="number" min={0} max={10}
                     value={penaltiConfig[key]}
-                    onChange={e => setPenaltiConfig({ ...penaltiConfig, [key]: parseFloat(e.target.value) || 0 })}
+                    onChange={e => setPenaltiConfig({
+                      ...penaltiConfig,
+                      [key]: Math.max(0, toSafeNumber(e.target.value, penaltiConfig[key])),
+                    })}
                     className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm" />
                 </div>
               ))}
@@ -206,28 +230,28 @@ export default function EditTahfizhDialog({
                       <td className="p-2">
                         <input type="number" min={0}
                           value={entry.lahn_jali}
-                          onChange={e => handleUpdateEntry(index, 'lahn_jali', parseInt(e.target.value) || 0)}
+                          onChange={e => handleUpdateEntry(index, 'lahn_jali', Math.max(0, toSafeNumber(e.target.value, entry.lahn_jali)))}
                           className="w-12 px-2 py-1 rounded-md border border-input bg-background text-foreground text-xs text-center" />
                       </td>
                       <td className="p-2">
                         <input type="number" min={0}
                           value={entry.lahn_khofi}
-                          onChange={e => handleUpdateEntry(index, 'lahn_khofi', parseInt(e.target.value) || 0)}
+                          onChange={e => handleUpdateEntry(index, 'lahn_khofi', Math.max(0, toSafeNumber(e.target.value, entry.lahn_khofi)))}
                           className="w-12 px-2 py-1 rounded-md border border-input bg-background text-foreground text-xs text-center" />
                       </td>
                       <td className="p-2">
                         <input type="number" min={0}
                           value={entry.waqaf_ibtida}
-                          onChange={e => handleUpdateEntry(index, 'waqaf_ibtida', Math.max(0, parseInt(e.target.value) || 0))}
+                          onChange={e => handleUpdateEntry(index, 'waqaf_ibtida', Math.max(0, toSafeNumber(e.target.value, entry.waqaf_ibtida)))}
                           className="w-12 px-2 py-1 rounded-md border border-input bg-background text-foreground text-xs text-center" />
                       </td>
                       <td className="p-2">
                         <input type="number" min={0}
                           value={entry.salah_sambung_ayat}
-                          onChange={e => handleUpdateEntry(index, 'salah_sambung_ayat', Math.max(0, parseInt(e.target.value) || 0))}
+                          onChange={e => handleUpdateEntry(index, 'salah_sambung_ayat', Math.max(0, toSafeNumber(e.target.value, entry.salah_sambung_ayat)))}
                           className="w-12 px-2 py-1 rounded-md border border-input bg-background text-foreground text-xs text-center" />
                       </td>
-                      <td className="p-2 text-center font-semibold">{calculateNilaiSurah(entry)}</td>
+                      <td className="p-2 text-center font-semibold">{calculateCurrentTahfizhScore(entry)}</td>
                       <td className="p-2 text-center">
                         <button onClick={() => handleRemoveEntry(index)} className="text-destructive hover:text-destructive/80">
                           <Trash2 className="w-3 h-3 mx-auto" />
@@ -261,7 +285,7 @@ export default function EditTahfizhDialog({
                 <div>
                   <p className="text-xs text-muted-foreground">Rata-rata Nilai</p>
                   <p className="text-2xl font-bold text-emerald-600">
-                    {Math.round(entries.reduce((a, b) => a + calculateNilaiSurah(b), 0) / entries.length)}
+                    {Math.round(entries.reduce((a, b) => a + calculateCurrentTahfizhScore(b), 0) / entries.length)}
                   </p>
                 </div>
                 <div>
@@ -271,7 +295,7 @@ export default function EditTahfizhDialog({
                 <div>
                   <p className="text-xs text-muted-foreground">Status</p>
                   <p className="text-lg font-bold text-emerald-600">
-                    {Math.round(entries.reduce((a, b) => a + calculateNilaiSurah(b), 0) / entries.length) >= 70 ? 'Lulus' : 'Tidak Lulus'}
+                    {Math.round(entries.reduce((a, b) => a + calculateCurrentTahfizhScore(b), 0) / entries.length) >= 70 ? 'Lulus' : 'Tidak Lulus'}
                   </p>
                 </div>
               </div>

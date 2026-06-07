@@ -25,7 +25,11 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { generateCatatanOtomatisFromUjian } from "@/utils/catatanOtomatis";
-import { aggregateTahfizhAssessmentsForDisplay } from "@/data/tahfizhSystem";
+import {
+  aggregateTahfizhAssessmentsForDisplay,
+  normalizeTahfizhPayload,
+  toSafeNumber,
+} from "@/data/tahfizhSystem";
 import { getStandardExamGrading } from "@/data/grading";
 import { buildVerificationUrlForExam, inferTahfizhModeForExam } from "@/utils/verificationUrl";
 import {
@@ -261,8 +265,22 @@ export default function RaportPreviewDialog({
       rawTahfizhJuzList.length === 1 &&
       rawTahfizhEntries.length <= 5;
     const tahfizhReportType = useRegularFiveQuestionDetail ? "detail" : "summary";
+    const normalizedTahfizh =
+      activeUjian?.mode === "Tahfizh" && rawTahfizhEntries.length > 0
+        ? normalizeTahfizhPayload({
+            entries: rawTahfizhEntries,
+            nilaiAspek: aspek,
+            tahfizhMode,
+            config: aspek.config,
+            manualStopReason: aspek.manualStopReason,
+            autoFailConfig: aspek.autoFailConfig,
+          })
+        : null;
+    const effectiveNilaiAkhir = normalizedTahfizh
+      ? normalizedTahfizh.nilaiAkhir
+      : toSafeNumber(activeUjian?.nilai_akhir, 0);
 
-    const grading = getStandardExamGrading(activeUjian?.nilai_akhir ?? 0);
+    const grading = getStandardExamGrading(effectiveNilaiAkhir);
     const predikat = aspek.predikat || grading.predikat;
 
     return {
@@ -273,9 +291,9 @@ export default function RaportPreviewDialog({
       nisn: nisn || undefined,
       assessorName,
       tanggal,
-      nilaiAkhir: activeUjian?.nilai_akhir ?? 0,
-      status: activeUjian?.status ?? "-",
-      grade: activeUjian?.grade ?? grading.grade,
+      nilaiAkhir: effectiveNilaiAkhir,
+      status: normalizedTahfizh?.status ?? activeUjian?.status ?? "-",
+      grade: normalizedTahfizh?.grade ?? activeUjian?.grade ?? grading.grade,
       predikat,
       catatanGuru: finalCatatan,
       verificationToken,

@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { calculateNilaiSetoran, calculateNilaiUjian, calculateNilaiTahfizh } from "@/data/mockData";
+import { calculateNilaiSetoran, calculateNilaiUjian } from "@/data/mockData";
 import type { TahfizhSurahEntry } from "@/data/mockData";
 import type { TahsinDasarEntry, TahsinLanjutanEntry, TahsinPenaltyConfig, WaqafSymbolTest } from "@/data/tahsinScoring";
 import {
-  aggregateTahfizhAssessmentsForDisplay,
-  toLegacyTahfizhEntry,
+  normalizeTahfizhPayload,
+  validateTahfizhAssessment,
   type TahfizhDocumentStatus,
   type TahfizhExamMode,
   type TahfizhAutoFailConfig,
@@ -202,25 +202,34 @@ export function useAddTahfizhUjian() {
       auto_fail_config?: TahfizhAutoFailConfig;
     }) => {
       const tahfizhMode = data.tahfizh_mode || "Sertifikat";
-      const normalizedEntries = aggregateTahfizhAssessmentsForDisplay(data.entries as any[]).map((entry) =>
-        toLegacyTahfizhEntry(entry as TahfizhSurahAssessment)
-      );
+      const normalized = normalizeTahfizhPayload({
+        entries: data.entries,
+        tahfizhMode,
+        config: data.config,
+        manualStopReason: data.manual_stop_reason,
+        autoFailConfig: data.auto_fail_config,
+        nilaiAspek: {
+          catatanGuru: data.catatan_guru,
+          catatanMode: data.catatan_guru?.trim() ? "manual" : "auto",
+          documentStatus: data.document_status || "Draft",
+        },
+      });
+      if (!normalized.assessments.length) {
+        throw new Error("Detail nilai Ujian Tahfizh wajib diisi sebelum disimpan");
+      }
+      const invalidAssessment = normalized.assessments
+        .map(validateTahfizhAssessment)
+        .find((validation) => !validation.valid);
+      if (invalidAssessment) {
+        throw new Error(invalidAssessment.errors.join(", "));
+      }
       const verificationToken = createVerificationToken();
       const assessorName = await getAssessorName(data.assessed_by);
 
       const nilai_aspek = {
-        surahEntries: normalizedEntries,
-        tahfizhMode,
-        reportType: tahfizhMode === "Sertifikat" ? "summary" : "detail",
-        config: data.config,
-        catatanGuru: data.catatan_guru,
-        catatanMode: data.catatan_guru?.trim() ? "manual" : "auto",
-        predikat: data.predikat,
-        statusLabel: data.status_label || data.status,
-        documentStatus: data.document_status || "Draft",
-        manualStopReason: data.manual_stop_reason,
-        autoFailLog: data.auto_fail_log,
-        autoFailConfig: data.auto_fail_config,
+        ...normalized.nilaiAspek,
+        statusLabel: data.status_label || normalized.result.statusLabel,
+        autoFailLog: data.auto_fail_log || normalized.result.autoFail.log,
         verificationToken,
         assessorName,
       } as unknown as Record<string, unknown>;
@@ -229,9 +238,9 @@ export function useAddTahfizhUjian() {
         student_id: data.student_id,
         mode: 'Tahfizh' as const,
         nilai_aspek: nilai_aspek as any,
-        nilai_akhir: data.nilaiAkhir,
-        status: data.status,
-        grade: data.grade,
+        nilai_akhir: normalized.nilaiAkhir,
+        status: normalized.status,
+        grade: normalized.grade,
         assessed_by: data.assessed_by || null,
         tanggal: data.tanggal || new Date().toISOString().split("T")[0],
         document_status: data.document_status || "Draft",
@@ -242,7 +251,7 @@ export function useAddTahfizhUjian() {
 
       const { error: studentError } = await supabase
         .from("students")
-        .update({ status_sertifikasi: data.status })
+        .update({ status_sertifikasi: normalized.status })
         .eq("id", data.student_id);
       if (studentError) throw studentError;
     },
@@ -317,11 +326,53 @@ export function useUpdateUjian() {
       tanggal?: string;
       document_status?: TahfizhDocumentStatus;
     }) => {
+      const { data: existingUjian, error: fetchError } = await supabase
+        .from("ujian")
+        .select("mode, nilai_aspek, nilai_akhir, status, grade")
+        .eq("id", data.ujian_id)
+        .single();
+      if (fetchError) throw fetchError;
+
+      let nextNilaiAspek = data.nilai_aspek;
+      let nextNilaiAkhir = data.nilai_akhir;
+      let nextStatus = data.status;
+      let nextGrade = data.grade;
+
+      if (existingUjian.mode === "Tahfizh") {
+        const existingNilaiAspek =
+          existingUjian.nilai_aspek && typeof existingUjian.nilai_aspek === "object"
+            ? existingUjian.nilai_aspek as Record<string, unknown>
+            : {};
+        const normalized = normalizeTahfizhPayload({
+          nilaiAspek: data.nilai_aspek,
+          existingNilaiAspek,
+          tahfizhMode:
+            (data.nilai_aspek.tahfizhMode as TahfizhExamMode | undefined) ||
+            (existingNilaiAspek.tahfizhMode as TahfizhExamMode | undefined),
+          config: data.nilai_aspek.config as Record<string, unknown> | undefined,
+          manualStopReason: data.nilai_aspek.manualStopReason as string | undefined,
+          autoFailConfig: data.nilai_aspek.autoFailConfig as TahfizhAutoFailConfig | undefined,
+        });
+        if (!normalized.assessments.length) {
+          throw new Error("Detail nilai Ujian Tahfizh wajib diisi sebelum diperbarui");
+        }
+        const invalidAssessment = normalized.assessments
+          .map(validateTahfizhAssessment)
+          .find((validation) => !validation.valid);
+        if (invalidAssessment) {
+          throw new Error(invalidAssessment.errors.join(", "));
+        }
+        nextNilaiAspek = normalized.nilaiAspek;
+        nextNilaiAkhir = normalized.nilaiAkhir;
+        nextStatus = normalized.status;
+        nextGrade = normalized.grade;
+      }
+
       const payload: any = {
-        nilai_aspek: data.nilai_aspek,
-        nilai_akhir: data.nilai_akhir,
-        status: data.status,
-        grade: data.grade,
+        nilai_aspek: nextNilaiAspek,
+        nilai_akhir: nextNilaiAkhir,
+        status: nextStatus,
+        grade: nextGrade,
       };
       if (data.tanggal) payload.tanggal = data.tanggal;
       if (data.document_status) {
@@ -332,9 +383,8 @@ export function useUpdateUjian() {
       if (error) throw error;
 
       // Sync student status_sertifikasi if Tahfizh
-      const { data: ujianRow } = await supabase.from("ujian").select("mode").eq("id", data.ujian_id).single();
-      if (ujianRow?.mode === 'Tahfizh') {
-        await supabase.from("students").update({ status_sertifikasi: data.status }).eq("id", data.student_id);
+      if (existingUjian.mode === 'Tahfizh') {
+        await supabase.from("students").update({ status_sertifikasi: nextStatus }).eq("id", data.student_id);
       }
     },
     onSuccess: (_, variables) => {

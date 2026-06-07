@@ -17,14 +17,14 @@ import {
 import { useVerificationDocument } from "@/hooks/useStudentDetail";
 import {
   aggregateTahfizhAssessmentsForDisplay,
-  calculateTahfizhExamResult,
   calculateTahfizhSummary,
+  calculateTahfizhSurahScore,
   normalizeTahfizhAssessment,
+  normalizeTahfizhPayload,
   type TahfizhSurahAssessment,
 } from "@/data/tahfizhSystem";
-import { calculateNilaiSurahWithRumus } from "@/data/mockData";
 import { getEffectiveCatatanGuru } from "@/utils/catatanOtomatis";
-import { getStandardExamGrading } from "@/data/grading";
+import { usesLegacyTahfizhScoring } from "@/utils/verificationUrl";
 
 function formatDate(date?: string | null) {
   if (!date) return "-";
@@ -72,10 +72,6 @@ function getDocumentNumber(mode?: string, id?: string, publishedAt?: string | nu
   const shortId = (id || "VERIFY").slice(0, 6).toUpperCase();
 
   return `RPT/${code}/${ym}/${shortId}`;
-}
-
-function getLegacyClassSixTahfizhState(nilai: number) {
-  return getStandardExamGrading(nilai);
 }
 
 function getFallback(value: unknown) {
@@ -145,24 +141,30 @@ export default function TahfizhVerification({
   const summaries = calculateTahfizhSummary(scoringEntries, aspek.config);
   const student = (data as any).students;
   const classInfo = student?.classes;
-  const isLegacyClassSixExam = Number(classInfo?.grade ?? String(classInfo?.name || "").match(/\d+/)?.[0]) === 6;
-  const syncedResult = calculateTahfizhExamResult(
-    scoringEntries,
-    aspek.tahfizhMode || "Reguler",
-    aspek.config,
-    aspek.manualStopReason || "",
-    isLegacyClassSixExam,
-    aspek.autoFailConfig
-  );
-  const displayState = isLegacyClassSixExam
-    ? getLegacyClassSixTahfizhState(syncedResult.nilaiAkhir || syncedResult.rataRataAkhir)
+  const legacyScoring = usesLegacyTahfizhScoring({
+    mode: data.mode,
+    assessedBy: data.assessed_by,
+    tanggal: data.tanggal,
+  });
+  const normalized = normalizeTahfizhPayload({
+    entries: scoringEntries,
+    nilaiAspek: aspek,
+    tahfizhMode: aspek.tahfizhMode || "Reguler",
+    config: aspek.config,
+    manualStopReason: legacyScoring ? "" : aspek.manualStopReason || "",
+    ignoreAutoFail: legacyScoring,
+    autoFailConfig: aspek.autoFailConfig,
+  });
+  const syncedResult = normalized.result;
+  const displayState = legacyScoring
+    ? syncedResult
     : {
         predikat: aspek.predikat || syncedResult.predikat,
         grade: data.grade || syncedResult.grade,
         status: aspek.statusLabel || data.status || syncedResult.status,
       };
   const effectiveCatatanGuru = getEffectiveCatatanGuru(data, student?.name || "Siswa");
-  const nilaiAkhir = syncedResult.nilaiAkhir || data.nilai_akhir || 0;
+  const nilaiAkhir = scoringEntries.length > 0 ? normalized.nilaiAkhir : data.nilai_akhir;
   const documentNumber = getDocumentNumber(data.mode, data.id, data.published_at, data.tanggal);
   const assessor = (data as any).assessor_name || aspek.assessorName || (isUuidLike(data.assessed_by) ? "-" : data.assessed_by) || "-";
 
@@ -322,15 +324,7 @@ export default function TahfizhVerification({
                         <td className="px-3 py-3">{entry.salahSambung ?? 0}</td>
                         <td className="px-3 py-3">{entry.catatan || "-"}</td>
                         <td className="px-3 py-3 font-bold text-primary">
-                          {calculateNilaiSurahWithRumus({
-                            surah: entry.surah,
-                            juz: entry.juz,
-                            lahn_jali: entry.lahnJali,
-                            lahn_khofi: entry.lahnKhofi,
-                            kelancaran: entry.kelancaran,
-                            waqaf_ibtida: entry.waqaf,
-                            salah_sambung_ayat: entry.salahSambung,
-                          }, "baru")}
+                          {calculateTahfizhSurahScore(entry, aspek.config)}
                         </td>
                       </tr>
                     ))}

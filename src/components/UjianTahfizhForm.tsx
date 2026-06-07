@@ -22,6 +22,7 @@ import {
   getTahfizhAutoFailState,
   getCertificateSequenceForJuz,
   normalizeTahfizhAssessment,
+  toSafeNumber,
   type TahfizhAutoFailConfig,
   type TahfizhExamMode,
   type TahfizhPenaltyConfig,
@@ -529,7 +530,10 @@ export default function UjianTahfizhForm({
                   value={penaltyConfig[key]}
                   disabled={isStopped}
                   onChange={(event) =>
-                    setPenaltyConfig((current) => ({ ...current, [key]: Number(event.target.value) || 0 }))
+                    setPenaltyConfig((current) => ({
+                      ...current,
+                      [key]: Math.max(0, toSafeNumber(event.target.value, current[key])),
+                    }))
                   }
                   className="field-input min-w-0"
                 />
@@ -545,7 +549,10 @@ export default function UjianTahfizhForm({
               value={autoFailConfig.lahnJaliMax}
               disabled={isManualStopped}
               onChange={(event) =>
-                setAutoFailConfig((current) => ({ ...current, lahnJaliMax: Math.max(1, Number(event.target.value) || 1) }))
+                setAutoFailConfig((current) => ({
+                  ...current,
+                  lahnJaliMax: Math.max(1, toSafeNumber(event.target.value, current.lahnJaliMax)),
+                }))
               }
               className="field-input min-w-0"
             />
@@ -557,7 +564,10 @@ export default function UjianTahfizhForm({
               value={autoFailConfig.salahSambungMax}
               disabled={isManualStopped}
               onChange={(event) =>
-                setAutoFailConfig((current) => ({ ...current, salahSambungMax: Math.max(1, Number(event.target.value) || 1) }))
+                setAutoFailConfig((current) => ({
+                  ...current,
+                  salahSambungMax: Math.max(1, toSafeNumber(event.target.value, current.salahSambungMax)),
+                }))
               }
               className="field-input min-w-0"
             />
@@ -740,8 +750,11 @@ export default function UjianTahfizhForm({
 
 function validateRow(assessment: TahfizhSurahAssessment) {
   if (!assessment.surah?.trim()) return "Nama surat wajib diisi";
-  if (assessment.juz < 1 || assessment.juz > 30) return "Juz harus antara 1-30";
-  if (assessment.kelancaran < 0 || assessment.kelancaran > 100) return "Kelancaran harus 0-100";
+  if (!Number.isFinite(assessment.juz) || assessment.juz < 1 || assessment.juz > 30) return "Juz harus antara 1-30";
+  if (!Number.isFinite(assessment.kelancaran) || assessment.kelancaran < 0 || assessment.kelancaran > 100) return "Kelancaran harus 0-100";
+  if ([assessment.lahnJali, assessment.lahnKhofi, assessment.waqaf, assessment.salahSambung].some((value) => !Number.isFinite(value) || value < 0)) {
+    return "Jumlah kesalahan harus berupa angka 0 atau lebih";
+  }
   return "";
 }
 
@@ -1095,7 +1108,7 @@ function NumberField({
         min={0}
         value={value}
         disabled={disabled}
-        onChange={(event) => onChange(Math.max(0, Number(event.target.value) || 0))}
+        onChange={(event) => onChange(Math.max(0, toSafeNumber(event.target.value, value)))}
         className="field-input min-w-0"
       />
     </Field>

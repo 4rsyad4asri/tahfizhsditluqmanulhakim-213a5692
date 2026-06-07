@@ -75,6 +75,27 @@ export interface TahfizhExamResult {
   autoFail: TahfizhAutoFailState;
 }
 
+export interface NormalizeTahfizhPayloadInput {
+  entries?: unknown[];
+  nilaiAspek?: Record<string, unknown> | null;
+  existingNilaiAspek?: Record<string, unknown> | null;
+  tahfizhMode?: TahfizhExamMode;
+  config?: Partial<TahfizhPenaltyConfig> | Record<string, unknown> | null;
+  manualStopReason?: string;
+  ignoreAutoFail?: boolean;
+  autoFailConfig?: TahfizhAutoFailConfig;
+}
+
+export interface NormalizedTahfizhPayload {
+  assessments: TahfizhSurahAssessment[];
+  nilaiAspek: Record<string, unknown>;
+  result: TahfizhExamResult;
+  nilaiAkhir: number;
+  status: TahfizhStatus;
+  grade: string;
+  predikat: string;
+}
+
 export const DEFAULT_TAHFIZH_PENALTY: TahfizhPenaltyConfig = {
   lahnJali: 2,
   lahnKhofi: 1,
@@ -170,6 +191,14 @@ function getSurahLabelForCertificate(name: string, ayatRange?: string) {
 
 type RawTahfizhAssessment = Record<string, unknown>;
 
+export function toSafeNumber(value: unknown, fallback: number): number {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "string" && value.trim() === "") return fallback;
+
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 function readString(value: unknown, fallback = "") {
   return typeof value === "string" ? value : fallback;
 }
@@ -201,25 +230,69 @@ function getJuz30GroupOrder(label: string) {
   return index === -1 ? JUZ_30_GROUPS.length : index;
 }
 
-export function normalizeTahfizhAssessment(entry: unknown): TahfizhSurahAssessment {
+export function normalizeTahfizhPenaltyConfig(config?: unknown): TahfizhPenaltyConfig {
+  const raw = config && typeof config === "object"
+    ? config as Record<string, unknown>
+    : {};
+
+  return {
+    lahnJali: toSafeNumber(
+      raw.lahnJali ?? raw.penalti_lahn_jali,
+      DEFAULT_TAHFIZH_PENALTY.lahnJali
+    ),
+    lahnKhofi: toSafeNumber(
+      raw.lahnKhofi ?? raw.penalti_lahn_khofi,
+      DEFAULT_TAHFIZH_PENALTY.lahnKhofi
+    ),
+    waqaf: toSafeNumber(
+      raw.waqaf ?? raw.penalti_waqaf,
+      DEFAULT_TAHFIZH_PENALTY.waqaf
+    ),
+    salahSambung: toSafeNumber(
+      raw.salahSambung ?? raw.penalti_salah_sambung,
+      DEFAULT_TAHFIZH_PENALTY.salahSambung
+    ),
+  };
+}
+
+export function normalizeTahfizhAssessment(
+  entry: unknown,
+  fallbackAssessment?: TahfizhSurahAssessment
+): TahfizhSurahAssessment {
   const raw = (entry || {}) as RawTahfizhAssessment;
-  const juz = Number(raw.juz || 30);
-  const rawSurah = String(raw.surah || raw.namaSurat || "");
+  const fallback = fallbackAssessment || {
+    surah: "",
+    juz: 30,
+    kelancaran: 90,
+    lahnJali: 0,
+    lahnKhofi: 0,
+    waqaf: 0,
+    salahSambung: 0,
+  };
+  const juz = toSafeNumber(raw.juz, fallback.juz);
+  const rawSurahValue = raw.surah ?? raw.namaSurat;
+  const rawSurah =
+    typeof rawSurahValue === "string" && rawSurahValue.trim()
+      ? rawSurahValue
+      : fallback.surah;
   const groupedJuz30Label = juz === 30 ? getJuz30GroupLabel(rawSurah) : undefined;
 
   return {
     surah: groupedJuz30Label || rawSurah.replace(/\s+s\.d\s+/gi, " - "),
     juz,
-    ayatAwal: (raw.ayatAwal ?? raw.ayat_awal ?? raw.ayat_mulai) as number | string | undefined,
-    ayatAkhir: (raw.ayatAkhir ?? raw.ayat_akhir) as number | string | undefined,
-    ayatRange: readOptionalString(raw.ayatRange ?? raw.ayat_range),
-    kelancaran: Number(raw.kelancaran ?? 90),
-    lahnJali: Number(raw.lahnJali ?? raw.lahn_jali ?? 0),
-    lahnKhofi: Number(raw.lahnKhofi ?? raw.lahn_khofi ?? 0),
-    waqaf: Number(raw.waqaf ?? raw.waqaf_ibtida ?? 0),
-    salahSambung: Number(raw.salahSambung ?? raw.salah_sambung_ayat ?? 0),
-    catatan: readString(raw.catatan),
-    sequenceLabel: readOptionalString(raw.sequenceLabel),
+    ayatAwal: (raw.ayatAwal ?? raw.ayat_awal ?? raw.ayat_mulai ?? fallback.ayatAwal) as number | string | undefined,
+    ayatAkhir: (raw.ayatAkhir ?? raw.ayat_akhir ?? fallback.ayatAkhir) as number | string | undefined,
+    ayatRange: readOptionalString(raw.ayatRange ?? raw.ayat_range) ?? fallback.ayatRange,
+    kelancaran: toSafeNumber(raw.kelancaran, fallback.kelancaran),
+    lahnJali: toSafeNumber(raw.lahnJali ?? raw.lahn_jali, fallback.lahnJali || 0),
+    lahnKhofi: toSafeNumber(raw.lahnKhofi ?? raw.lahn_khofi, fallback.lahnKhofi || 0),
+    waqaf: toSafeNumber(raw.waqaf ?? raw.waqaf_ibtida, fallback.waqaf || 0),
+    salahSambung: toSafeNumber(
+      raw.salahSambung ?? raw.salah_sambung_ayat,
+      fallback.salahSambung || 0
+    ),
+    catatan: readString(raw.catatan, fallback.catatan || ""),
+    sequenceLabel: readOptionalString(raw.sequenceLabel) ?? fallback.sequenceLabel,
   };
 }
 
@@ -301,6 +374,7 @@ export function toLegacyTahfizhEntry(entry: TahfizhSurahAssessment) {
     ayat_akhir: entry.ayatAkhir,
     ayat_range: entry.ayatRange,
     catatan: entry.catatan,
+    sequenceLabel: entry.sequenceLabel,
   };
 }
 
@@ -312,12 +386,14 @@ export function calculateTahfizhSurahScore(
   assessment: TahfizhSurahAssessment,
   config: TahfizhPenaltyConfig = DEFAULT_TAHFIZH_PENALTY
 ): number {
+  const normalized = normalizeTahfizhAssessment(assessment);
+  const normalizedConfig = normalizeTahfizhPenaltyConfig(config);
   const nilai =
-    Number(assessment.kelancaran || 0) -
-    Number(assessment.lahnJali || 0) * config.lahnJali -
-    Number(assessment.lahnKhofi || 0) * config.lahnKhofi -
-    Number(assessment.waqaf || 0) * config.waqaf -
-    Number(assessment.salahSambung || 0) * config.salahSambung;
+    normalized.kelancaran -
+    normalized.lahnJali * normalizedConfig.lahnJali -
+    normalized.lahnKhofi * normalizedConfig.lahnKhofi -
+    normalized.waqaf * normalizedConfig.waqaf -
+    normalized.salahSambung * normalizedConfig.salahSambung;
 
   return Math.round(Math.max(0, Math.min(100, nilai)));
 }
@@ -409,6 +485,7 @@ export function calculateTahfizhSummary(
   config: TahfizhPenaltyConfig = DEFAULT_TAHFIZH_PENALTY
 ): TahfizhJuzSummary[] {
   const grouped = new Map<number, TahfizhSurahAssessment[]>();
+  const normalizedConfig = normalizeTahfizhPenaltyConfig(config);
 
   aggregateTahfizhAssessmentsForDisplay(assessments).forEach((assessment) => {
     const juz = Number(assessment.juz || 30);
@@ -426,7 +503,7 @@ export function calculateTahfizhSummary(
         items.reduce((sum, item) => sum + Number(item.kelancaran || 0), 0) / items.length
       );
       const nilaiJuz = Math.round(
-        items.reduce((sum, item) => sum + calculateTahfizhSurahScore(item, config), 0) / items.length
+        items.reduce((sum, item) => sum + calculateTahfizhSurahScore(item, normalizedConfig), 0) / items.length
       );
 
       return {
@@ -440,6 +517,17 @@ export function calculateTahfizhSummary(
         jumlahSoal: items.length,
       };
     });
+}
+
+export function calculateTahfizhFinalScore(summaries: TahfizhJuzSummary[]): number {
+  if (!summaries.length) return 0;
+
+  const validScores = summaries
+    .map((summary) => toSafeNumber(summary.nilaiJuz, Number.NaN))
+    .filter(Number.isFinite);
+
+  if (!validScores.length) return 0;
+  return Math.round(validScores.reduce((sum, score) => sum + score, 0) / validScores.length);
 }
 
 function calculateJuzResults(
@@ -504,11 +592,10 @@ export function calculateTahfizhExamResult(
   }
 
   const normalized = aggregateTahfizhAssessmentsForDisplay(assessments);
-  const nilaiPerJuz = calculateJuzResults(normalized, config);
-  const summaries = calculateTahfizhSummary(normalized, config);
-  const rataRataAkhir = Math.round(
-    summaries.reduce((sum, summary) => sum + summary.nilaiJuz, 0) / summaries.length
-  );
+  const normalizedConfig = normalizeTahfizhPenaltyConfig(config);
+  const nilaiPerJuz = calculateJuzResults(normalized, normalizedConfig);
+  const summaries = calculateTahfizhSummary(normalized, normalizedConfig);
+  const rataRataAkhir = calculateTahfizhFinalScore(summaries);
   const autoFail =
     mode === "Sertifikat" && !ignoreAutoFail
       ? getTahfizhAutoFailState(normalized, autoFailConfig)
@@ -519,10 +606,84 @@ export function calculateTahfizhExamResult(
     mode,
     nilaiPerJuz,
     summaries,
-    nilaiAkhir: finalState.statusLabel === "Ujian Tahfizh Diulangi / Gagal" ? 0 : rataRataAkhir,
+    nilaiAkhir: rataRataAkhir,
     rataRataAkhir,
     ...finalState,
     autoFail,
+  };
+}
+
+export function normalizeTahfizhPayload(
+  input: NormalizeTahfizhPayloadInput
+): NormalizedTahfizhPayload {
+  const existingAspek =
+    input.existingNilaiAspek && typeof input.existingNilaiAspek === "object"
+      ? input.existingNilaiAspek
+      : {};
+  const incomingAspek =
+    input.nilaiAspek && typeof input.nilaiAspek === "object"
+      ? input.nilaiAspek
+      : {};
+  const mergedAspek = { ...existingAspek, ...incomingAspek };
+  const existingEntries = Array.isArray(existingAspek.surahEntries)
+    ? existingAspek.surahEntries.map((entry) => normalizeTahfizhAssessment(entry))
+    : [];
+  const incomingEntries =
+    input.entries && input.entries.length > 0
+      ? input.entries
+      : Array.isArray(incomingAspek.surahEntries) && incomingAspek.surahEntries.length > 0
+        ? incomingAspek.surahEntries
+        : existingEntries;
+  const assessments = aggregateTahfizhAssessmentsForDisplay(
+    incomingEntries.map((entry, index) =>
+      normalizeTahfizhAssessment(entry, existingEntries[index])
+    )
+  );
+  const tahfizhMode =
+    input.tahfizhMode ||
+    (mergedAspek.tahfizhMode as TahfizhExamMode | undefined) ||
+    "Reguler";
+  const config = normalizeTahfizhPenaltyConfig(input.config ?? mergedAspek.config);
+  const manualStopReason =
+    input.manualStopReason ??
+    (typeof mergedAspek.manualStopReason === "string" ? mergedAspek.manualStopReason : "");
+  const autoFailConfig =
+    input.autoFailConfig ??
+    (mergedAspek.autoFailConfig as TahfizhAutoFailConfig | undefined);
+  const result = calculateTahfizhExamResult(
+    assessments,
+    tahfizhMode,
+    config,
+    manualStopReason,
+    input.ignoreAutoFail ?? false,
+    autoFailConfig
+  );
+  const nilaiAspek: Record<string, unknown> = {
+    ...mergedAspek,
+    surahEntries: assessments.map(toLegacyTahfizhEntry),
+    tahfizhMode,
+    reportType:
+      (mergedAspek.reportType as string | undefined) ||
+      (tahfizhMode === "Sertifikat" ? "summary" : "detail"),
+    rumus: "baru",
+    config,
+    manualStopReason,
+    autoFailConfig,
+    summaries: result.summaries,
+    nilaiPerJuz: result.nilaiPerJuz,
+    autoFailLog: result.autoFail.log || mergedAspek.autoFailLog || "",
+    statusLabel: result.statusLabel,
+    predikat: result.predikat,
+  };
+
+  return {
+    assessments,
+    nilaiAspek,
+    result,
+    nilaiAkhir: result.nilaiAkhir,
+    status: result.status,
+    grade: result.grade,
+    predikat: result.predikat,
   };
 }
 

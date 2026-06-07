@@ -23,13 +23,15 @@ import { getStandardExamGrading } from "@/data/grading";
 import EditUjianDialog from "@/components/EditUjianDialog";
 import RaportPreviewDialog from "@/components/RaportPreviewDialog";
 import { handleSmartFormKey } from "@/utils/smartFormNav";
+import { usesLegacyTahfizhScoring } from "@/utils/verificationUrl";
 import {
-  DEFAULT_TAHFIZH_PENALTY,
   aggregateTahfizhAssessmentsForDisplay,
   calculateTahfizhExamResult,
   calculateTahfizhSummary,
   calculateTahfizhSurahScore,
   normalizeTahfizhAssessment,
+  normalizeTahfizhPayload,
+  normalizeTahfizhPenaltyConfig,
   type TahfizhExamMode,
   type TahfizhPenaltyConfig as TahfizhSystemPenaltyConfig,
 } from "@/data/tahfizhSystem";
@@ -87,12 +89,7 @@ function getTahfizhAyatLabel(entry: any) {
 }
 
 function getTahfizhPenaltyConfig(config: any): TahfizhSystemPenaltyConfig {
-  return {
-    lahnJali: Number(config?.lahnJali ?? config?.penalti_lahn_jali ?? DEFAULT_TAHFIZH_PENALTY.lahnJali),
-    lahnKhofi: Number(config?.lahnKhofi ?? config?.penalti_lahn_khofi ?? DEFAULT_TAHFIZH_PENALTY.lahnKhofi),
-    waqaf: Number(config?.waqaf ?? config?.penalti_waqaf ?? DEFAULT_TAHFIZH_PENALTY.waqaf),
-    salahSambung: Number(config?.salahSambung ?? config?.penalti_salah_sambung ?? DEFAULT_TAHFIZH_PENALTY.salahSambung),
-  };
+  return normalizeTahfizhPenaltyConfig(config);
 }
 
 function getTahfizhJuzSummaryRows(entries: any[], config: any, tahfizhMode: TahfizhExamMode = "Reguler") {
@@ -184,17 +181,7 @@ function getTahfizhResultFromEntries(entries: any[], config?: any, mode: Tahfizh
   );
 }
 
-function isLegacyClassSixExam(classInfo: any, ujian: any) {
-  const grade = Number(classInfo?.grade ?? String(classInfo?.name || "").match(/\d+/)?.[0]);
-  return grade === 6 && !!ujian?.id;
-}
-
-function getLegacyClassSixTahfizhState(nilai: number) {
-  const grading = getStandardExamGrading(nilai);
-  return { ...grading, statusLabel: grading.status };
-}
-
-function getSyncedTahfizhUjian(ujian: any, classInfo?: any) {
+function getSyncedTahfizhUjian(ujian: any) {
   if (ujian?.mode !== "Tahfizh") return ujian;
 
   const nilaiAspek =
@@ -207,29 +194,32 @@ function getSyncedTahfizhUjian(ujian: any, classInfo?: any) {
 
   if (entries.length === 0) return ujian;
 
-  const result = calculateTahfizhExamResult(
+  const legacyScoring = usesLegacyTahfizhScoring({
+    mode: ujian.mode,
+    assessedBy: ujian.assessed_by,
+    tanggal: ujian.tanggal,
+  });
+  const normalized = normalizeTahfizhPayload({
     entries,
-    nilaiAspek.tahfizhMode || "Reguler",
-    getTahfizhPenaltyConfig(nilaiAspek.config),
-    nilaiAspek.manualStopReason || "",
-    isLegacyClassSixExam(classInfo, ujian),
-    nilaiAspek.autoFailConfig
-  );
-  const legacyState = isLegacyClassSixExam(classInfo, ujian)
-    ? getLegacyClassSixTahfizhState(result.nilaiAkhir || result.rataRataAkhir)
-    : undefined;
-  const finalState = legacyState || result;
+    nilaiAspek,
+    tahfizhMode: nilaiAspek.tahfizhMode || "Reguler",
+    config: nilaiAspek.config,
+    manualStopReason: legacyScoring ? "" : nilaiAspek.manualStopReason || "",
+    ignoreAutoFail: legacyScoring,
+    autoFailConfig: nilaiAspek.autoFailConfig,
+  });
+  const result = normalized.result;
 
   return {
     ...ujian,
-    nilai_akhir: result.nilaiAkhir,
-    grade: finalState.grade,
-    status: finalState.status,
-    status_sertifikasi: finalState.status,
+    nilai_akhir: normalized.nilaiAkhir,
+    grade: result.grade,
+    status: result.status,
+    status_sertifikasi: result.status,
     nilai_aspek: {
       ...nilaiAspek,
-      predikat: finalState.predikat,
-      statusLabel: finalState.statusLabel,
+      predikat: result.predikat,
+      statusLabel: result.statusLabel,
     },
   };
 }
@@ -946,7 +936,7 @@ const StudentDetail = () => {
                       return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-700">⏳ Proses</span>;
                   }
                 };
-                const displayUjian = getSyncedTahfizhUjian(u, classInfo);
+                const displayUjian = getSyncedTahfizhUjian(u);
                 const ujianStatus = displayUjian.status || displayUjian.status_sertifikasi || "Proses";
                 const documentStatus = displayUjian.document_status || displayUjian.nilai_aspek?.documentStatus || "Draft";
                 const isPublished = documentStatus === "Published";

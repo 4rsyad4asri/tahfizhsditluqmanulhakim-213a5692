@@ -13,6 +13,10 @@ export interface CertificateData {
   nomorSertifikat: string;
   verificationToken?: string | null;
   verificationUrl?: string;
+  leftLogoDataUrl?: string;
+  rightLogoDataUrl?: string;
+  coordinatorSignatureDataUrl?: string;
+  principalSignatureDataUrl?: string;
 }
 
 const PAGE_WIDTH = 297;
@@ -22,6 +26,9 @@ const TEMPLATE_PATH = "/certificate-template-tahfizh.png";
 
 const NAVY: [number, number, number] = [7, 35, 70];
 const GOLD: [number, number, number] = [178, 132, 28];
+const TEAL: [number, number, number] = [7, 112, 111];
+const ROYAL_PURPLE: [number, number, number] = [91, 28, 119];
+const IVORY: [number, number, number] = [253, 252, 247];
 const BODY: [number, number, number] = [55, 58, 64];
 const MUTED: [number, number, number] = [110, 115, 125];
 
@@ -235,28 +242,35 @@ const drawQrCode = async (doc: jsPDF, data: CertificateData) => {
       `SERTIFIKAT:${safeText(data.nomorSertifikat)}`;
     const qr = await QRCode.toDataURL(qrPayload, { width: 320, margin: 1 });
 
-    const qrSize = 22;
-    const pad = 2.5;
-    const frame = qrSize + pad * 2;
-    const frameX = CENTER_X - frame / 2;
-    const frameY = 150;
-
-    doc.setDrawColor(...GOLD);
-    doc.setLineWidth(0.45);
-    doc.roundedRect(frameX, frameY, frame, frame, 1.5, 1.5);
-
-    doc.addImage(qr, "PNG", frameX + pad, frameY + pad, qrSize, qrSize);
-
-    setTextStyle(doc, 6.2, MUTED, "normal");
-    doc.text(
-      "Scan to verify  ·  Verifikasi",
-      CENTER_X,
-      frameY + frame + 3.5,
-      { align: "center" },
-    );
+    const qrSize = 24;
+    doc.addImage(qr, "PNG", CENTER_X - qrSize / 2, 155, qrSize, qrSize);
   } catch (err) {
     console.error("QR error:", err);
   }
+};
+
+const drawContainedImage = (
+  doc: jsPDF,
+  dataUrl: string | undefined,
+  x: number,
+  y: number,
+  maxWidth: number,
+  maxHeight: number,
+) => {
+  if (!dataUrl) return;
+  const { width, height } = doc.getImageProperties(dataUrl);
+  const scale = Math.min(maxWidth / width, maxHeight / height);
+  const drawWidth = width * scale;
+  const drawHeight = height * scale;
+  const format = dataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
+  doc.addImage(
+    dataUrl,
+    format,
+    x + (maxWidth - drawWidth) / 2,
+    y + (maxHeight - drawHeight) / 2,
+    drawWidth,
+    drawHeight,
+  );
 };
 
 export const buildCertificatePDF = async (
@@ -272,73 +286,55 @@ export const buildCertificatePDF = async (
 
   doc.addImage(templateImage, "PNG", 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
 
-  // ===== HEADER (trilingual) =====
-  drawArabic(doc, "شهادة تحفيظ القرآن الكريم", 26, 20, NAVY);
+  drawContainedImage(doc, data.leftLogoDataUrl, 8, 5, 39, 39);
+  drawContainedImage(doc, data.rightLogoDataUrl, 250, 5, 39, 39);
 
-  setTextStyle(doc, 13.5, GOLD, "bold");
-  doc.setCharSpace(1.2);
-  drawCenteredText(doc, "CERTIFICATE OF QUR'AN MEMORIZATION", 34);
-  doc.setCharSpace(0);
+  doc.setFillColor(...IVORY);
+  doc.rect(105, 12, 87, 12, "F");
+  doc.rect(104, 37, 89, 11, "F");
+  drawArabic(doc, "بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ", 21, 16, TEAL);
+  drawArabic(doc, "شهادة تحفيظ القرآن الكريم", 45, 16, ROYAL_PURPLE);
 
-  setTextStyle(doc, 11, NAVY, "italic", "times");
-  drawCenteredText(doc, "Sertifikat Tahfizh Al-Qur'an", 41);
+  // Fixed wording and labels are part of the background template.
+  setTextStyle(doc, 8.5, NAVY, "normal");
+  doc.text(safeText(data.nomorSertifikat), 153, 59.7, {
+    align: "center",
+    maxWidth: 66,
+  });
 
-  doc.setDrawColor(...GOLD);
-  doc.setLineWidth(0.3);
-  doc.line(CENTER_X - 35, 45, CENTER_X + 35, 45);
+  const dynamicStudentName = safeText(data.studentName);
+  setTextStyle(doc, 27, NAVY, "normal", "Amiri");
+  fitFontSize(doc, dynamicStudentName, 170, 27, 15);
+  drawCenteredText(doc, dynamicStudentName.toUpperCase(), 92, { maxWidth: 170 });
 
-  setTextStyle(doc, 8.5, GOLD, "normal");
-  drawCenteredText(doc, `No. ${safeText(data.nomorSertifikat)}`, 50);
+  setTextStyle(doc, 13, [255, 255, 255], "bold");
+  doc.text(formatClassName(data.className), 170, 104.8, {
+    align: "center",
+    maxWidth: 42,
+  });
 
-  // ===== RECIPIENT =====
-  setTextStyle(doc, 9.5, MUTED, "italic", "times");
-  drawCenteredText(doc, "This is to certify that  ·  Diberikan kepada", 62);
+  setTextStyle(doc, 18, GREEN_VALUE, "bold");
+  doc.text(safeScore(data.nilaiAkhir), 91, 144.2, { align: "center" });
 
-  const studentName = safeText(data.studentName);
-  setTextStyle(doc, 28, NAVY, "bold");
-  fitFontSize(doc, studentName, 180, 28, 16);
-  drawCenteredText(doc, studentName, 78, { maxWidth: 180 });
+  const dynamicGrade = safeText(data.predikat);
+  setTextStyle(doc, 14, GOLD_VALUE, "bold");
+  fitFontSize(doc, dynamicGrade, 39, 14, 9);
+  doc.text(dynamicGrade, 149.5, 143.5, { align: "center", maxWidth: 39 });
 
-  doc.setDrawColor(...GOLD);
-  doc.setLineWidth(0.25);
-  doc.line(CENTER_X - 55, 82, CENTER_X + 55, 82);
+  const dynamicDate = safeDate(data.tanggal);
+  setTextStyle(doc, 11, PURPLE_VALUE, "bold");
+  fitFontSize(doc, dynamicDate, 40, 11, 7.5);
+  doc.text(dynamicDate, 221.5, 143.8, { align: "center", maxWidth: 40 });
 
-  setTextStyle(doc, 10, BODY, "normal");
-  drawCenteredText(doc, `Class / Kelas: ${formatClassName(data.className)}`, 89);
-
-  // ===== STATEMENT (trilingual) =====
   const juz = safeText(data.juz);
-  setTextStyle(doc, 9.5, BODY, "normal");
-  drawCenteredText(
-    doc,
-    `has successfully completed the Tahfizh examination for Juz ${juz}`,
-    99,
-  );
-  setTextStyle(doc, 9.5, BODY, "italic", "times");
-  drawCenteredText(
-    doc,
-    `telah menyelesaikan ujian Tahfizh Al-Qur'an Juz ${juz} dengan hasil sebagai berikut`,
-    105,
-  );
-  drawArabic(
-    doc,
-    `قد أتم اختبار تحفيظ الجزء ${juz} بالنتيجة الآتية`,
-    113,
-    12,
-    NAVY,
-  );
+  setTextStyle(doc, 9.5, NAVY, "bold");
+  doc.text(juz, 225.5, 113.5, { align: "center", maxWidth: 13 });
+  doc.text(juz, 194.5, 120.2, { align: "center", maxWidth: 13 });
 
-  // ===== METRICS (3 columns) =====
-  drawMetricCard(doc, 70, "Final Score", "Nilai Akhir", safeScore(data.nilaiAkhir), 122, "green");
-  drawMetricCard(doc, 148.5, "Grade", "Predikat", safeText(data.predikat), 122, "gold");
-  drawMetricCard(doc, 227, "Date", "Tanggal", safeDate(data.tanggal), 122, "purple");
+  drawContainedImage(doc, data.coordinatorSignatureDataUrl, 57, 164, 50, 16);
+  drawContainedImage(doc, data.principalSignatureDataUrl, 190, 164, 50, 16);
 
-  // ===== QR =====
   await drawQrCode(doc, data);
-
-  // ===== FOOTER =====
-  drawSignature(doc, 65, "Koordinator Tahfizh", "Tahfizh Coordinator");
-  drawSignature(doc, 232, "Kepala Sekolah", "Principal");
 
   return doc;
 };

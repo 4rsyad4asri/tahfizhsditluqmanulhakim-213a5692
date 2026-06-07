@@ -1,56 +1,32 @@
-# Rencana: Penyesuaian Sertifikat Tahfizh
+# Rencana: Polesan Sertifikat (revert ke desain sebelumnya + tweak sudut)
 
-## 1. Format Nama Kelas → Angka Romawi
-Di `src/utils/generateCertificatePDF.ts`, tambahkan helper `formatClassName(raw: string)` yang:
-- Menghapus kata "Kelas" (case-insensitive) dari awal string.
-- Mendeteksi angka pertama (1–6) dan mengubahnya jadi Romawi (`I, II, III, IV, V, VI`).
-- Mempertahankan huruf rombel di belakang (A/B/C/D...), dipisah satu spasi.
-- Contoh: `"Kelas 6D"` → `"VI D"`, `"6A"` → `"VI A"`, `"Kelas 3"` → `"III"`.
+## 1. Perbaikan Build Error (test file)
+`src/data/tahfizhSystem.test.ts:14` memanggil `.map(normalizeTahfizhAssessment)`. Karena `Array#map` melempar `(value, index, array)`, parameter kedua `normalizeTahfizhAssessment(entry, fallbackAssessment?)` menerima `number` — bentrok tipe.
 
-Dipakai saat render baris kelas:
-`Class / Kelas: ${formatClassName(data.className)}`.
-
-## 2. Tiga Kartu Metrik Berwarna (Final Score · Grade · Date)
-Saat ini hanya 2 kartu (Final Score di x=78, Grade di x=219). Ubah jadi 3 kartu sejajar di tengah halaman A4 landscape (lebar 297 mm):
-
-```text
-[ Final Score ]      [ Grade / Predikat ]      [ Date / Tanggal ]
-   x ≈ 70mm                x ≈ 148.5mm                x ≈ 227mm
+Perbaikan: bungkus dengan arrow function di test:
+```ts
+].map((entry) => normalizeTahfizhAssessment(entry));
 ```
+Tidak mengubah signature fungsi produksi.
 
-- Lebar kartu tetap 58 mm, tinggi 26 mm, posisi Y tetap (122 mm).
-- `drawMetricCard` diperluas menerima parameter `variant: "green" | "gold" | "purple"` yang menentukan:
-  - Warna stroke bingkai
-  - Warna pita header tipis (opsional fill 0.4 mm di atas kartu)
-  - Warna teks nilai utama
+## 2. Render Ulang Template (revert + tweak)
+Kembali ke desain watercolor-blur sebelumnya (lentera tergantung di kiri-kanan, bintang emas, pita navy, watermark halus) — **tanpa** bingkai ganda emas tegas + arabesque sudut yang baru saja dibuat. Tweak sudut atas:
 
-Palette (selaras tema Islami emerald-emas yang sudah ada):
-- **Green (Final Score)**: stroke `#1F7A4D` (hijau emerald), value `#0F5132`.
-- **Gold (Grade)**: stroke `#B2841C` (gold, tetap), value `#7A5A0F`.
-- **Purple (Date)**: stroke `#5B2A86` (royal purple), value `#3D1F66`.
+- **Sudut kiri atas**: blur watercolor wash **hijau emerald** (`#0d6e6a` → `#2a9d8f`, soft, organic), dengan **satu lentera 2D flat** classic-modern menggantung di dalam wash — gaya ilustrasi datar (flat 2D), garis emas tipis, isi hijau-tosca, kaca lentera kuning hangat lembut. Tidak realistic 3D, tidak glow berlebihan.
+- **Sudut kanan atas**: identik secara bentuk dengan kiri (lentera flat 2D yang sama persis, mirror simetris), namun wash **ungu royal** (`#5b2a86` → `#7c3aed`, soft).
+- **Sudut bawah kiri & kanan**: tetap dengan wash organik (kiri hijau, kanan ungu) yang lebih kecil, tanpa lentera, sebagai keseimbangan.
+- Tengah atas: rosette emas kecil (tetap).
+- Tengah bawah: pita navy ramping dengan 5 bintang segi-8 emas (tetap).
+- Latar ivory `#fbf8f1` polos, watermark geometric pattern sangat halus (opacity ~5%).
+- Palet warna sama persis dengan versi awal: teal/emerald, royal purple, gold `#c9a84c`, navy `#072346`, ivory.
+- Gaya "classic modern": ilustrasi flat 2D yang bersih, wash watercolor lembut (bukan tepi tajam), simetri kiri-kanan presisi.
 
-Label tetap dua baris: EN uppercase kecil di atas, ID italic di bawah. Untuk kartu Date, nilai memakai `safeDate(data.tanggal)` (Indonesia) — caption EN `safeDateEN` ditiadakan dari footer agar tidak duplikasi (footer hanya menyisakan baris tanda tangan / dihapus baris "Issued on …").
+Render: `imagegen--generate_image` quality **premium**, 1792×1280, overwrite `public/certificate-template-tahfizh.png`. QA dengan `image_tools--zoom_image` ke kedua sudut atas untuk memastikan lentera identik dan wash warna benar.
 
-## 3. Ornamen Template: Bingkai Tegas (Bukan Awan Blur)
-Render ulang `public/certificate-template-tahfizh.png` (1792×1280, A4 landscape) memakai `imagegen--generate_image` quality **premium** dengan arahan:
-
-- **Hapus** semua wash cat air / awan blur di empat sudut.
-- **Ganti dengan bingkai berlapis yang tegas**:
-  - Outer border: garis emas tebal (≈8 px) mengelilingi seluruh tepi, jarak 40 px dari sisi.
-  - Inner border: garis emas tipis (≈2 px) 18 px di dalamnya — klasik double frame.
-  - Empat sudut: ornamen arabesque/geometris Islami simetris di dalam bingkai (bukan watercolor), garis emas tajam dengan isian tipis warna emerald `#0d6e6a`.
-  - Tepi tengah atas: rosette emas kecil (tetap, seperti versi sekarang).
-  - Tepi tengah bawah: pita navy `#072346` ramping dengan 5 bintang segi-8 emas (tetap, dirapikan).
-  - Latar pusat ivory `#fbf8f1` polos — tidak ada watermark blur besar; boleh watermark geometric pattern sangat halus (opacity ≤ 6%) di tengah.
-- Palet sama persis dengan versi sebelumnya: teal/emerald `#0d6e6a`/`#2a9d8f`, royal purple `#5b2a86`, gold `#c9a84c`, navy `#072346`, ivory `#fbf8f1`.
-- Komposisi simetris penuh, garis presisi (seperti engraving sertifikat resmi), bukan brushstroke.
-
-QA: zoom_image ke 4 sudut + tengah atas/bawah untuk memastikan garis tajam, ornamen sudut simetris, tidak ada residu awan/blur.
-
-## 4. Yang Tidak Diubah
-- Layout header trilingual, body trilingual, QR frame, dan tanda tangan tetap seperti sekarang (hanya baris "Issued on …" dipindah ke kartu Date — lihat poin 2).
-- Tidak ada perubahan pada `RekapSertifikat.tsx`, dialog preview, atau query data.
+## 3. Tidak Diubah
+- `src/utils/generateCertificatePDF.ts` (format kelas Romawi + 3 kartu metrik berwarna hijau/emas/ungu yang baru disetujui) tetap dipertahankan apa adanya.
+- Tidak menyentuh `RekapSertifikat.tsx`, dialog, atau query.
 
 ## File Terdampak
-- `src/utils/generateCertificatePDF.ts` — helper Romawi, 3 kartu metrik berwarna, hapus baris tanggal footer.
-- `public/certificate-template-tahfizh.png` — render ulang dengan bingkai tegas.
+- `src/data/tahfizhSystem.test.ts` — fix arrow function di `.map`.
+- `public/certificate-template-tahfizh.png` — render ulang ke desain watercolor + lentera flat 2D kiri-hijau / kanan-ungu.

@@ -11,7 +11,7 @@ describe("Tahfizh scoring", () => {
     const assessments = [
       { surah: "", juz: 30, kelancaran: 90 },
       { surah: "", juz: 30, kelancaran: 90 },
-    ].map(normalizeTahfizhAssessment);
+    ].map((entry) => normalizeTahfizhAssessment(entry));
 
     expect(assessments).toHaveLength(2);
     expect(assessments[1].surah).toBe("");

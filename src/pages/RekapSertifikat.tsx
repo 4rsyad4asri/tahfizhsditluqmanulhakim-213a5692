@@ -26,6 +26,7 @@ import {
 } from "@/utils/verificationUrl";
 import { buildReportDocumentNumber } from "@/utils/documentNumber";
 import { formatClassName } from "@/utils/className";
+import { resolveCertificateSignatures } from "@/utils/officialSignatures";
 
 interface RekapItem {
   id: string;
@@ -40,6 +41,7 @@ interface RekapItem {
   nomorSertifikat: string;
   status: string;
   verificationToken?: string | null;
+  assessedBy?: string | null;
   forceIncluded?: boolean;
 }
 
@@ -273,6 +275,7 @@ const RekapSertifikat = () => {
           nomorSertifikat,
           status: syncedResult.status,
           verificationToken: (u as any).verification_token ?? null,
+          assessedBy: u.assessed_by ?? null,
           forceIncluded,
         };
         return item;
@@ -792,9 +795,11 @@ const RekapSertifikat = () => {
                                     onClick={async () => {
                                       try {
                                         setDownloadingId(item.id);
+                                        const signatures = await resolveCertificateSignatures(item.assessedBy);
                                         await downloadCertificatePDF(
                                           {
                                             ...item,
+                                            ...signatures,
                                             documentNumber: buildReportDocumentNumber(
                                               "Tahfizh",
                                               item.id,
@@ -882,6 +887,7 @@ const RekapSertifikat = () => {
       <CertificatePreviewDialog
         open={!!previewItem}
         onOpenChange={(o) => { if (!o) setPreviewItem(null); }}
+        coordinatorUserId={previewItem?.assessedBy}
         data={
           previewItem
             ? {

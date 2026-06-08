@@ -51,6 +51,7 @@ import {
   saveRaportVisualLayout,
   type RaportVisualLayout,
 } from "@/utils/pdfAssetsLayout";
+import { resolveRaportSignatureAssets } from "@/utils/officialSignatures";
 import type {
   TahsinDasarEntry,
   TahsinLanjutanEntry,
@@ -138,6 +139,7 @@ export default function RaportPreviewDialog({
 }: Props) {
   const [header, setHeader] = useState<RaportHeader>(DEFAULT_HEADER);
   const [assets, setAssets] = useState<RaportAssets>({});
+  const [profileAssets, setProfileAssets] = useState<RaportAssets>({});
   const [opts, setOpts] = useState<RaportPdfOptions>(DEFAULT_OPTS);
   const [editing, setEditing] = useState(false);
   const [assetEditing, setAssetEditing] = useState(false);
@@ -209,6 +211,24 @@ export default function RaportPreviewDialog({
       setTanggal(activeUjian?.tanggal || new Date().toISOString().split("T")[0]);
     }
   }, [open, activeUjian]);
+
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+
+    resolveRaportSignatureAssets(activeUjian?.assessed_by)
+      .then((resolved) => {
+        if (alive) setProfileAssets(resolved);
+      })
+      .catch((error) => {
+        console.error("Gagal memuat tanda tangan profil:", error);
+        if (alive) setProfileAssets({});
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [open, activeUjian?.assessed_by]);
 
   useEffect(() => {
     if (!open || !activeUjian?.id || activeUjian?.mode !== "Tahfizh") return;
@@ -369,6 +389,14 @@ export default function RaportPreviewDialog({
     () => ({ ...opts, verifyUrl, visualLayout }),
     [opts, verifyUrl, visualLayout]
   );
+  const effectiveAssets: RaportAssets = useMemo(
+    () => ({
+      ...assets,
+      sigExaminer: assets.sigExaminer || profileAssets.sigExaminer,
+      sigHeadmaster: assets.sigHeadmaster || profileAssets.sigHeadmaster,
+    }),
+    [assets, profileAssets]
+  );
 
   useEffect(() => {
     if (!open || !activeUjian) return;
@@ -378,7 +406,7 @@ export default function RaportPreviewDialog({
 
     const t = setTimeout(async () => {
       try {
-        const doc = await generateRaportPDF(data, header, assets, effectiveOpts);
+        const doc = await generateRaportPDF(data, header, effectiveAssets, effectiveOpts);
         if (seq !== previewSeqRef.current) return;
 
         const blob = doc.output("blob") as Blob;
@@ -397,7 +425,7 @@ export default function RaportPreviewDialog({
     }, 250);
 
     return () => clearTimeout(t);
-  }, [open, data, header, assets, effectiveOpts, activeUjian]);
+  }, [open, data, header, effectiveAssets, effectiveOpts, activeUjian]);
 
   useEffect(
     () => () => {
@@ -433,7 +461,7 @@ export default function RaportPreviewDialog({
     setExporting(true);
 
     try {
-      await downloadRaportPDF(data, header, assets, effectiveOpts);
+      await downloadRaportPDF(data, header, effectiveAssets, effectiveOpts);
       toast.success("Raport berhasil diunduh");
     } catch (e: any) {
       toast.error("Gagal export PDF: " + (e?.message || ""));
@@ -807,9 +835,9 @@ export default function RaportPreviewDialog({
                     )}
                   </div>
 
-                  {assets[key] && (
+                  {(assets[key] || profileAssets[key]) && (
                     <img
-                      src={assets[key]}
+                      src={assets[key] || profileAssets[key]}
                       alt={label}
                       className="h-10 mt-1 object-contain bg-white border rounded"
                     />

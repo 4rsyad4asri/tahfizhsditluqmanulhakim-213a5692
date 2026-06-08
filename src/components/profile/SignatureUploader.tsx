@@ -9,10 +9,11 @@ interface Props {
   bucket: "signatures" | "avatars";
   label: string;
   hint?: string;
+  fileStem?: string;
   onChange: (path: string | null) => void;
 }
 
-export default function FileUploader({ userId, currentPath, bucket, label, hint, onChange }: Props) {
+export default function FileUploader({ userId, currentPath, bucket, label, hint, fileStem, onChange }: Props) {
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
 
@@ -38,7 +39,8 @@ export default function FileUploader({ userId, currentPath, bucket, label, hint,
     setBusy(true);
     try {
       const ext = file.type === "image/png" ? "png" : "jpg";
-      const path = `${userId}/${bucket === "signatures" ? "signature" : "avatar"}.${ext}`;
+      const defaultStem = bucket === "signatures" ? "signature" : "avatar";
+      const path = `${userId}/${fileStem || defaultStem}.${ext}`;
       const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true, contentType: file.type });
       if (error) throw error;
       onChange(path);

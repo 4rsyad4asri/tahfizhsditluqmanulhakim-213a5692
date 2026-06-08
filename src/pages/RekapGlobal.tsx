@@ -21,6 +21,7 @@ import {
 } from "@/utils/raportBuilder";
 import { inferTahfizhModeForExam, usesLegacyTahfizhScoring } from "@/utils/verificationUrl";
 import { generateRaportPDF, downloadRaportPDF } from "@/utils/raportPdf";
+import { resolveRaportSignatureAssets } from "@/utils/officialSignatures";
 import JSZip from "jszip";
 import { toast } from "sonner";
 
@@ -294,7 +295,8 @@ export default function RekapGlobal() {
         r.nisn
       );
       const eff = buildEffectiveOpts(opts, data, r.ujian);
-      await downloadRaportPDF(data, header, assets, eff);
+      const resolvedAssets = await resolveRaportSignatureAssets(r.ujian?.assessed_by, assets);
+      await downloadRaportPDF(data, header, resolvedAssets, eff);
       toast.success(`Raport ${r.studentName} berhasil diunduh`);
     } catch (e) {
       toast.error("Gagal mengunduh raport: " + getErrorMessage(e));
@@ -383,7 +385,8 @@ export default function RekapGlobal() {
               r.nisn
             );
             const eff = buildEffectiveOpts(opts, data, r.ujian);
-            const doc = await generateRaportPDF(data, header, assets, eff);
+            const resolvedAssets = await resolveRaportSignatureAssets(r.ujian?.assessed_by, assets);
+            const doc = await generateRaportPDF(data, header, resolvedAssets, eff);
             const blob = doc.output("blob") as Blob;
             const fname = `Raport_${sanitize(r.mode)}_${sanitize(r.className)}_${sanitize(r.studentName)}.pdf`;
             zip.file(fname, blob);

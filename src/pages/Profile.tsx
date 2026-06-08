@@ -5,6 +5,10 @@ import Header from "@/components/Header";
 import { toast } from "sonner";
 import { Loader2, Save, User, PenTool } from "lucide-react";
 import FileUploader from "@/components/profile/SignatureUploader";
+import {
+  loadOfficialSignatureSettings,
+  saveOfficialSignatureSettings,
+} from "@/utils/officialSignatures";
 
 export default function Profile() {
   const { user, profile, role } = useAuthContext();
@@ -15,6 +19,7 @@ export default function Profile() {
   });
   const [avatarPath, setAvatarPath] = useState<string | null>(null);
   const [signaturePath, setSignaturePath] = useState<string | null>(null);
+  const [headmasterSignaturePath, setHeadmasterSignaturePath] = useState<string | null>(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -31,6 +36,21 @@ export default function Profile() {
     setAvatarPath(profile.avatar_url || null);
     setSignaturePath(profile.signature_url || null);
   }, [profile]);
+
+  useEffect(() => {
+    if (role !== "admin") return;
+    let alive = true;
+
+    loadOfficialSignatureSettings()
+      .then((settings) => {
+        if (alive) setHeadmasterSignaturePath(settings.headmasterSignaturePath || null);
+      })
+      .catch((error) => console.error("Gagal memuat TTD kepala sekolah:", error));
+
+    return () => {
+      alive = false;
+    };
+  }, [role]);
 
   if (!user) {
     return (
@@ -50,6 +70,11 @@ export default function Profile() {
         signature_url: signaturePath,
       }).eq("id", user.id);
       if (error) throw error;
+      if (role === "admin") {
+        await saveOfficialSignatureSettings({
+          headmasterSignaturePath,
+        });
+      }
       toast.success("Profil tersimpan");
     } catch (err: any) {
       toast.error(err?.message || "Gagal menyimpan");
@@ -119,9 +144,29 @@ export default function Profile() {
               userId={user.id}
               currentPath={signaturePath}
               bucket="signatures"
-              label="Tanda Tangan"
-              hint="Gunakan PNG transparan untuk hasil terbaik (maks 2 MB)."
+              label="Tanda Tangan Saya"
+              hint="Dipakai otomatis sebagai TTD Penguji, Guru Tahfizh, atau Koordinator Tahfizh sesuai akun Anda."
               onChange={setSignaturePath}
+            />
+          </section>
+        )}
+
+        {role === "admin" && (
+          <section className="bg-card border border-border rounded-xl p-6 space-y-4 shadow-card">
+            <h3 className="font-semibold text-foreground flex items-center gap-2">
+              <PenTool className="w-5 h-5 text-primary" /> Tanda Tangan Kepala Sekolah
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Upload ini terpisah dari TTD profil admin. Dipakai otomatis sebagai TTD Kepala Sekolah di semua PDF rapor dan sertifikat.
+            </p>
+            <FileUploader
+              userId={user.id}
+              currentPath={headmasterSignaturePath}
+              bucket="signatures"
+              label="TTD Kepala Sekolah"
+              hint="Gunakan PNG transparan untuk hasil terbaik (maks 2 MB)."
+              fileStem="headmaster-signature"
+              onChange={setHeadmasterSignaturePath}
             />
           </section>
         )}

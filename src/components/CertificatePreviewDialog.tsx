@@ -29,17 +29,20 @@ import {
   buildCertificatePDF,
   safeFileName,
 } from "@/utils/generateCertificatePDF";
+import { resolveCertificateSignatures } from "@/utils/officialSignatures";
 
 interface CertificatePreviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   data: CertificateData | null;
+  coordinatorUserId?: string | null;
 }
 
 const CertificatePreviewDialog = ({
   open,
   onOpenChange,
   data,
+  coordinatorUserId,
 }: CertificatePreviewDialogProps) => {
   const { isAdmin } = useAuthContext();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -51,6 +54,8 @@ const CertificatePreviewDialog = ({
   const [rightLogo, setRightLogo] = useState<string>();
   const [coordinatorSignature, setCoordinatorSignature] = useState<string>();
   const [principalSignature, setPrincipalSignature] = useState<string>();
+  const [profileCoordinatorSignature, setProfileCoordinatorSignature] = useState<string>();
+  const [officialPrincipalSignature, setOfficialPrincipalSignature] = useState<string>();
 
   const customizedData = useMemo(
     () =>
@@ -59,11 +64,19 @@ const CertificatePreviewDialog = ({
             ...data,
             leftLogoDataUrl: leftLogo,
             rightLogoDataUrl: rightLogo,
-            coordinatorSignatureDataUrl: coordinatorSignature,
-            principalSignatureDataUrl: principalSignature,
+            coordinatorSignatureDataUrl: coordinatorSignature || profileCoordinatorSignature,
+            principalSignatureDataUrl: principalSignature || officialPrincipalSignature,
           }
         : null,
-    [data, leftLogo, rightLogo, coordinatorSignature, principalSignature],
+    [
+      data,
+      leftLogo,
+      rightLogo,
+      coordinatorSignature,
+      principalSignature,
+      profileCoordinatorSignature,
+      officialPrincipalSignature,
+    ],
   );
 
   const readImage = (
@@ -82,6 +95,28 @@ const CertificatePreviewDialog = ({
       .then(setLayout)
       .catch((error) => console.error("Layout sertifikat gagal dimuat:", error));
   }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    let active = true;
+
+    resolveCertificateSignatures(coordinatorUserId)
+      .then((signatures) => {
+        if (!active) return;
+        setProfileCoordinatorSignature(signatures.coordinatorSignatureDataUrl);
+        setOfficialPrincipalSignature(signatures.principalSignatureDataUrl);
+      })
+      .catch((error) => {
+        console.error("Tanda tangan sertifikat gagal dimuat:", error);
+        if (!active) return;
+        setProfileCoordinatorSignature(undefined);
+        setOfficialPrincipalSignature(undefined);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [open, coordinatorUserId]);
 
   useEffect(() => {
     if (!open || !customizedData) {

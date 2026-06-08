@@ -14,27 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      certificate_layouts: {
-        Row: {
-          id: string
-          layout: Json
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          id: string
-          layout: Json
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          id?: string
-          layout?: Json
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: []
-      }
       class_penguji: {
         Row: {
           class_id: string

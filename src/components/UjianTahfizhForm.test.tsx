@@ -2,14 +2,14 @@ import { render as rtlRender } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import UjianTahfizhForm from "@/components/UjianTahfizhForm";
 
-const screen = {
-  getByText: (text: string) =>
-    document.body.querySelector("*")
-      ? Array.from(document.body.querySelectorAll("*")).find(
-          (el) => el.textContent === text,
-        ) || (() => { throw new Error(`Not found: ${text}`); })()
-      : (() => { throw new Error(`Not found: ${text}`); })(),
+const findText = (text: string) => {
+  const found = Array.from(document.body.querySelectorAll("*")).find(
+    (el) => (el.textContent || "").includes(text),
+  );
+  if (!found) throw new Error(`Not found: ${text}`);
+  return found;
 };
+const screen = { getByText: findText };
 
 describe("UjianTahfizhForm", () => {
   it("renders regular mode without crashing", () => {

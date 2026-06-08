@@ -1,7 +1,15 @@
-import { render, screen } from "@testing-library/dom";
 import { render as rtlRender } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import UjianTahfizhForm from "@/components/UjianTahfizhForm";
+
+const screen = {
+  getByText: (text: string) =>
+    document.body.querySelector("*")
+      ? Array.from(document.body.querySelectorAll("*")).find(
+          (el) => el.textContent === text,
+        ) || (() => { throw new Error(`Not found: ${text}`); })()
+      : (() => { throw new Error(`Not found: ${text}`); })(),
+};
 
 describe("UjianTahfizhForm", () => {
   it("renders regular mode without crashing", () => {

@@ -235,13 +235,13 @@ export const loadCertificateLayout = async (
   const localLayout = readLocalLayout();
   try {
     const { data, error } = await supabase
-      .from("certificate_layouts")
+      .from("certificate_layouts" as any)
       .select("layout")
       .eq("id", CERTIFICATE_LAYOUT_ID)
       .maybeSingle();
 
     if (error) throw error;
-    cachedLayout = normalizeCertificateLayout(data?.layout ?? localLayout);
+    cachedLayout = normalizeCertificateLayout((data as any)?.layout ?? localLayout);
   } catch (error) {
     console.warn("Layout sertifikat Supabase tidak tersedia, memakai fallback lokal:", error);
     cachedLayout = localLayout ?? DEFAULT_CERTIFICATE_LAYOUT;
@@ -259,12 +259,12 @@ export const saveCertificateLayout = async (value: CertificateLayout) => {
   try {
     const { data: userData } = await supabase.auth.getUser();
     const { error } = await supabase
-      .from("certificate_layouts")
+      .from("certificate_layouts" as any)
       .upsert({
         id: CERTIFICATE_LAYOUT_ID,
         layout,
         updated_by: userData.user?.id ?? null,
-      });
+      } as any);
     if (error) throw error;
     return { layout, synced: true };
   } catch (error) {

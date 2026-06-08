@@ -248,7 +248,7 @@ const CertificateLayoutEditor = ({
               {EDITABLE_ELEMENTS.map(({ id, label }) => {
                 const value = layout[id];
                 const bounds = id === "qrCode"
-                  ? { width: value.size, height: value.size }
+                  ? { width: (value as any).size, height: (value as any).size }
                   : id === "coordinatorSignature" || id === "principalSignature"
                     ? {
                         width: (value as CertificateImageLayout).width,

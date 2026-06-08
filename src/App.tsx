@@ -17,6 +17,8 @@ import RekapGlobal from "./pages/RekapGlobal";
 import SearchStudents from "./pages/SearchStudents";
 
 import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Profile from "./pages/Profile";
 import ChangePassword from "./pages/ChangePassword";
 import ProfilPenguji from "./pages/ProfilPenguji";
 import NotFound from "./pages/NotFound";
@@ -80,6 +82,7 @@ function AppRoutes() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/" element={<Index />} />
         <Route path="/kelas/:classId" element={<ClassStudents />} />
         <Route path="/siswa/:studentId" element={<StudentDetail />} />
@@ -89,6 +92,7 @@ function AppRoutes() {
         <Route path="/rekap-global" element={<RekapGlobal />} />
         <Route path="/cari-siswa" element={<SearchStudents />} />
         <Route path="/ganti-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/profil" element={<ProtectedRoute><ProfilPenguji /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>

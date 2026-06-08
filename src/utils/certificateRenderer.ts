@@ -4,6 +4,7 @@ import {
   CERTIFICATE_HEIGHT,
   CERTIFICATE_WIDTH,
   type CertificateElementLayout,
+  type CertificateElementId,
   type CertificateLayout,
 } from "./certificateLayout";
 

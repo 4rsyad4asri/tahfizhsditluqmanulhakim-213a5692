@@ -76,6 +76,13 @@ const Header = () => {
                   <UserCircle className="h-4 w-4 text-slate-950" />
                 </button>
                 <button
+                  onClick={() => navigate("/profile")}
+                  className="flex items-center gap-1.5 rounded-lg bg-primary-foreground/10 px-3 py-2 text-sm font-medium backdrop-blur-sm transition-all hover:bg-primary-foreground/20"
+                  title="Edit Profil & Tanda Tangan"
+                >
+                  <Settings className="h-4 w-4 text-slate-950" />
+                </button>
+                <button
                   onClick={() => navigate("/ganti-password")}
                   className="flex items-center gap-1.5 rounded-lg bg-primary-foreground/10 px-3 py-2 text-sm font-medium backdrop-blur-sm transition-all hover:bg-primary-foreground/20"
                   title="Ganti Password"

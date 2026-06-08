@@ -96,7 +96,7 @@ export default function PdfAssetsLayoutEditor({
         if (!context) return;
         canvas.width = viewport.width;
         canvas.height = viewport.height;
-        await pdfPage.render({ canvasContext: context, viewport }).promise;
+        await pdfPage.render({ canvasContext: context, viewport, canvas } as any).promise;
       })
       .catch(() => {
         if (active) {

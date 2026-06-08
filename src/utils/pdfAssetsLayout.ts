@@ -6,6 +6,8 @@ export interface PdfAssetPosition {
   width: number;
   height: number;
   visible: boolean;
+  placement?: "manual" | "auto";
+  offsetY?: number;
 }
 
 export interface PdfAssetsLayout {
@@ -42,7 +44,9 @@ const createAsset = (
   y: number,
   width: number,
   height: number,
-): PdfAssetPosition => ({ x, y, width, height, visible: true });
+  placement: PdfAssetPosition["placement"] = "manual",
+  offsetY = 0,
+): PdfAssetPosition => ({ x, y, width, height, visible: true, placement, offsetY });
 
 export const getDefaultRaportVisualLayout = (
   orientation: Orientation,
@@ -52,8 +56,8 @@ export const getDefaultRaportVisualLayout = (
       assets: {
         leftLogo: createAsset(10, 10, 17, 17),
         rightLogo: createAsset(183, 10, 17, 17),
-        examinerSignature: createAsset(70, 247, 42, 18),
-        headmasterSignature: createAsset(145, 247, 42, 18),
+        examinerSignature: createAsset(70, 247, 42, 18, "auto"),
+        headmasterSignature: createAsset(145, 247, 42, 18, "auto"),
         qrCode: createAsset(184, 35, 16, 16),
       },
       text: { color: "#374151", bold: false },
@@ -64,8 +68,8 @@ export const getDefaultRaportVisualLayout = (
     assets: {
       leftLogo: createAsset(10, 10, 17, 17),
       rightLogo: createAsset(270, 10, 17, 17),
-      examinerSignature: createAsset(124, 165, 42, 18),
-      headmasterSignature: createAsset(222, 165, 42, 18),
+      examinerSignature: createAsset(124, 165, 42, 18, "auto"),
+      headmasterSignature: createAsset(222, 165, 42, 18, "auto"),
       qrCode: createAsset(271, 35, 16, 16),
     },
     text: { color: "#374151", bold: false },
@@ -95,6 +99,10 @@ const normalizeAsset = (
     width,
     height,
     visible: typeof raw.visible === "boolean" ? raw.visible : fallback.visible,
+    placement: raw.placement === "auto" || raw.placement === "manual"
+      ? raw.placement
+      : fallback.placement,
+    offsetY: clamp(raw.offsetY, fallback.offsetY ?? 0, -80, 80),
   };
 };
 

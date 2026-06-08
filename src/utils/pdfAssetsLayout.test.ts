@@ -19,6 +19,8 @@ describe("PDF assets layout", () => {
     expect(landscape.assets.rightLogo.x + landscape.assets.rightLogo.width).toBeLessThanOrEqual(297);
     expect(portrait.assets.qrCode.visible).toBe(true);
     expect(landscape.text.color).toBe("#374151");
+    expect(portrait.assets.examinerSignature.placement).toBe("auto");
+    expect(landscape.assets.headmasterSignature.placement).toBe("auto");
   });
 
   it("keeps resized assets inside the A4 page", () => {
@@ -36,6 +38,25 @@ describe("PDF assets layout", () => {
 
     expect(normalized.assets.leftLogo.x).toBe(180);
     expect(normalized.assets.leftLogo.y).toBe(267);
+  });
+
+  it("normalizes signature auto placement and offset", () => {
+    const normalized = normalizeRaportVisualLayout({
+      assets: {
+        examinerSignature: {
+          x: 80,
+          y: 240,
+          width: 42,
+          height: 18,
+          visible: true,
+          placement: "auto",
+          offsetY: 120,
+        },
+      },
+    }, "portrait");
+
+    expect(normalized.assets.examinerSignature.placement).toBe("auto");
+    expect(normalized.assets.examinerSignature.offsetY).toBe(80);
   });
 
   it("stores separate layouts per mode and orientation", () => {

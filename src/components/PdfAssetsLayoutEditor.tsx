@@ -46,6 +46,9 @@ const assetSource = (id: AssetId, assets: RaportAssets) => {
   return undefined;
 };
 
+const isSignatureAsset = (id: AssetId) =>
+  id === "examinerSignature" || id === "headmasterSignature";
+
 export default function PdfAssetsLayoutEditor({
   orientation,
   assets,
@@ -71,6 +74,7 @@ export default function PdfAssetsLayoutEditor({
   } | null>(null);
   const page = PDF_PAGE_SIZE[orientation];
   const selectedAsset = layout.assets[selected];
+  const selectedSignatureAuto = isSignatureAsset(selected) && selectedAsset.placement === "auto";
 
   useEffect(() => {
     if (!pdfBlob || !canvasRef.current) return;
@@ -166,10 +170,17 @@ export default function PdfAssetsLayoutEditor({
     const dy = (event.clientY - interaction.startY) * page.height / rect.height;
 
     if (interaction.type === "drag") {
-      updateAsset(interaction.id, {
-        x: interaction.start.x + dx,
-        y: interaction.start.y + dy,
-      });
+      if (isSignatureAsset(interaction.id) && interaction.start.placement === "auto") {
+        updateAsset(interaction.id, {
+          x: interaction.start.x + dx,
+          offsetY: (interaction.start.offsetY ?? 0) + dy,
+        });
+      } else {
+        updateAsset(interaction.id, {
+          x: interaction.start.x + dx,
+          y: interaction.start.y + dy,
+        });
+      }
       return;
     }
 
@@ -205,6 +216,9 @@ export default function PdfAssetsLayoutEditor({
             const item = layout.assets[id];
             if (!item.visible) return null;
             const source = assetSource(id, assets);
+            const top = isSignatureAsset(id) && item.placement === "auto"
+              ? item.y + (item.offsetY ?? 0)
+              : item.y;
             return (
               <div
                 key={id}
@@ -217,7 +231,7 @@ export default function PdfAssetsLayoutEditor({
                 }`}
                 style={{
                   left: `${item.x / page.width * 100}%`,
-                  top: `${item.y / page.height * 100}%`,
+                  top: `${top / page.height * 100}%`,
                   width: `${item.width / page.width * 100}%`,
                   height: `${item.height / page.height * 100}%`,
                 }}
@@ -272,19 +286,60 @@ export default function PdfAssetsLayoutEditor({
           />
         </div>
 
+        {isSignatureAsset(selected) && (
+          <div className="space-y-3 rounded-md border p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <Label className="text-sm font-semibold">Posisi TTD otomatis</Label>
+                <p className="text-xs text-muted-foreground">
+                  Ikuti akhir isi rapor agar siswa EBTA pendek dan panjang tetap rapi.
+                </p>
+              </div>
+              <Switch
+                checked={selectedAsset.placement !== "manual"}
+                onCheckedChange={(checked) => updateAsset(selected, {
+                  placement: checked ? "auto" : "manual",
+                })}
+              />
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-3">
           {(["x", "y", "width", "height"] as const).map((key) => (
             <label key={key} className="space-y-1 text-xs font-medium">
-              <span>{key === "x" ? "X Position" : key === "y" ? "Y Position" : key === "width" ? "Width" : "Height"} (mm)</span>
+              <span>
+                {key === "x"
+                  ? "X Position"
+                  : key === "y" && selectedSignatureAuto
+                    ? "Y otomatis"
+                    : key === "y"
+                      ? "Y Position"
+                      : key === "width"
+                        ? "Width"
+                        : "Height"} (mm)
+              </span>
               <Input
                 type="number"
                 min={0}
                 step={0.5}
                 value={Number(selectedAsset[key].toFixed(1))}
                 onChange={(event) => updateAsset(selected, { [key]: Number(event.target.value) })}
+                disabled={key === "y" && selectedSignatureAuto}
               />
             </label>
           ))}
+          {selectedSignatureAuto && (
+            <label className="space-y-1 text-xs font-medium">
+              <span>Offset naik/turun (mm)</span>
+              <Input
+                type="number"
+                step={0.5}
+                value={Number((selectedAsset.offsetY ?? 0).toFixed(1))}
+                onChange={(event) => updateAsset(selected, { offsetY: Number(event.target.value) })}
+              />
+            </label>
+          )}
         </div>
 
         <div className="space-y-3 rounded-md border p-3">

@@ -963,6 +963,7 @@ function drawSignatures(
   header: RaportHeader,
   opts: RaportPdfOptions,
   pageW: number,
+  pageH: number,
   margin: number,
   startY: number,
   assets: RaportAssets,
@@ -1037,12 +1038,21 @@ function drawSignatures(
   });
 
   const imageLayout = visualLayout.assets;
+  const autoSignatureY = (height: number, offsetY = 0) =>
+    Math.min(pageH - height - 10, Math.max(margin, startY + 8 + offsetY));
+  const examinerSignatureY = imageLayout.examinerSignature.placement === "auto"
+    ? autoSignatureY(imageLayout.examinerSignature.height, imageLayout.examinerSignature.offsetY)
+    : imageLayout.examinerSignature.y;
+  const headmasterSignatureY = imageLayout.headmasterSignature.placement === "auto"
+    ? autoSignatureY(imageLayout.headmasterSignature.height, imageLayout.headmasterSignature.offsetY)
+    : imageLayout.headmasterSignature.y;
+
   if (assets.sigExaminer && imageLayout.examinerSignature.visible) {
     safeAddImage(
       doc,
       assets.sigExaminer,
       imageLayout.examinerSignature.x,
-      imageLayout.examinerSignature.y,
+      examinerSignatureY,
       imageLayout.examinerSignature.width,
       imageLayout.examinerSignature.height,
     );
@@ -1052,7 +1062,7 @@ function drawSignatures(
       doc,
       assets.sigHeadmaster,
       imageLayout.headmasterSignature.x,
-      imageLayout.headmasterSignature.y,
+      headmasterSignatureY,
       imageLayout.headmasterSignature.width,
       imageLayout.headmasterSignature.height,
     );
@@ -1239,7 +1249,7 @@ export async function generateRaportPDF(
 
   y = drawCatatan(doc, catatanFinal, pageW, margin, y, visualLayout);
 
-  drawSignatures(doc, data, header, opts, pageW, margin, y, assets, visualLayout);
+  drawSignatures(doc, data, header, opts, pageW, pageH, margin, y, assets, visualLayout);
 
   const totalPages = doc.getNumberOfPages();
 

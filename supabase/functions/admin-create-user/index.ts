@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, password, full_name, role } = await req.json();
+    const { email, password, full_name, role, username, whatsapp, bio, jabatan, title, nip, assigned_classes } = await req.json();
 
     // Server-side input validation
     if (!email || !password || !full_name || !role) {
@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
       throw new Error("Password must be at least 8 characters");
     }
 
-    if (!["admin", "penguji"].includes(role)) {
+    if (!["admin", "penguji", "guru", "parent"].includes(role)) {
       throw new Error("Invalid role");
     }
 
@@ -77,16 +77,28 @@ Deno.serve(async (req) => {
       email: email.trim(),
       password,
       email_confirm: true,
-      user_metadata: { full_name: full_name.trim() },
+      user_metadata: {
+        full_name: full_name.trim(),
+        username,
+        whatsapp,
+        bio,
+        role,
+        created_by_admin: true,
+        approved_by: callerId,
+      },
     });
 
     if (createErr) throw createErr;
 
-    const { error: roleErr } = await adminClient
-      .from("user_roles")
-      .insert({ user_id: newUser.user.id, role });
-
-    if (roleErr) throw roleErr;
+    // Trigger already inserts role; only update extra profile fields
+    const extras: Record<string, unknown> = {};
+    if (jabatan) extras.jabatan = jabatan;
+    if (title) extras.title = title;
+    if (nip) extras.nip = nip;
+    if (assigned_classes) extras.assigned_classes = assigned_classes;
+    if (Object.keys(extras).length) {
+      await adminClient.from("profiles").update(extras).eq("id", newUser.user.id);
+    }
 
     return new Response(JSON.stringify({ success: true, user_id: newUser.user.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

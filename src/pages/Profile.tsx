@@ -3,7 +3,7 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import { toast } from "sonner";
-import { Loader2, Save, User, PenTool } from "lucide-react";
+import { ImageIcon, Loader2, Save, User, PenTool } from "lucide-react";
 import FileUploader from "@/components/profile/SignatureUploader";
 import {
   loadOfficialSignatureSettings,
@@ -20,6 +20,8 @@ export default function Profile() {
   const [avatarPath, setAvatarPath] = useState<string | null>(null);
   const [signaturePath, setSignaturePath] = useState<string | null>(null);
   const [headmasterSignaturePath, setHeadmasterSignaturePath] = useState<string | null>(null);
+  const [logoLeftPath, setLogoLeftPath] = useState<string | null>(null);
+  const [logoRightPath, setLogoRightPath] = useState<string | null>(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -43,7 +45,10 @@ export default function Profile() {
 
     loadOfficialSignatureSettings()
       .then((settings) => {
-        if (alive) setHeadmasterSignaturePath(settings.headmasterSignaturePath || null);
+        if (!alive) return;
+        setHeadmasterSignaturePath(settings.headmasterSignaturePath || null);
+        setLogoLeftPath(settings.logoLeftPath || null);
+        setLogoRightPath(settings.logoRightPath || null);
       })
       .catch((error) => console.error("Gagal memuat TTD kepala sekolah:", error));
 
@@ -73,6 +78,8 @@ export default function Profile() {
       if (role === "admin") {
         await saveOfficialSignatureSettings({
           headmasterSignaturePath,
+          logoLeftPath,
+          logoRightPath,
         });
       }
       toast.success("Profil tersimpan");
@@ -148,6 +155,37 @@ export default function Profile() {
               hint="Dipakai otomatis sebagai TTD Penguji, Guru Tahfizh, atau Koordinator Tahfizh sesuai akun Anda."
               onChange={setSignaturePath}
             />
+          </section>
+        )}
+
+        {role === "admin" && (
+          <section className="bg-card border border-border rounded-xl p-6 space-y-4 shadow-card">
+            <h3 className="font-semibold text-foreground flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-primary" /> Logo Resmi PDF
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Logo ini menjadi default untuk semua akun dan otomatis dipakai di seluruh PDF rapor dan sertifikat.
+            </p>
+            <div className="grid gap-5 md:grid-cols-2">
+              <FileUploader
+                userId={user.id}
+                currentPath={logoLeftPath}
+                bucket="avatars"
+                label="Logo Kiri"
+                hint="Disarankan PNG transparan atau latar putih."
+                fileStem="school-logo-left"
+                onChange={setLogoLeftPath}
+              />
+              <FileUploader
+                userId={user.id}
+                currentPath={logoRightPath}
+                bucket="avatars"
+                label="Logo Kanan"
+                hint="Disarankan PNG transparan atau latar putih."
+                fileStem="school-logo-right"
+                onChange={setLogoRightPath}
+              />
+            </div>
           </section>
         )}
 

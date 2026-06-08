@@ -6,6 +6,8 @@ const SIGNED_URL_TTL_SECONDS = 3600;
 
 export interface OfficialSignatureSettings {
   headmasterSignaturePath?: string | null;
+  logoLeftPath?: string | null;
+  logoRightPath?: string | null;
 }
 
 async function storagePathToDataUrl(bucket: "signatures" | "avatars", path?: string | null) {
@@ -69,27 +71,48 @@ export async function getHeadmasterSignatureDataUrl() {
   return storagePathToDataUrl("signatures", settings.headmasterSignaturePath);
 }
 
+export async function getOfficialBrandingDataUrls() {
+  const settings = await loadOfficialSignatureSettings();
+  const [logoLeft, logoRight] = await Promise.all([
+    storagePathToDataUrl("avatars", settings.logoLeftPath),
+    storagePathToDataUrl("avatars", settings.logoRightPath),
+  ]);
+
+  return { logoLeft, logoRight };
+}
+
 export async function resolveRaportSignatureAssets(
   assessedBy?: string | null,
   manualAssets: RaportAssets = {}
 ): Promise<RaportAssets> {
-  const [examinerSignature, headmasterSignature] = await Promise.all([
+  const [examinerSignature, headmasterSignature, branding] = await Promise.all([
     manualAssets.sigExaminer ? undefined : getProfileSignatureDataUrl(assessedBy),
     manualAssets.sigHeadmaster ? undefined : getHeadmasterSignatureDataUrl(),
+    manualAssets.logoLeft && manualAssets.logoRight
+      ? { logoLeft: undefined, logoRight: undefined }
+      : getOfficialBrandingDataUrls(),
   ]);
 
   return {
     ...manualAssets,
+    logoLeft: manualAssets.logoLeft || branding.logoLeft,
+    logoRight: manualAssets.logoRight || branding.logoRight,
     sigExaminer: manualAssets.sigExaminer || examinerSignature,
     sigHeadmaster: manualAssets.sigHeadmaster || headmasterSignature,
   };
 }
 
 export async function resolveCertificateSignatures(coordinatorUserId?: string | null) {
-  const [coordinatorSignatureDataUrl, principalSignatureDataUrl] = await Promise.all([
+  const [coordinatorSignatureDataUrl, principalSignatureDataUrl, branding] = await Promise.all([
     getProfileSignatureDataUrl(coordinatorUserId),
     getHeadmasterSignatureDataUrl(),
+    getOfficialBrandingDataUrls(),
   ]);
 
-  return { coordinatorSignatureDataUrl, principalSignatureDataUrl };
+  return {
+    coordinatorSignatureDataUrl,
+    principalSignatureDataUrl,
+    leftLogoDataUrl: branding.logoLeft,
+    rightLogoDataUrl: branding.logoRight,
+  };
 }

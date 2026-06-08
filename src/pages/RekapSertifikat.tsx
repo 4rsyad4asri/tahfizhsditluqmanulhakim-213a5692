@@ -795,11 +795,15 @@ const RekapSertifikat = () => {
                                     onClick={async () => {
                                       try {
                                         setDownloadingId(item.id);
-                                        const signatures = await resolveCertificateSignatures(item.assessedBy);
+                                        const {
+                                          coordinatorSignatureDataUrl,
+                                          principalSignatureDataUrl,
+                                        } = await resolveCertificateSignatures(item.assessedBy);
                                         await downloadCertificatePDF(
                                           {
                                             ...item,
-                                            ...signatures,
+                                            coordinatorSignatureDataUrl,
+                                            principalSignatureDataUrl,
                                             documentNumber: buildReportDocumentNumber(
                                               "Tahfizh",
                                               item.id,

@@ -392,6 +392,8 @@ export default function RaportPreviewDialog({
   const effectiveAssets: RaportAssets = useMemo(
     () => ({
       ...assets,
+      logoLeft: assets.logoLeft || profileAssets.logoLeft,
+      logoRight: assets.logoRight || profileAssets.logoRight,
       sigExaminer: assets.sigExaminer || profileAssets.sigExaminer,
       sigHeadmaster: assets.sigHeadmaster || profileAssets.sigHeadmaster,
     }),

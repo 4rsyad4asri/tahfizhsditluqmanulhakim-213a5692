@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Download, Loader2, Settings2, Upload, X } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -56,14 +57,17 @@ const CertificatePreviewDialog = ({
   const [principalSignature, setPrincipalSignature] = useState<string>();
   const [profileCoordinatorSignature, setProfileCoordinatorSignature] = useState<string>();
   const [officialPrincipalSignature, setOfficialPrincipalSignature] = useState<string>();
+  const [officialLeftLogo, setOfficialLeftLogo] = useState<string>();
+  const [officialRightLogo, setOfficialRightLogo] = useState<string>();
+  const [showOfficialLogos, setShowOfficialLogos] = useState(false);
 
   const customizedData = useMemo(
     () =>
       data
         ? {
             ...data,
-            leftLogoDataUrl: leftLogo,
-            rightLogoDataUrl: rightLogo,
+            leftLogoDataUrl: showOfficialLogos ? leftLogo || officialLeftLogo : undefined,
+            rightLogoDataUrl: showOfficialLogos ? rightLogo || officialRightLogo : undefined,
             coordinatorSignatureDataUrl: coordinatorSignature || profileCoordinatorSignature,
             principalSignatureDataUrl: principalSignature || officialPrincipalSignature,
           }
@@ -76,6 +80,9 @@ const CertificatePreviewDialog = ({
       principalSignature,
       profileCoordinatorSignature,
       officialPrincipalSignature,
+      officialLeftLogo,
+      officialRightLogo,
+      showOfficialLogos,
     ],
   );
 
@@ -105,12 +112,16 @@ const CertificatePreviewDialog = ({
         if (!active) return;
         setProfileCoordinatorSignature(signatures.coordinatorSignatureDataUrl);
         setOfficialPrincipalSignature(signatures.principalSignatureDataUrl);
+        setOfficialLeftLogo(signatures.leftLogoDataUrl);
+        setOfficialRightLogo(signatures.rightLogoDataUrl);
       })
       .catch((error) => {
         console.error("Tanda tangan sertifikat gagal dimuat:", error);
         if (!active) return;
         setProfileCoordinatorSignature(undefined);
         setOfficialPrincipalSignature(undefined);
+        setOfficialLeftLogo(undefined);
+        setOfficialRightLogo(undefined);
       });
 
     return () => {
@@ -157,6 +168,14 @@ const CertificatePreviewDialog = ({
           </DialogHeader>
 
           <div className="grid grid-cols-2 gap-2 border-b bg-background px-4 py-3 sm:grid-cols-4">
+            <label className="col-span-2 flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium sm:col-span-4">
+              <Switch
+                checked={showOfficialLogos}
+                onCheckedChange={setShowOfficialLogos}
+              />
+              Tampilkan logo resmi pada sertifikat
+              <span className="text-muted-foreground">(default OFF)</span>
+            </label>
             {[
               ["Logo kiri", setLeftLogo],
               ["Logo kanan", setRightLogo],
@@ -165,7 +184,11 @@ const CertificatePreviewDialog = ({
             ].map(([label, setter]) => (
               <label
                 key={label as string}
-                className="flex cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted"
+                className={`flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-xs font-medium ${
+                  showOfficialLogos || (label !== "Logo kiri" && label !== "Logo kanan")
+                    ? "cursor-pointer hover:bg-muted"
+                    : "cursor-not-allowed opacity-50"
+                }`}
               >
                 <Upload className="h-4 w-4" />
                 {label as string}
@@ -173,6 +196,7 @@ const CertificatePreviewDialog = ({
                   type="file"
                   accept="image/png,image/jpeg"
                   className="hidden"
+                  disabled={!showOfficialLogos && (label === "Logo kiri" || label === "Logo kanan")}
                   onChange={(event) =>
                     readImage(
                       event.target.files?.[0],

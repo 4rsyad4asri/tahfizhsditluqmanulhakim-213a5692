@@ -77,6 +77,38 @@ export type Database = {
         }
         Relationships: []
       }
+      parent_students: {
+        Row: {
+          created_at: string
+          id: string
+          parent_user_id: string
+          relation: string | null
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          parent_user_id: string
+          relation?: string | null
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          parent_user_id?: string
+          relation?: string | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parent_students_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       penguji: {
         Row: {
           created_at: string
@@ -100,22 +132,70 @@ export type Database = {
       }
       profiles: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
+          assigned_classes: string[] | null
+          avatar_url: string | null
+          bio: string | null
           created_at: string
+          display_name_certificate: string | null
+          display_name_rapor: string | null
+          email: string | null
           full_name: string
           id: string
+          jabatan: string | null
+          nip: string | null
+          registered_at: string
+          signature_url: string | null
+          status: Database["public"]["Enums"]["account_status"]
+          title: string | null
           updated_at: string
+          username: string | null
+          whatsapp: string | null
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          assigned_classes?: string[] | null
+          avatar_url?: string | null
+          bio?: string | null
           created_at?: string
+          display_name_certificate?: string | null
+          display_name_rapor?: string | null
+          email?: string | null
           full_name?: string
           id: string
+          jabatan?: string | null
+          nip?: string | null
+          registered_at?: string
+          signature_url?: string | null
+          status?: Database["public"]["Enums"]["account_status"]
+          title?: string | null
           updated_at?: string
+          username?: string | null
+          whatsapp?: string | null
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          assigned_classes?: string[] | null
+          avatar_url?: string | null
+          bio?: string | null
           created_at?: string
+          display_name_certificate?: string | null
+          display_name_rapor?: string | null
+          email?: string | null
           full_name?: string
           id?: string
+          jabatan?: string | null
+          nip?: string | null
+          registered_at?: string
+          signature_url?: string | null
+          status?: Database["public"]["Enums"]["account_status"]
+          title?: string | null
           updated_at?: string
+          username?: string | null
+          whatsapp?: string | null
         }
         Relationships: []
       }
@@ -330,9 +410,11 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_account_approved: { Args: { _uid: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "penguji"
+      account_status: "pending" | "approved" | "rejected" | "inactive"
+      app_role: "admin" | "penguji" | "guru" | "parent"
       certification_status: "Belum Ujian" | "Lulus" | "Tidak Lulus"
       exam_mode: "Tahsin" | "Tahfizh" | "Tahsin Dasar" | "Tahsin Lanjutan"
       exam_status: "Lulus" | "Tidak Lulus"
@@ -464,7 +546,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "penguji"],
+      account_status: ["pending", "approved", "rejected", "inactive"],
+      app_role: ["admin", "penguji", "guru", "parent"],
       certification_status: ["Belum Ujian", "Lulus", "Tidak Lulus"],
       exam_mode: ["Tahsin", "Tahfizh", "Tahsin Dasar", "Tahsin Lanjutan"],
       exam_status: ["Lulus", "Tidak Lulus"],

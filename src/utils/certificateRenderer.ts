@@ -1,4 +1,5 @@
 import QRCode from "qrcode";
+import { formatClassName } from "@/utils/className";
 import { buildVerificationUrl } from "./verificationUrl";
 import {
   CERTIFICATE_HEIGHT,
@@ -31,11 +32,6 @@ const GREEN = "#0f5132";
 const GOLD = "#d87909";
 const PURPLE = "#5b2a86";
 
-const romanMap: Record<string, string> = {
-  "1": "I", "2": "II", "3": "III", "4": "IV", "5": "V", "6": "VI",
-  "7": "VII", "8": "VIII", "9": "IX", "10": "X",
-};
-
 let templatePromise: Promise<HTMLImageElement> | null = null;
 
 const safeText = (value: unknown, fallback = "-") => {
@@ -54,14 +50,6 @@ const safeDate = (value: string) => {
     month: "long",
     year: "numeric",
   });
-};
-
-const formatClassName = (raw: string) => {
-  const cleaned = safeText(raw, "").replace(/^kelas\s*/i, "").trim();
-  const match = cleaned.match(/^(\d+)\s*([A-Za-z]*)$/);
-  if (!match) return cleaned || "-";
-  const grade = romanMap[match[1]] ?? match[1];
-  return match[2] ? `${grade} ${match[2].toUpperCase()}` : grade;
 };
 
 const loadImage = (source: string) =>

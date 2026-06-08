@@ -26,6 +26,7 @@ import {
   normalizeRaportVisualLayout,
   type RaportVisualLayout,
 } from "@/utils/pdfAssetsLayout";
+import { formatClassName } from "@/utils/className";
 
 export type Orientation = "portrait" | "landscape";
 export type RaportMode = "Tahfizh" | "Tahsin Dasar" | "Tahsin Lanjutan";
@@ -447,7 +448,7 @@ function drawStudentInfo(
       },
     },
     body: [
-      ["Nama Siswa", data.studentName, "Kelas", data.className],
+      ["Nama Siswa", data.studentName, "Kelas", formatClassName(data.className)],
       ["NIS/NISN", `${data.nis || "-"} / ${data.nisn || "-"}`, "Tanggal", fmtTanggal(data.tanggal)],
     ],
   });

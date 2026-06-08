@@ -33,7 +33,8 @@ import {
   toSafeNumber,
 } from "@/data/tahfizhSystem";
 import { getStandardExamGrading } from "@/data/grading";
-import { buildVerificationUrlForExam, inferTahfizhModeForExam } from "@/utils/verificationUrl";
+import { formatClassName } from "@/utils/className";
+import { buildVerificationUrlForExam, inferTahfizhModeForExam, usesLegacyTahfizhScoring } from "@/utils/verificationUrl";
 import {
   generateRaportPDF,
   downloadRaportPDF,
@@ -70,13 +71,14 @@ interface Props {
 }
 
 const STORAGE_KEY = "raport_settings_v3";
+const HEADMASTER_NAME = "Amrullah Rozy Dalimunthe, S.Si";
 
 const DEFAULT_HEADER: RaportHeader = {
   schoolName: "SDIT Luqmanul Hakim",
   programName: "Program Tahfizh & Tahsin Al-Qur'an",
   address:
     "Jl. Jati No.4, Tj. Selamat, Kec. Sunggal, Kabupaten Deli Serdang, Sumatera Utara 20351",
-  headmaster: "Amrullah Rozy Dalimunthe, S.Si",
+  headmaster: HEADMASTER_NAME,
   headmasterTitle: "Kepala Sekolah",
   nip: "-",
   city: "Sunggal",
@@ -178,7 +180,7 @@ export default function RaportPreviewDialog({
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const p = JSON.parse(raw);
-        if (p.header) setHeader((h) => ({ ...h, ...p.header }));
+        if (p.header) setHeader((h) => ({ ...h, ...p.header, headmaster: HEADMASTER_NAME }));
         if (p.assets) setAssets(p.assets);
         if (p.opts) setOpts((o) => ({ ...o, ...p.opts }));
       }
@@ -269,6 +271,11 @@ export default function RaportPreviewDialog({
     const aspek = activeUjian?.nilai_aspek || {};
     const normalizedEntries = (aspek.entries || []).map(normalizeTahsinEntry);
     const rawTahfizhEntries = Array.isArray(aspek.surahEntries) ? aspek.surahEntries : [];
+    const legacyScoring = usesLegacyTahfizhScoring({
+      mode: activeUjian?.mode,
+      assessedBy: activeUjian?.assessed_by,
+      tanggal: activeUjian?.tanggal,
+    });
     const tahfizhMode =
       inferTahfizhModeForExam({
         mode: activeUjian?.mode,
@@ -291,7 +298,8 @@ export default function RaportPreviewDialog({
             nilaiAspek: aspek,
             tahfizhMode,
             config: aspek.config,
-            manualStopReason: aspek.manualStopReason,
+            manualStopReason: legacyScoring ? "" : aspek.manualStopReason,
+            ignoreAutoFail: legacyScoring,
             autoFailConfig: aspek.autoFailConfig,
           })
         : null;
@@ -300,12 +308,12 @@ export default function RaportPreviewDialog({
       : toSafeNumber(activeUjian?.nilai_akhir, 0);
 
     const grading = getStandardExamGrading(effectiveNilaiAkhir);
-    const predikat = aspek.predikat || grading.predikat;
+    const predikat = normalizedTahfizh?.predikat ?? aspek.predikat ?? grading.predikat;
 
     return {
       mode: activeUjian?.mode,
       studentName,
-      className,
+      className: formatClassName(className),
       nis: nis || undefined,
       nisn: nisn || undefined,
       assessorName,

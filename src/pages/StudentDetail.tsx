@@ -24,6 +24,7 @@ import EditUjianDialog from "@/components/EditUjianDialog";
 import RaportPreviewDialog from "@/components/RaportPreviewDialog";
 import { handleSmartFormKey } from "@/utils/smartFormNav";
 import { usesLegacyTahfizhScoring } from "@/utils/verificationUrl";
+import { formatClassName } from "@/utils/className";
 import {
   aggregateTahfizhAssessmentsForDisplay,
   calculateTahfizhExamResult,
@@ -640,7 +641,7 @@ const StudentDetail = () => {
           <h1 className="text-3xl font-bold text-foreground mb-2">{student?.name}</h1>
           <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
             {(student as any)?.nisn && <p>NISN: {(student as any).nisn}</p>}
-            {classInfo?.name && <p>Kelas: {classInfo.name}</p>}
+            {classInfo?.name && <p>Kelas: {formatClassName(classInfo)}</p>}
           </div>
         </div>
 
@@ -1173,7 +1174,7 @@ const StudentDetail = () => {
           onClose={() => setRaportUjian(null)}
           ujian={raportUjian}
           studentName={student.name}
-          className={classInfo?.name || ''}
+          className={formatClassName(classInfo)}
           nis={student.nis}
           nisn={student.nisn}
           assessorName={raportUjian.assessed_by ? assessorMap[raportUjian.assessed_by] : undefined}

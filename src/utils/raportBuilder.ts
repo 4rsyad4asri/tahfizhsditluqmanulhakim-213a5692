@@ -1,7 +1,12 @@
 import { generateCatatanOtomatisFromUjian } from "@/utils/catatanOtomatis";
-import { aggregateTahfizhAssessmentsForDisplay } from "@/data/tahfizhSystem";
+import {
+  aggregateTahfizhAssessmentsForDisplay,
+  normalizeTahfizhPayload,
+  toSafeNumber,
+} from "@/data/tahfizhSystem";
 import { getStandardExamGrading } from "@/data/grading";
-import { buildVerificationUrlForExam, inferTahfizhModeForExam } from "@/utils/verificationUrl";
+import { formatClassName } from "@/utils/className";
+import { buildVerificationUrlForExam, inferTahfizhModeForExam, usesLegacyTahfizhScoring } from "@/utils/verificationUrl";
 import type {
   RaportData,
   RaportHeader,
@@ -18,13 +23,14 @@ import type {
 import { loadRaportVisualLayout } from "@/utils/pdfAssetsLayout";
 
 const STORAGE_KEY = "raport_settings_v3";
+const HEADMASTER_NAME = "Amrullah Rozy Dalimunthe, S.Si";
 
 export const DEFAULT_HEADER: RaportHeader = {
   schoolName: "SDIT Luqmanul Hakim",
   programName: "Program Tahfizh & Tahsin Al-Qur'an",
   address:
     "Jl. Jati No.4, Tj. Selamat, Kec. Sunggal, Kabupaten Deli Serdang, Sumatera Utara 20351",
-  headmaster: "Amrullah Rozy Dalimunthe, S.Si",
+  headmaster: HEADMASTER_NAME,
   headmasterTitle: "Kepala Sekolah",
   nip: "-",
   city: "Sunggal",
@@ -53,7 +59,7 @@ export function loadRaportSettings(): RaportSettings {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const p = JSON.parse(raw);
-      if (p.header) header = { ...header, ...p.header };
+      if (p.header) header = { ...header, ...p.header, headmaster: HEADMASTER_NAME };
       if (p.assets) assets = p.assets;
       if (p.opts) opts = { ...opts, ...p.opts };
     }
@@ -105,8 +111,28 @@ export function buildRaportData(
     rawTahfizhEntries.length <= 5;
   const tahfizhReportType = useRegularFiveQuestionDetail ? "detail" : "summary";
 
-  const grading = getStandardExamGrading(ujian?.nilai_akhir ?? 0);
-  const predikat = aspek.predikat || grading.predikat;
+  const legacyScoring = usesLegacyTahfizhScoring({
+    mode: ujian?.mode,
+    assessedBy: ujian?.assessed_by,
+    tanggal: ujian?.tanggal,
+  });
+  const normalizedTahfizh =
+    ujian?.mode === "Tahfizh" && rawTahfizhEntries.length > 0
+      ? normalizeTahfizhPayload({
+          entries: rawTahfizhEntries,
+          nilaiAspek: aspek,
+          tahfizhMode,
+          config: aspek.config,
+          manualStopReason: legacyScoring ? "" : aspek.manualStopReason,
+          ignoreAutoFail: legacyScoring,
+          autoFailConfig: aspek.autoFailConfig,
+        })
+      : null;
+  const effectiveNilaiAkhir = normalizedTahfizh
+    ? normalizedTahfizh.nilaiAkhir
+    : toSafeNumber(ujian?.nilai_akhir, 0);
+  const grading = getStandardExamGrading(effectiveNilaiAkhir);
+  const predikat = normalizedTahfizh?.predikat ?? aspek.predikat ?? grading.predikat;
 
   const savedCatatanMode = aspek?.catatanMode || "auto";
   const manualCatatan = savedCatatanMode === "manual" ? aspek?.catatanGuru ?? "" : "";
@@ -119,14 +145,14 @@ export function buildRaportData(
   return {
     mode: ujian?.mode,
     studentName,
-    className,
+    className: formatClassName(className),
     nis: nis || undefined,
     nisn: nisn || undefined,
     assessorName: assessorName || aspek?.assessorName,
     tanggal: tanggalOverride || ujian?.tanggal || new Date().toISOString().split("T")[0],
-    nilaiAkhir: ujian?.nilai_akhir ?? 0,
-    status: ujian?.status ?? "-",
-    grade: ujian?.grade ?? grading.grade,
+    nilaiAkhir: effectiveNilaiAkhir,
+    status: normalizedTahfizh?.status ?? ujian?.status ?? "-",
+    grade: normalizedTahfizh?.grade ?? ujian?.grade ?? grading.grade,
     predikat,
     catatanGuru: finalCatatan,
     verificationToken,

@@ -25,6 +25,7 @@ import {
   usesLegacyTahfizhScoring,
 } from "@/utils/verificationUrl";
 import { buildReportDocumentNumber } from "@/utils/documentNumber";
+import { formatClassName } from "@/utils/className";
 
 interface RekapItem {
   id: string;
@@ -223,7 +224,7 @@ const RekapSertifikat = () => {
       const classIds = [...new Set((students || []).map((s) => s.class_id))];
       const { data: classes } = await supabase
         .from("classes")
-        .select("id, name, grade")
+        .select("id, name, grade, section")
         .in("id", classIds);
 
       const studentMap = new Map((students || []).map((s) => [s.id, s]));
@@ -263,7 +264,7 @@ const RekapSertifikat = () => {
           id: u.id,
           studentId: u.student_id,
           studentName: student?.name || "Unknown",
-          className: cls?.name || "Unknown",
+          className: cls ? formatClassName(cls) : "Unknown",
           classGrade,
           juz: juzList.length > 0 ? juzList.join(", ") : "-",
           nilaiAkhir: syncedResult.nilaiAkhir,

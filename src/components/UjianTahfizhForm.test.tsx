@@ -1,10 +1,11 @@
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/dom";
+import { render as rtlRender } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import UjianTahfizhForm from "@/components/UjianTahfizhForm";
 
 describe("UjianTahfizhForm", () => {
   it("renders regular mode without crashing", () => {
-    render(
+    rtlRender(
       <UjianTahfizhForm
         mode="Reguler"
         onSubmit={vi.fn()}
@@ -17,7 +18,7 @@ describe("UjianTahfizhForm", () => {
   });
 
   it("renders certificate mode without crashing", () => {
-    render(
+    rtlRender(
       <UjianTahfizhForm
         mode="Sertifikat"
         onSubmit={vi.fn()}
@@ -29,7 +30,7 @@ describe("UjianTahfizhForm", () => {
   });
 
   it("renders multiple stored assessments without treating their index as fallback data", () => {
-    render(
+    rtlRender(
       <UjianTahfizhForm
         mode="Reguler"
         initialAssessments={[

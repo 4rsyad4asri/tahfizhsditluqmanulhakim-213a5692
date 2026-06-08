@@ -21,8 +21,8 @@ describe("UjianTahfizhForm", () => {
       />
     );
 
-    expect(screen.getByText("Mode Reguler")).toBeInTheDocument();
-    expect(screen.getByText("Reset 5 Soal")).toBeInTheDocument();
+    expect(screen.getByText("Mode Reguler")).toBeTruthy();
+    expect(screen.getByText("Reset 5 Soal")).toBeTruthy();
   });
 
   it("renders certificate mode without crashing", () => {
@@ -34,7 +34,7 @@ describe("UjianTahfizhForm", () => {
       />
     );
 
-    expect(screen.getByText("Mode Sertifikat")).toBeInTheDocument();
+    expect(screen.getByText("Mode Sertifikat")).toBeTruthy();
   });
 
   it("renders multiple stored assessments without treating their index as fallback data", () => {
@@ -50,7 +50,7 @@ describe("UjianTahfizhForm", () => {
       />
     );
 
-    expect(screen.getByText("Mode Reguler")).toBeInTheDocument();
-    expect(screen.getByText("Reset 5 Soal")).toBeInTheDocument();
+    expect(screen.getByText("Mode Reguler")).toBeTruthy();
+    expect(screen.getByText("Reset 5 Soal")).toBeTruthy();
   });
 });

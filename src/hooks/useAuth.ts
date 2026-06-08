@@ -2,13 +2,30 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
-type AppRole = "admin" | "penguji";
+type AppRole = "admin" | "penguji" | "guru" | "parent";
+type AccountStatus = "pending" | "approved" | "rejected" | "inactive";
+
+export interface UserProfile {
+  full_name: string;
+  username?: string | null;
+  email?: string | null;
+  whatsapp?: string | null;
+  bio?: string | null;
+  avatar_url?: string | null;
+  signature_url?: string | null;
+  display_name_rapor?: string | null;
+  display_name_certificate?: string | null;
+  title?: string | null;
+  jabatan?: string | null;
+  nip?: string | null;
+  status?: AccountStatus | null;
+}
 
 interface AuthState {
   user: User | null;
   session: Session | null;
   role: AppRole | null;
-  profile: { full_name: string } | null;
+  profile: UserProfile | null;
   loading: boolean;
 }
 
@@ -24,11 +41,11 @@ export function useAuth() {
   const fetchRoleAndProfile = useCallback(async (userId: string) => {
     const [roleRes, profileRes] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle(),
-      supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle(),
+      supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
     ]);
     return {
       role: (roleRes.data?.role as AppRole) ?? null,
-      profile: profileRes.data ?? null,
+      profile: (profileRes.data as UserProfile | null) ?? null,
     };
   }, []);
 
@@ -62,8 +79,19 @@ export function useAuth() {
   }, [fetchRoleAndProfile]);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error };
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { error };
+    // Check approval status
+    if (data.user) {
+      const { data: prof } = await supabase
+        .from("profiles").select("status").eq("id", data.user.id).maybeSingle();
+      const status = (prof as any)?.status as AccountStatus | undefined;
+      if (status && status !== "approved") {
+        await supabase.auth.signOut();
+        return { error: { message: status, status } as any };
+      }
+    }
+    return { error: null };
   };
 
   const signOut = async () => {
@@ -72,6 +100,8 @@ export function useAuth() {
 
   const isAdmin = state.role === "admin";
   const isPenguji = state.role === "penguji";
+  const isGuru = state.role === "guru";
+  const isParent = state.role === "parent";
 
-  return { ...state, signIn, signOut, isAdmin, isPenguji };
+  return { ...state, signIn, signOut, isAdmin, isPenguji, isGuru, isParent };
 }

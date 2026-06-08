@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { BookOpen, LogIn, Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
@@ -28,7 +28,11 @@ export default function Login() {
     const { error } = await signIn(email, password);
     setSubmitting(false);
     if (error) {
-      toast.error("Email atau password salah");
+      const status = (error as any)?.status;
+      if (status === "pending") toast.error("Akun Anda masih menunggu persetujuan admin");
+      else if (status === "rejected") toast.error("Pendaftaran akun Anda ditolak admin");
+      else if (status === "inactive") toast.error("Akun Anda dinonaktifkan. Hubungi admin");
+      else toast.error("Email atau password salah");
     } else {
       toast.success("Berhasil login!");
       navigate("/", { replace: true });
@@ -92,7 +96,10 @@ export default function Login() {
           </button>
 
           <p className="text-xs text-center text-muted-foreground">
-            Hubungi Admin untuk mendapatkan akun
+            Belum punya akun?{" "}
+            <Link to="/register" className="text-primary font-semibold hover:underline">
+              Daftar di sini
+            </Link>
           </p>
         </form>
       </div>

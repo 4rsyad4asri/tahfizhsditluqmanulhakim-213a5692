@@ -21,21 +21,10 @@ import type {
   WaqafSymbolTest,
 } from "@/data/tahsinScoring";
 import { loadRaportVisualLayout } from "@/utils/pdfAssetsLayout";
+import { DEFAULT_RAPORT_HEADER, loadGlobalRaportHeader } from "@/utils/raportSettings";
 
 const STORAGE_KEY = "raport_settings_v3";
-const HEADMASTER_NAME = "Amrullah Rozy Dalimunthe, S.Si";
-
-export const DEFAULT_HEADER: RaportHeader = {
-  schoolName: "SDIT Luqmanul Hakim",
-  programName: "Program Tahfizh & Tahsin Al-Qur'an",
-  address:
-    "Jl. Jati No.4, Tj. Selamat, Kec. Sunggal, Kabupaten Deli Serdang, Sumatera Utara 20351",
-  headmaster: HEADMASTER_NAME,
-  headmasterTitle: "Kepala Sekolah",
-  nip: "-",
-  city: "Sunggal",
-  examinerTitle: "Guru Tahfizh",
-};
+export const DEFAULT_HEADER = DEFAULT_RAPORT_HEADER;
 
 export const DEFAULT_OPTS: RaportPdfOptions = {
   orientation: "landscape",
@@ -51,15 +40,14 @@ export interface RaportSettings {
   opts: RaportPdfOptions;
 }
 
-export function loadRaportSettings(): RaportSettings {
-  let header = { ...DEFAULT_HEADER };
+export async function loadRaportSettings(): Promise<RaportSettings> {
+  const header = await loadGlobalRaportHeader();
   let assets: RaportAssets = {};
   let opts = { ...DEFAULT_OPTS };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const p = JSON.parse(raw);
-      if (p.header) header = { ...header, ...p.header, headmaster: HEADMASTER_NAME };
       if (p.assets) assets = p.assets;
       if (p.opts) opts = { ...opts, ...p.opts };
     }

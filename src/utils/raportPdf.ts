@@ -331,7 +331,7 @@ function drawHeader(
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
     doc.setTextColor(120, 120, 120);
-    doc.text(`No. Dok: ${nomorDokumen}`, pageW / 2, titleY + 4, {
+    doc.text(`No. Dokumen: ${nomorDokumen}`, pageW / 2, titleY + 4, {
       align: "center",
     });
   }

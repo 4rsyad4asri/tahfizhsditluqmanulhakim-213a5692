@@ -52,6 +52,7 @@ import {
   type RaportVisualLayout,
 } from "@/utils/pdfAssetsLayout";
 import { resolveRaportSignatureAssets } from "@/utils/officialSignatures";
+import { DEFAULT_RAPORT_HEADER, loadGlobalRaportHeader } from "@/utils/raportSettings";
 import type {
   TahsinDasarEntry,
   TahsinLanjutanEntry,
@@ -72,19 +73,6 @@ interface Props {
 }
 
 const STORAGE_KEY = "raport_settings_v3";
-const HEADMASTER_NAME = "Amrullah Rozy Dalimunthe, S.Si";
-
-const DEFAULT_HEADER: RaportHeader = {
-  schoolName: "SDIT Luqmanul Hakim",
-  programName: "Program Tahfizh & Tahsin Al-Qur'an",
-  address:
-    "Jl. Jati No.4, Tj. Selamat, Kec. Sunggal, Kabupaten Deli Serdang, Sumatera Utara 20351",
-  headmaster: HEADMASTER_NAME,
-  headmasterTitle: "Kepala Sekolah",
-  nip: "-",
-  city: "Sunggal",
-  examinerTitle: "Guru Tahfizh",
-};
 
 const DEFAULT_OPTS: RaportPdfOptions = {
   orientation: "landscape",
@@ -137,7 +125,7 @@ export default function RaportPreviewDialog({
   nisn,
   assessorName,
 }: Props) {
-  const [header, setHeader] = useState<RaportHeader>(DEFAULT_HEADER);
+  const [header, setHeader] = useState<RaportHeader>(DEFAULT_RAPORT_HEADER);
   const [assets, setAssets] = useState<RaportAssets>({});
   const [profileAssets, setProfileAssets] = useState<RaportAssets>({});
   const [opts, setOpts] = useState<RaportPdfOptions>(DEFAULT_OPTS);
@@ -182,7 +170,6 @@ export default function RaportPreviewDialog({
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const p = JSON.parse(raw);
-        if (p.header) setHeader((h) => ({ ...h, ...p.header, headmaster: HEADMASTER_NAME }));
         if (p.assets) setAssets(p.assets);
         if (p.opts) setOpts((o) => ({ ...o, ...p.opts }));
       }
@@ -193,10 +180,25 @@ export default function RaportPreviewDialog({
     try {
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ header, assets, opts })
+        JSON.stringify({ assets, opts })
       );
     } catch {}
-  }, [header, assets, opts]);
+  }, [assets, opts]);
+
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+
+    loadGlobalRaportHeader()
+      .then((globalHeader) => {
+        if (alive) setHeader(globalHeader);
+      })
+      .catch((error) => console.error("Gagal memuat pengaturan rapor global:", error));
+
+    return () => {
+      alive = false;
+    };
+  }, [open]);
 
   useEffect(() => {
     if (open) {

@@ -284,7 +284,7 @@ export default function RekapGlobal() {
   const handleDownloadOne = async (r: Row) => {
     setDownloadingId(r.ujianId);
     try {
-      const { header, assets, opts } = loadRaportSettings();
+      const { header, assets, opts } = await loadRaportSettings();
       const data = buildRaportData(
         r.ujian,
         r.studentName,
@@ -327,7 +327,7 @@ export default function RekapGlobal() {
       if (!confirm(`Anda akan mengunduh ${rows.length} raport sekaligus. Lanjutkan?`)) return;
     }
 
-    const { header, assets, opts } = loadRaportSettings();
+    const { header, assets, opts } = await loadRaportSettings();
     const zip = new JSZip();
     const failed: BulkFailedItem[] = [];
     const totalBatches = Math.ceil(rows.length / BULK_BATCH_SIZE);

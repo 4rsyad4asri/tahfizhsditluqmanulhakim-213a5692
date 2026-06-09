@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildRaportData, loadRaportSettings } from "@/utils/raportBuilder";
+import { buildRaportData } from "@/utils/raportBuilder";
+import { normalizeRaportHeader } from "@/utils/raportSettings";
 
 describe("raportBuilder", () => {
   it("ignores old Tahfizh auto-fail metadata for legacy raport data", () => {
@@ -39,12 +40,12 @@ describe("raportBuilder", () => {
     expect(data.className).toBe("V D");
   });
 
-  it("forces the current headmaster name over saved old settings", () => {
-    localStorage.setItem(
-      "raport_settings_v3",
-      JSON.stringify({ header: { headmaster: "Nama Lama" } })
-    );
+  it("uses the Sunggal identity defaults and accepts admin overrides", () => {
+    const defaults = normalizeRaportHeader();
+    const overridden = normalizeRaportHeader({ headmaster: "Kepala Sekolah Baru" });
 
-    expect(loadRaportSettings().header.headmaster).toBe("Amrullah Rozy Dalimunthe, S.Si");
+    expect(defaults.city).toBe("Sunggal");
+    expect(defaults.address).toContain("Jl. Jati No.4");
+    expect(overridden.headmaster).toBe("Kepala Sekolah Baru");
   });
 });

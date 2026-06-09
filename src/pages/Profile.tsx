@@ -9,6 +9,12 @@ import {
   loadOfficialSignatureSettings,
   saveOfficialSignatureSettings,
 } from "@/utils/officialSignatures";
+import {
+  DEFAULT_RAPORT_HEADER,
+  loadGlobalRaportHeader,
+  saveGlobalRaportHeader,
+} from "@/utils/raportSettings";
+import type { RaportHeader } from "@/utils/raportPdf";
 
 export default function Profile() {
   const { user, profile, role } = useAuthContext();
@@ -22,6 +28,7 @@ export default function Profile() {
   const [headmasterSignaturePath, setHeadmasterSignaturePath] = useState<string | null>(null);
   const [logoLeftPath, setLogoLeftPath] = useState<string | null>(null);
   const [logoRightPath, setLogoRightPath] = useState<string | null>(null);
+  const [raportHeader, setRaportHeader] = useState<RaportHeader>(DEFAULT_RAPORT_HEADER);
 
   useEffect(() => {
     if (!profile) return;
@@ -43,14 +50,15 @@ export default function Profile() {
     if (role !== "admin") return;
     let alive = true;
 
-    loadOfficialSignatureSettings()
-      .then((settings) => {
+    Promise.all([loadOfficialSignatureSettings(), loadGlobalRaportHeader()])
+      .then(([settings, globalRaportHeader]) => {
         if (!alive) return;
         setHeadmasterSignaturePath(settings.headmasterSignaturePath || null);
         setLogoLeftPath(settings.logoLeftPath || null);
         setLogoRightPath(settings.logoRightPath || null);
+        setRaportHeader(globalRaportHeader);
       })
-      .catch((error) => console.error("Gagal memuat TTD kepala sekolah:", error));
+      .catch((error) => console.error("Gagal memuat pengaturan resmi:", error));
 
     return () => {
       alive = false;
@@ -76,11 +84,14 @@ export default function Profile() {
       }).eq("id", user.id);
       if (error) throw error;
       if (role === "admin") {
-        await saveOfficialSignatureSettings({
-          headmasterSignaturePath,
-          logoLeftPath,
-          logoRightPath,
-        });
+        await Promise.all([
+          saveOfficialSignatureSettings({
+            headmasterSignaturePath,
+            logoLeftPath,
+            logoRightPath,
+          }),
+          saveGlobalRaportHeader(raportHeader),
+        ]);
       }
       toast.success("Profil tersimpan");
     } catch (err: any) {
@@ -155,6 +166,44 @@ export default function Profile() {
               hint="Dipakai otomatis sebagai TTD Penguji, Guru Tahfizh, atau Koordinator Tahfizh sesuai akun Anda."
               onChange={setSignaturePath}
             />
+          </section>
+        )}
+
+        {role === "admin" && (
+          <section className="bg-card border border-border rounded-xl p-6 space-y-4 shadow-card">
+            <h3 className="font-semibold text-foreground">Pengaturan Rapor Global</h3>
+            <p className="text-xs text-muted-foreground">
+              Perubahan ini otomatis digunakan oleh semua jenis rapor pada seluruh akun.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <TextInput
+                label="Nama Sekolah"
+                value={raportHeader.schoolName}
+                onChange={(schoolName) => setRaportHeader({ ...raportHeader, schoolName })}
+              />
+              <TextInput
+                label="Program"
+                value={raportHeader.programName}
+                onChange={(programName) => setRaportHeader({ ...raportHeader, programName })}
+              />
+              <div className="md:col-span-2">
+                <TextInput
+                  label="Alamat"
+                  value={raportHeader.address}
+                  onChange={(address) => setRaportHeader({ ...raportHeader, address })}
+                />
+              </div>
+              <TextInput
+                label="Kepala Sekolah"
+                value={raportHeader.headmaster}
+                onChange={(headmaster) => setRaportHeader({ ...raportHeader, headmaster })}
+              />
+              <TextInput
+                label="Kota"
+                value={raportHeader.city}
+                onChange={(city) => setRaportHeader({ ...raportHeader, city })}
+              />
+            </div>
           </section>
         )}
 

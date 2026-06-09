@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { Download, Move, RotateCcw, Save, Upload } from "lucide-react";
+import { Download, Minus, Move, Plus, RotateCcw, Save, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -118,6 +118,15 @@ const CertificateLayoutEditor = ({
       ...current,
       [selected]: { ...current[selected], ...patch },
     }));
+  };
+
+  const adjustSelectedSignature = (widthDelta: number, heightDelta: number) => {
+    if (!selectedIsSignature) return;
+    const signature = selectedValue as CertificateImageLayout;
+    updateSelected({
+      width: Math.max(40, Math.min(600, signature.width + widthDelta)),
+      height: Math.max(20, Math.min(300, signature.height + heightDelta)),
+    });
   };
 
   const getElementPosition = (id: CertificateElementId) => {
@@ -313,13 +322,80 @@ const CertificateLayoutEditor = ({
                   </p>
                 </div>
               ) : selectedIsSignature ? (
-                <div className="space-y-3">
+                <div className="space-y-4">
+                  <div className="rounded-lg border bg-muted/30 p-3">
+                    <p className="mb-3 text-xs font-semibold">
+                      Ukuran {selected === "coordinatorSignature" ? "TTD Koordinator" : "TTD Kepala Sekolah"}
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => adjustSelectedSignature(-20, -8)}
+                      >
+                        <Minus className="mr-1 h-4 w-4" /> Perkecil
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => adjustSelectedSignature(20, 8)}
+                      >
+                        <Plus className="mr-1 h-4 w-4" /> Perbesar
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => adjustSelectedSignature(-20, 0)}
+                      >
+                        <Minus className="mr-1 h-4 w-4" /> Persempit
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => adjustSelectedSignature(20, 0)}
+                      >
+                        <Plus className="mr-1 h-4 w-4" /> Perlebar
+                      </Button>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-3">
                     {renderNumberField("Lebar TTD", "width", 40, 600)}
                     {renderNumberField("Tinggi TTD", "height", 20, 300)}
                   </div>
+
+                  <label className="space-y-1 text-xs font-medium">
+                    <span>Geser lebar: {(selectedValue as CertificateImageLayout).width}px</span>
+                    <Input
+                      type="range"
+                      min={40}
+                      max={600}
+                      step={5}
+                      value={(selectedValue as CertificateImageLayout).width}
+                      onChange={(event) => updateSelected({ width: Number(event.target.value) })}
+                      className="h-8 cursor-pointer px-0"
+                    />
+                  </label>
+
+                  <label className="space-y-1 text-xs font-medium">
+                    <span>Geser tinggi: {(selectedValue as CertificateImageLayout).height}px</span>
+                    <Input
+                      type="range"
+                      min={20}
+                      max={300}
+                      step={2}
+                      value={(selectedValue as CertificateImageLayout).height}
+                      onChange={(event) => updateSelected({ height: Number(event.target.value) })}
+                      className="h-8 cursor-pointer px-0"
+                    />
+                  </label>
+
                   <p className="rounded-md bg-blue-50 px-3 py-2 text-xs text-blue-800">
-                    Tanda tangan dapat digeser langsung pada preview. Gunakan PNG transparan agar hasilnya menyatu dengan sertifikat.
+                    Pilih TTD Koordinator atau TTD Kepala Sekolah pada menu Elemen. Ukuran keduanya dapat diatur terpisah dan hasilnya langsung terlihat pada preview.
                   </p>
                 </div>
               ) : (

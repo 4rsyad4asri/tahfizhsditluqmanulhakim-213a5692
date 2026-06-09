@@ -12,6 +12,8 @@ import {
   BarChart3,
   BookOpen,
   ClipboardCheck,
+  ExternalLink,
+  FileText,
   GraduationCap,
   Info,
   Layers,
@@ -24,6 +26,7 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getSafeErrorMessage } from "@/utils/errorMessages";
+import { TAHSIN_URL } from "@/utils/systemLink";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 
 const LEVEL_COLORS = [
@@ -288,6 +291,10 @@ const Dashboard = () => {
     navigate(path);
   };
 
+  const goToTahsinSystem = () => {
+    window.location.href = TAHSIN_URL;
+  };
+
   const getProgressTone = (progress: number) => {
     if (progress >= 85) return "border-[#9ED4B4] bg-[#E3F2E9] text-[#1F5F49]";
     if (progress >= 70) return "border-[#E6D28F] bg-[#FBF7EB] text-[#765D18]";
@@ -338,6 +345,30 @@ const Dashboard = () => {
               </div>
             ))}
           </div>
+
+          <section className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="rounded-2xl border border-[#DCE9DD] bg-white p-5 shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="rounded-2xl bg-[#E3F2E9] p-3 text-[#2F7D5F]">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-lg font-bold text-[#18332A]">Buka Sistem Tahsin</h2>
+                  <p className="mt-1 text-sm leading-6 text-[#667A70]">
+                    Untuk ujian tahsin dasar, tahsin lanjutan, rapor tahsin, dan rekap tahsin.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={goToTahsinSystem}
+                    className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#2F7D5F] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-[#1F5F49]"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Masuk ke Sistem Tahsin
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
 
           {/* Onboarding banner for penguji with no classes */}
           {isPenguji && filteredClasses.length === 0 && !isLoading && (
@@ -549,6 +580,31 @@ const Dashboard = () => {
                 {stat.hint && <p className="mt-2 text-xs leading-5 text-[#667A70]">{stat.hint}</p>}
               </div>
             ))}
+          </div>
+        </section>
+
+        <section className="grid w-[calc(100vw-2rem)] max-w-full gap-4 lg:w-full lg:grid-cols-2">
+          <div className="rounded-2xl border border-[#DCE9DD] bg-white p-5 shadow-sm">
+            <div className="flex items-start gap-4">
+              <div className="rounded-2xl bg-[#E3F2E9] p-3 text-[#2F7D5F]">
+                <FileText className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-[#2F7D5F]">Sistem Terkait</p>
+                <h2 className="mt-1 text-xl font-bold text-[#18332A]">Buka Sistem Tahsin</h2>
+                <p className="mt-2 text-sm leading-6 text-[#667A70]">
+                  Untuk ujian tahsin dasar, tahsin lanjutan, rapor tahsin, dan rekap tahsin.
+                </p>
+                <button
+                  type="button"
+                  onClick={goToTahsinSystem}
+                  className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#2F7D5F] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-[#1F5F49]"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Masuk ke Sistem Tahsin
+                </button>
+              </div>
+            </div>
           </div>
         </section>
 

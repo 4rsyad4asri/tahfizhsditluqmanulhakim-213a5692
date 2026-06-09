@@ -1,6 +1,7 @@
-import { Award, BarChart3, BookOpen, KeyRound, LogOut, Moon, Search, Settings, Shield, Star, UserCircle } from "lucide-react";
+import { Award, BarChart3, BookOpen, ExternalLink, KeyRound, LogOut, Moon, Search, Settings, Shield, Star, UserCircle } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { TAHSIN_URL } from "@/utils/systemLink";
 
 const navButtonClass = (active: boolean) =>
   `flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -13,6 +14,9 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, profile, signOut, isAdmin } = useAuthContext();
+  const goToTahsinSystem = () => {
+    window.location.href = TAHSIN_URL;
+  };
 
   const handleLogout = async () => {
     await signOut();
@@ -62,6 +66,11 @@ const Header = () => {
                 <span className="hidden text-center text-xs text-black sm:inline">Kelola User</span>
               </button>
             )}
+
+            <button onClick={goToTahsinSystem} className={navButtonClass(false)}>
+              <ExternalLink className="h-4 w-4 text-slate-950" />
+              <span className="hidden text-center text-xs text-gray-950 sm:inline">Buka Sistem Tahsin</span>
+            </button>
 
             {user ? (
               <div className="flex min-w-0 flex-wrap items-center gap-2">

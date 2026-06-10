@@ -10,7 +10,7 @@ interface Props {
   label: string;
   hint?: string;
   fileStem?: string;
-  onChange: (path: string | null) => void;
+  onChange: (path: string | null) => void | Promise<void>;
 }
 
 export default function FileUploader({ userId, currentPath, bucket, label, hint, fileStem, onChange }: Props) {
@@ -49,10 +49,15 @@ export default function FileUploader({ userId, currentPath, bucket, label, hint,
         cacheControl: bucket === "signatures" ? "0" : "3600",
       });
       if (error) throw error;
-      onChange(path);
+      try {
+        await onChange(path);
+      } catch (error) {
+        await supabase.storage.from(bucket).remove([path]);
+        throw error;
+      }
       toast.success(`${label} berhasil diunggah`);
-    } catch (err: any) {
-      toast.error(err?.message || "Gagal mengunggah");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Gagal mengunggah");
     } finally {
       setBusy(false);
     }
@@ -62,11 +67,12 @@ export default function FileUploader({ userId, currentPath, bucket, label, hint,
     if (!currentPath) return;
     setBusy(true);
     try {
-      await supabase.storage.from(bucket).remove([currentPath]);
-      onChange(null);
+      await onChange(null);
+      const { error } = await supabase.storage.from(bucket).remove([currentPath]);
+      if (error) throw error;
       toast.success(`${label} dihapus`);
-    } catch (err: any) {
-      toast.error(err?.message || "Gagal menghapus");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Gagal menghapus");
     } finally {
       setBusy(false);
     }

@@ -77,8 +77,10 @@ export default function Profile() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      const normalizedUsername = form.username.trim().toLowerCase();
       const { error } = await supabase.from("profiles").update({
         ...form,
+        username: normalizedUsername || null,
         avatar_url: avatarPath,
         signature_url: signaturePath,
       }).eq("id", user.id);
@@ -94,11 +96,29 @@ export default function Profile() {
         ]);
       }
       toast.success("Profil tersimpan");
-    } catch (err: any) {
-      toast.error(err?.message || "Gagal menyimpan");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Gagal menyimpan");
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSignatureChange = async (path: string | null) => {
+    const previousPath = signaturePath;
+    setSignaturePath(path);
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ signature_url: path })
+      .eq("id", user.id);
+
+    if (error) {
+      setSignaturePath(previousPath);
+      toast.error(error.message || "Gagal menyimpan tanda tangan ke profil");
+      throw error;
+    }
+
+    toast.success("Tanda tangan profil langsung diperbarui");
   };
 
   const showWorkFields = role === "guru" || role === "penguji" || role === "admin";
@@ -164,7 +184,7 @@ export default function Profile() {
               bucket="signatures"
               label="Tanda Tangan Saya"
               hint="Dipakai otomatis sebagai TTD Penguji, Guru Tahfizh, atau Koordinator Tahfizh sesuai akun Anda."
-              onChange={setSignaturePath}
+              onChange={handleSignatureChange}
             />
           </section>
         )}

@@ -396,8 +396,8 @@ export default function RaportPreviewDialog({
       ...assets,
       logoLeft: assets.logoLeft || profileAssets.logoLeft,
       logoRight: assets.logoRight || profileAssets.logoRight,
-      sigExaminer: assets.sigExaminer || profileAssets.sigExaminer,
-      sigHeadmaster: assets.sigHeadmaster || profileAssets.sigHeadmaster,
+      sigExaminer: profileAssets.sigExaminer || assets.sigExaminer,
+      sigHeadmaster: profileAssets.sigHeadmaster || assets.sigHeadmaster,
     }),
     [assets, profileAssets]
   );

@@ -40,8 +40,14 @@ export default function FileUploader({ userId, currentPath, bucket, label, hint,
     try {
       const ext = file.type === "image/png" ? "png" : "jpg";
       const defaultStem = bucket === "signatures" ? "signature" : "avatar";
-      const path = `${userId}/${fileStem || defaultStem}.${ext}`;
-      const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true, contentType: file.type });
+      const stem = fileStem || defaultStem;
+      const version = bucket === "signatures" ? `-${Date.now()}` : "";
+      const path = `${userId}/${stem}${version}.${ext}`;
+      const { error } = await supabase.storage.from(bucket).upload(path, file, {
+        upsert: bucket !== "signatures",
+        contentType: file.type,
+        cacheControl: bucket === "signatures" ? "0" : "3600",
+      });
       if (error) throw error;
       onChange(path);
       toast.success(`${label} berhasil diunggah`);

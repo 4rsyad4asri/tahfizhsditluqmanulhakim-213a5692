@@ -18,7 +18,9 @@ async function storagePathToDataUrl(bucket: "signatures" | "avatars", path?: str
     .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
   if (error || !data?.signedUrl) return undefined;
 
-  const response = await fetch(data.signedUrl);
+  const signedUrl = new URL(data.signedUrl);
+  signedUrl.searchParams.set("v", Date.now().toString());
+  const response = await fetch(signedUrl.toString(), { cache: "no-store" });
   if (!response.ok) return undefined;
   const blob = await response.blob();
 
@@ -86,8 +88,8 @@ export async function resolveRaportSignatureAssets(
   manualAssets: RaportAssets = {}
 ): Promise<RaportAssets> {
   const [examinerSignature, headmasterSignature, branding] = await Promise.all([
-    manualAssets.sigExaminer ? undefined : getProfileSignatureDataUrl(assessedBy),
-    manualAssets.sigHeadmaster ? undefined : getHeadmasterSignatureDataUrl(),
+    getProfileSignatureDataUrl(assessedBy),
+    getHeadmasterSignatureDataUrl(),
     manualAssets.logoLeft && manualAssets.logoRight
       ? { logoLeft: undefined, logoRight: undefined }
       : getOfficialBrandingDataUrls(),
@@ -97,8 +99,8 @@ export async function resolveRaportSignatureAssets(
     ...manualAssets,
     logoLeft: manualAssets.logoLeft || branding.logoLeft,
     logoRight: manualAssets.logoRight || branding.logoRight,
-    sigExaminer: manualAssets.sigExaminer || examinerSignature,
-    sigHeadmaster: manualAssets.sigHeadmaster || headmasterSignature,
+    sigExaminer: examinerSignature || manualAssets.sigExaminer,
+    sigHeadmaster: headmasterSignature || manualAssets.sigHeadmaster,
   };
 }
 

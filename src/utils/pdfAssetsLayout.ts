@@ -28,7 +28,7 @@ export interface RaportVisualLayout {
   text: PdfTextLayout;
 }
 
-export type GlobalRaportSignatureLayout = {
+type RaportSignatureSettings = {
   examinerSignature: {
     visible: boolean;
     width: number;
@@ -43,6 +43,12 @@ export type GlobalRaportSignatureLayout = {
     placement: "auto" | "manual";
     offsetY: number;
   };
+};
+
+export type GlobalRaportSignatureLayout = RaportSignatureSettings & {
+  updatedAt: string;
+  updatedFromMode: RaportMode;
+  updatedFromOrientation: Orientation;
 };
 
 export const PDF_PAGE_SIZE: Record<Orientation, { width: number; height: number }> = {
@@ -170,7 +176,7 @@ export const normalizeRaportVisualLayout = (
 
 const toGlobalSignatureLayout = (
   layout: RaportVisualLayout,
-): GlobalRaportSignatureLayout => ({
+): RaportSignatureSettings => ({
   examinerSignature: {
     visible: layout.assets.examinerSignature.visible,
     width: layout.assets.examinerSignature.width,
@@ -187,47 +193,121 @@ const toGlobalSignatureLayout = (
   },
 });
 
-const loadGlobalRaportSignatureLayout = (
-  baseLayout: RaportVisualLayout,
+const getStoredOrientationLayout = (
+  parsed: Record<string, unknown>,
   orientation: Orientation,
-): GlobalRaportSignatureLayout => {
-  const fallback = toGlobalSignatureLayout(baseLayout);
+  allowAlternateOrientation = false,
+) => parsed?.[orientation] ??
+  (allowAlternateOrientation
+    ? parsed?.portrait ?? parsed?.landscape ?? parsed
+    : parsed);
+
+const hasStoredSignatureSettings = (value: unknown) => {
+  if (!value || typeof value !== "object") return false;
+  const assets = (value as Partial<RaportVisualLayout>).assets;
+  if (!assets || typeof assets !== "object") return false;
+
+  return ["examinerSignature", "headmasterSignature"].some((key) => {
+    const signature = (assets as Record<string, unknown>)[key];
+    return signature && typeof signature === "object";
+  });
+};
+
+const hasGlobalSignatureSettings = (
+  value: Partial<GlobalRaportSignatureLayout>,
+) => [value.examinerSignature, value.headmasterSignature]
+  .some((signature) => signature && typeof signature === "object");
+
+const loadStoredModeLayout = (
+  mode: RaportMode,
+  orientation: Orientation,
+  allowAlternateOrientation = false,
+): { layout: RaportVisualLayout; hasStoredLayout: boolean; rawLayout?: unknown } => {
+  const fallback = getDefaultRaportVisualLayout(orientation);
 
   try {
-    const raw = window.localStorage.getItem(GLOBAL_RAPORT_SIGNATURE_LAYOUT_KEY);
-    if (!raw) return fallback;
+    const raw = window.localStorage.getItem(STORAGE_KEYS[mode]);
+    if (!raw) return { layout: fallback, hasStoredLayout: false };
 
-    const parsed = JSON.parse(raw) as Partial<GlobalRaportSignatureLayout>;
-    const examinerSignature = parsed.examinerSignature &&
-      typeof parsed.examinerSignature === "object"
-      ? parsed.examinerSignature
-      : {};
-    const headmasterSignature = parsed.headmasterSignature &&
-      typeof parsed.headmasterSignature === "object"
-      ? parsed.headmasterSignature
-      : {};
-    const normalized = normalizeRaportVisualLayout({
-      assets: {
-        examinerSignature: {
-          ...baseLayout.assets.examinerSignature,
-          ...examinerSignature,
-        },
-        headmasterSignature: {
-          ...baseLayout.assets.headmasterSignature,
-          ...headmasterSignature,
-        },
-      },
-    }, orientation);
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") {
+      return { layout: fallback, hasStoredLayout: false };
+    }
 
-    return toGlobalSignatureLayout(normalized);
+    const rawLayout = getStoredOrientationLayout(
+      parsed as Record<string, unknown>,
+      orientation,
+      allowAlternateOrientation,
+    );
+    return {
+      layout: normalizeRaportVisualLayout(rawLayout, orientation),
+      hasStoredLayout: true,
+      rawLayout,
+    };
   } catch {
-    return fallback;
+    return { layout: fallback, hasStoredLayout: false };
   }
+};
+
+const loadGlobalRaportSignatureLayout = (
+  mode: RaportMode,
+  orientation: Orientation,
+  baseLayout: RaportVisualLayout,
+  baseRawLayout?: unknown,
+): RaportSignatureSettings => {
+  try {
+    const raw = window.localStorage.getItem(GLOBAL_RAPORT_SIGNATURE_LAYOUT_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<GlobalRaportSignatureLayout>;
+      if (!hasGlobalSignatureSettings(parsed)) {
+        throw new Error("Invalid global signature layout");
+      }
+      const examinerSignature = parsed.examinerSignature &&
+        typeof parsed.examinerSignature === "object"
+        ? parsed.examinerSignature
+        : {};
+      const headmasterSignature = parsed.headmasterSignature &&
+        typeof parsed.headmasterSignature === "object"
+        ? parsed.headmasterSignature
+        : {};
+      const normalized = normalizeRaportVisualLayout({
+        assets: {
+          examinerSignature: {
+            ...baseLayout.assets.examinerSignature,
+            ...examinerSignature,
+          },
+          headmasterSignature: {
+            ...baseLayout.assets.headmasterSignature,
+            ...headmasterSignature,
+          },
+        },
+      }, orientation);
+
+      return toGlobalSignatureLayout(normalized);
+    }
+  } catch {
+    // Continue to legacy per-mode storage fallback.
+  }
+
+  if (hasStoredSignatureSettings(baseRawLayout)) {
+    return toGlobalSignatureLayout(baseLayout);
+  }
+
+  const otherModes = (Object.keys(STORAGE_KEYS) as RaportMode[])
+    .filter((candidateMode) => candidateMode !== mode);
+  for (const candidateMode of otherModes) {
+    const candidate = loadStoredModeLayout(candidateMode, orientation, true);
+    if (candidate.hasStoredLayout && hasStoredSignatureSettings(candidate.rawLayout)) {
+      return toGlobalSignatureLayout(candidate.layout);
+    }
+  }
+
+  return toGlobalSignatureLayout(baseLayout);
 };
 
 const applyGlobalSignatureLayout = (
   baseLayout: RaportVisualLayout,
-  globalSignature: GlobalRaportSignatureLayout,
+  globalSignature: RaportSignatureSettings,
 ): RaportVisualLayout => ({
   ...baseLayout,
   assets: {
@@ -249,20 +329,14 @@ export const loadRaportVisualLayout = (
 ): RaportVisualLayout => {
   if (typeof window === "undefined") return getDefaultRaportVisualLayout(orientation);
 
-  let baseLayout = getDefaultRaportVisualLayout(orientation);
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEYS[mode]);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Record<string, unknown>;
-      const orientationLayout = parsed?.[orientation] ?? parsed;
-      baseLayout = normalizeRaportVisualLayout(orientationLayout, orientation);
-    }
-  } catch {
-    baseLayout = getDefaultRaportVisualLayout(orientation);
-  }
-
-  const globalSignature = loadGlobalRaportSignatureLayout(baseLayout, orientation);
-  return applyGlobalSignatureLayout(baseLayout, globalSignature);
+  const stored = loadStoredModeLayout(mode, orientation);
+  const globalSignature = loadGlobalRaportSignatureLayout(
+    mode,
+    orientation,
+    stored.layout,
+    stored.rawLayout,
+  );
+  return applyGlobalSignatureLayout(stored.layout, globalSignature);
 };
 
 export const saveRaportVisualLayout = (
@@ -288,7 +362,12 @@ export const saveRaportVisualLayout = (
     );
     window.localStorage.setItem(
       GLOBAL_RAPORT_SIGNATURE_LAYOUT_KEY,
-      JSON.stringify(toGlobalSignatureLayout(layout)),
+      JSON.stringify({
+        updatedAt: new Date().toISOString(),
+        updatedFromMode: mode,
+        updatedFromOrientation: orientation,
+        ...toGlobalSignatureLayout(layout),
+      } satisfies GlobalRaportSignatureLayout),
     );
   }
   return layout;

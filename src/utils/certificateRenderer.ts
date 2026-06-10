@@ -1,5 +1,6 @@
 import QRCode from "qrcode";
 import { formatClassName } from "@/utils/className";
+import { formatStudentName } from "@/utils/formatName";
 import { buildVerificationUrl } from "./verificationUrl";
 import {
   CERTIFICATE_HEIGHT,
@@ -210,7 +211,7 @@ export const renderCertificateImage = async (
 
   drawSpacedText(
     ctx,
-    safeText(data.studentName).toUpperCase(),
+    formatStudentName(safeText(data.studentName)),
     layout.studentName.x,
     layout.studentName.y,
     layout.studentName,

@@ -31,6 +31,7 @@ import {
   safeFileName,
 } from "@/utils/generateCertificatePDF";
 import { resolveCertificateSignatures } from "@/utils/officialSignatures";
+import { formatStudentName } from "@/utils/formatName";
 
 interface CertificatePreviewDialogProps {
   open: boolean;
@@ -66,6 +67,7 @@ const CertificatePreviewDialog = ({
       data
         ? {
             ...data,
+            studentName: formatStudentName(data.studentName),
             leftLogoDataUrl: showOfficialLogos ? leftLogo || officialLeftLogo : undefined,
             rightLogoDataUrl: showOfficialLogos ? rightLogo || officialRightLogo : undefined,
             coordinatorSignatureDataUrl: coordinatorSignature || profileCoordinatorSignature,
@@ -164,7 +166,7 @@ const CertificatePreviewDialog = ({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="w-[96vw] max-w-6xl gap-0 p-0">
           <DialogHeader className="border-b px-6 py-4">
-            <DialogTitle>Preview Sertifikat - {data?.studentName ?? ""}</DialogTitle>
+            <DialogTitle>Preview Sertifikat - {formatStudentName(data?.studentName ?? "")}</DialogTitle>
           </DialogHeader>
 
           <div className="grid grid-cols-2 gap-2 border-b bg-background px-4 py-3 sm:grid-cols-4">
@@ -220,7 +222,7 @@ const CertificatePreviewDialog = ({
             ) : (
               <img
                 src={previewUrl}
-                alt={`Preview sertifikat ${data?.studentName ?? ""}`}
+                alt={`Preview sertifikat ${formatStudentName(data?.studentName ?? "")}`}
                 className="max-h-full max-w-full border bg-white shadow-lg"
               />
             )}

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Search, Users, Loader2, ArrowLeft, BookOpen, Award } from "lucide-react";
+import { formatStudentName } from "@/utils/formatName";
 
 interface StudentWithClass {
   id: string;
@@ -46,7 +47,7 @@ const SearchStudents = () => {
         const cls = classMap.get(s.class_id);
         return {
           id: s.id,
-          name: s.name,
+          name: formatStudentName(s.name),
           level: s.level,
           progress_hafalan: s.progress_hafalan,
           status_sertifikasi: s.status_sertifikasi,
@@ -155,7 +156,7 @@ const SearchStudents = () => {
                 className="bg-card rounded-lg border border-border p-4 shadow-card hover:shadow-md hover:border-primary/30 transition-all cursor-pointer"
               >
                 <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-semibold text-foreground text-sm truncate flex-1">{s.name}</h3>
+                  <h3 className="font-semibold text-foreground text-sm truncate flex-1">{formatStudentName(s.name)}</h3>
                   <Badge variant="outline" className={`text-xs ml-2 shrink-0 ${statusColor(s.status_sertifikasi)}`}>
                     {s.status_sertifikasi}
                   </Badge>

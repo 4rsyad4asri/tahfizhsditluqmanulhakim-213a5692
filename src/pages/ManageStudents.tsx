@@ -21,6 +21,7 @@ import { exportJsonToExcel } from "@/utils/excel";
 import ImportStudentsDialog from "@/components/ImportStudentsDialog";
 import { toast } from "sonner";
 import { getSafeErrorMessage } from "@/utils/errorMessages";
+import { formatStudentName } from "@/utils/formatName";
 import {
   Dialog,
   DialogContent,
@@ -146,7 +147,7 @@ const { data: classes } = useQuery({
   const addMutation = useMutation({
     mutationFn: async (data: StudentForm) => {
       const { error } = await supabase.from("students").insert({
-        name: data.name.trim(),
+        name: formatStudentName(data.name),
         nis: data.nis.trim() || null,
         nisn: data.nisn.trim() || null,
         class_id: data.class_id,
@@ -172,7 +173,7 @@ const { data: classes } = useQuery({
       const { error } = await supabase.
       from("students").
       update({
-        name: data.name.trim(),
+        name: formatStudentName(data.name),
         nis: data.nis.trim() || null,
         nisn: data.nisn.trim() || null,
         class_id: data.class_id,
@@ -290,7 +291,7 @@ const filteredStudents: Student[] = (students || []).filter((s: Student) => {
 
   const handleExport = () => {
     const dataToExport = filteredStudents.map((s: Student) => ({
-      "Nama": s.name,
+      "Nama": formatStudentName(s.name),
       "NIS": s.nis || "",
       "NISN": s.nisn || "",
       "Kelas": s.classes?.name || "",
@@ -563,7 +564,7 @@ const filteredStudents: Student[] = (students || []).filter((s: Student) => {
             <div key={student.id} className="bg-card rounded-lg border border-border p-4 shadow-card">
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <h3 className="font-semibold text-foreground">{student.name}</h3>
+                      <h3 className="font-semibold text-foreground">{formatStudentName(student.name)}</h3>
                       <p className="text-xs text-muted-foreground">{student.classes?.name}</p>
                     </div>
                     {isAdmin && (
@@ -613,7 +614,7 @@ const filteredStudents: Student[] = (students || []).filter((s: Student) => {
                   <tbody>
                     {filteredStudents.map((student: Student, idx: number) =>
                   <tr key={student.id} className={`border-b border-border/50 hover:bg-muted/30 transition-colors ${idx % 2 ? 'bg-muted/10' : ''}`}>
-                        <td className="px-4 py-3 font-medium text-foreground">{student.name}</td>
+                        <td className="px-4 py-3 font-medium text-foreground">{formatStudentName(student.name)}</td>
                         <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{student.nis || "-"}</td>
                         <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{student.nisn || "-"}</td>
                         <td className="px-4 py-3 text-muted-foreground">{student.classes?.name}</td>

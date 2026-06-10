@@ -25,6 +25,7 @@ import RaportPreviewDialog from "@/components/RaportPreviewDialog";
 import { handleSmartFormKey } from "@/utils/smartFormNav";
 import { usesLegacyTahfizhScoring } from "@/utils/verificationUrl";
 import { formatClassName } from "@/utils/className";
+import { formatStudentName } from "@/utils/formatName";
 import {
   aggregateTahfizhAssessmentsForDisplay,
   calculateTahfizhExamResult,
@@ -527,6 +528,7 @@ const StudentDetail = () => {
   const [catatan, setCatatan] = useState("");
 
   const student = data?.student;
+  const formattedStudentName = formatStudentName(student?.name || "Siswa");
   const classInfo = data?.classInfo;
   const setoran = data?.setoran || [];
   const ujian = data?.ujian || [];
@@ -638,7 +640,7 @@ const StudentDetail = () => {
         </button>
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">{student?.name}</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">{formattedStudentName}</h1>
           <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
             {(student as any)?.nisn && <p>NISN: {(student as any).nisn}</p>}
             {classInfo?.name && <p>Kelas: {formatClassName(classInfo)}</p>}
@@ -945,7 +947,7 @@ const StudentDetail = () => {
                   displayUjian.nilai_aspek && typeof displayUjian.nilai_aspek === "object" && !Array.isArray(displayUjian.nilai_aspek)
                     ? displayUjian.nilai_aspek
                     : {};
-                const effectiveCatatanGuru = getEffectiveCatatanGuru(displayUjian, student?.name || "Siswa");
+                const effectiveCatatanGuru = getEffectiveCatatanGuru(displayUjian, formattedStudentName);
                 const tahfizhEntries = Array.isArray(nilaiAspek.surahEntries)
                   ? aggregateTahfizhAssessmentsForDisplay(nilaiAspek.surahEntries)
                   : [];
@@ -1052,7 +1054,7 @@ const StudentDetail = () => {
                       {displayUjian.mode === "Tahsin Dasar" && (
                         <button
                           onClick={() => {
-                            (generateTahsinPDF as any)(student?.name || "Siswa", displayUjian.mode, tahsinEntries, displayUjian.nilai_akhir);
+                            (generateTahsinPDF as any)(formattedStudentName, displayUjian.mode, tahsinEntries, displayUjian.nilai_akhir);
                           }}
                           className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-green-500/10 text-green-600 text-xs font-medium hover:bg-green-500/20 transition-colors"
                         >
@@ -1149,7 +1151,7 @@ const StudentDetail = () => {
           open={!!editingUjian}
           onClose={() => setEditingUjian(null)}
           ujian={editingUjian}
-          studentName={student.name}
+          studentName={formattedStudentName}
           classInfo={classInfo}
           isSaving={updateUjian.isPending}
           onSave={(updated) => {
@@ -1173,7 +1175,7 @@ const StudentDetail = () => {
           open={!!raportUjian}
           onClose={() => setRaportUjian(null)}
           ujian={raportUjian}
-          studentName={student.name}
+          studentName={formattedStudentName}
           className={formatClassName(classInfo)}
           nis={student.nis}
           nisn={student.nisn}

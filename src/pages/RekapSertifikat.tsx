@@ -27,6 +27,7 @@ import {
 import { buildReportDocumentNumber } from "@/utils/documentNumber";
 import { formatClassName } from "@/utils/className";
 import { resolveCertificateSignatures } from "@/utils/officialSignatures";
+import { formatStudentName } from "@/utils/formatName";
 
 interface RekapItem {
   id: string;
@@ -265,7 +266,7 @@ const RekapSertifikat = () => {
         const item: RekapItem = {
           id: u.id,
           studentId: u.student_id,
-          studentName: student?.name || "Unknown",
+          studentName: formatStudentName(student?.name || "Unknown"),
           className: cls ? formatClassName(cls) : "Unknown",
           classGrade,
           juz: juzList.length > 0 ? juzList.join(", ") : "-",

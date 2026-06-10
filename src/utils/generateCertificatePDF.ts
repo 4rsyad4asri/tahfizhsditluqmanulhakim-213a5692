@@ -9,6 +9,7 @@ import {
   renderCertificateImage,
   type CertificateData,
 } from "./certificateRenderer";
+import { formatStudentName } from "./formatName";
 
 export type { CertificateData } from "./certificateRenderer";
 
@@ -70,8 +71,12 @@ export const buildCertificatePDF = async (
   layoutOverride?: CertificateLayout,
   format: CertificatePdfFormat = "original",
 ): Promise<jsPDF> => {
+  const formattedData = {
+    ...data,
+    studentName: formatStudentName(data.studentName),
+  };
   const layout = layoutOverride ?? await loadCertificateLayout();
-  const image = await renderCertificateImage(data, layout);
+  const image = await renderCertificateImage(formattedData, layout);
   const placement = getCertificatePdfPlacement(format);
   const doc = new jsPDF({
     orientation: "landscape",
@@ -98,7 +103,7 @@ export const downloadCertificatePDF = async (
   format: CertificatePdfFormat = "original",
 ) => {
   const doc = await buildCertificatePDF(data, undefined, format);
-  doc.save(`Sertifikat_${safeFileName(data.studentName)}.pdf`);
+  doc.save(`Sertifikat_${safeFileName(formatStudentName(data.studentName))}.pdf`);
 };
 
 export const generateCertificateBlobUrl = async (

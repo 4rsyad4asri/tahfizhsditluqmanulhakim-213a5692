@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import AssignPengujiDialog from "@/components/AssignPengujiDialog";
 import { useClassPenguji } from "@/hooks/usePenguji";
 import ClassExamStats from "@/components/ClassExamStats";
+import { formatStudentName } from "@/utils/formatName";
 
 const ClassStudents = () => {
   const { classId } = useParams<{ classId: string }>();
@@ -144,7 +145,7 @@ const ClassStudents = () => {
               className="bg-card rounded-lg border border-border p-4 shadow-card animate-fade-in"
             >
               <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-foreground">{student.name}</h3>
+                <h3 className="font-semibold text-foreground">{formatStudentName(student.name)}</h3>
                 {levelBadge(student.level)}
               </div>
               <div className="space-y-2 text-sm">
@@ -196,7 +197,7 @@ const ClassStudents = () => {
                     key={student.id}
                     className={`border-b border-border/50 hover:bg-muted/30 transition-colors ${idx % 2 === 0 ? '' : 'bg-muted/10'}`}
                   >
-                    <td className="px-4 py-3 font-medium text-foreground">{student.name}</td>
+                    <td className="px-4 py-3 font-medium text-foreground">{formatStudentName(student.name)}</td>
                     <td className="px-4 py-3 text-muted-foreground">Juz {student.target_juz}</td>
                     <td className="px-4 py-3">{levelBadge(student.level)}</td>
                     <td className="px-4 py-3">

@@ -11,6 +11,7 @@ import {
   calculateNilaiTahsinLanjutan,
 } from "@/data/tahsinScoring";
 import generateCatatanOtomatis from "@/utils/catatanOtomatis";
+import { formatStudentName } from "@/utils/formatName";
 
 interface TahsinExamData {
   studentName: string;
@@ -53,6 +54,10 @@ function getRataKelancaran(entries: { kelancaran?: number }[]) {
 }
 
 export const generateTahsinPDF = async (data: TahsinExamData) => {
+  data = {
+    ...data,
+    studentName: formatStudentName(data.studentName),
+  };
   const doc = new jsPDF({
     orientation: "portrait",
     unit: "mm",
@@ -111,7 +116,7 @@ export const generateTahsinPDF = async (data: TahsinExamData) => {
   doc.setFont("helvetica", "bold");
   doc.setTextColor(22, 22, 22);
   doc.setFontSize(11);
-  doc.text(data.studentName, margin + 35, y + 8);
+  doc.text(formatStudentName(data.studentName), margin + 35, y + 8);
 
   doc.setFontSize(9);
   doc.text(data.className, margin + 35, y + 16);

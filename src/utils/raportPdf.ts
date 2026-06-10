@@ -27,6 +27,7 @@ import {
   type RaportVisualLayout,
 } from "@/utils/pdfAssetsLayout";
 import { formatClassName } from "@/utils/className";
+import { formatStudentName } from "@/utils/formatName";
 
 export type Orientation = "portrait" | "landscape";
 export type RaportMode = "Tahfizh" | "Tahsin Dasar" | "Tahsin Lanjutan";
@@ -448,7 +449,7 @@ function drawStudentInfo(
       },
     },
     body: [
-      ["Nama Siswa", data.studentName, "Kelas", formatClassName(data.className)],
+      ["Nama Siswa", formatStudentName(data.studentName), "Kelas", formatClassName(data.className)],
       ["NIS/NISN", `${data.nis || "-"} / ${data.nisn || "-"}`, "Tanggal", fmtTanggal(data.tanggal)],
     ],
   });
@@ -1076,6 +1077,10 @@ export async function generateRaportPDF(
   assets: RaportAssets,
   opts: RaportPdfOptions
 ): Promise<jsPDF> {
+  data = {
+    ...data,
+    studentName: formatStudentName(data.studentName),
+  };
   const doc = new jsPDF({
     orientation: opts.orientation,
     unit: "mm",
@@ -1282,7 +1287,7 @@ export async function downloadRaportPDF(
   const doc = await generateRaportPDF(...args);
 
   doc.save(
-    `Raport_${data.mode.replace(/\s+/g, "_")}_${data.studentName.replace(
+    `Raport_${data.mode.replace(/\s+/g, "_")}_${formatStudentName(data.studentName).replace(
       /\s+/g,
       "_"
     )}.pdf`

@@ -24,6 +24,7 @@ import { generateRaportPDF, downloadRaportPDF } from "@/utils/raportPdf";
 import { resolveRaportSignatureAssets } from "@/utils/officialSignatures";
 import JSZip from "jszip";
 import { toast } from "sonner";
+import { formatStudentName } from "@/utils/formatName";
 
 interface Row {
   ujianId: string;
@@ -185,7 +186,7 @@ export default function RekapGlobal() {
         return {
           ujianId: syncedUjian.id,
           studentId: syncedUjian.student_id,
-          studentName: s?.name || "Unknown",
+          studentName: formatStudentName(s?.name || "Unknown"),
           className: c?.name || "Unknown",
           grade: c?.grade || 0,
           mode: syncedUjian.mode,

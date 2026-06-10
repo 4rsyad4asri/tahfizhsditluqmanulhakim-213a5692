@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Download, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getSafeErrorMessage } from "@/utils/errorMessages";
+import { formatStudentName } from "@/utils/formatName";
 import {
   Dialog,
   DialogContent,
@@ -304,6 +305,7 @@ const ImportStudentsDialog = ({ open, onOpenChange }: ImportStudentsDialogProps)
         if (!existing) return [];
         return [{
           ...existing,
+          name: formatStudentName(student.name),
           nis: student.nis || existing.nis || null,
           nisn: student.nisn || existing.nisn || null,
         }];
@@ -316,7 +318,7 @@ const ImportStudentsDialog = ({ open, onOpenChange }: ImportStudentsDialogProps)
       }
 
       const insertRows = inserts.map((student) => ({
-        name: student.name.trim(),
+        name: formatStudentName(student.name),
         nis: student.nis || null,
         nisn: student.nisn || null,
         class_id: student.classId,

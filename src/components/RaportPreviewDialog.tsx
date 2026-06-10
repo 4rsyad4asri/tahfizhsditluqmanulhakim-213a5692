@@ -56,6 +56,7 @@ import {
 } from "@/utils/pdfAssetsLayout";
 import { resolveRaportSignatureAssets } from "@/utils/officialSignatures";
 import { DEFAULT_RAPORT_HEADER, loadGlobalRaportHeader } from "@/utils/raportSettings";
+import { formatStudentName } from "@/utils/formatName";
 import type {
   TahsinDasarEntry,
   TahsinLanjutanEntry,
@@ -372,7 +373,7 @@ export default function RaportPreviewDialog({
 
     return {
       mode: activeUjian?.mode,
-      studentName,
+      studentName: formatStudentName(studentName),
       className: formatClassName(className),
       nis: nis || undefined,
       nisn: nisn || undefined,

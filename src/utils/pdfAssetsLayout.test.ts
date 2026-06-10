@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  GLOBAL_RAPORT_SIGNATURE_LAYOUT_KEY,
   getDefaultRaportVisualLayout,
   loadRaportVisualLayout,
   normalizeRaportVisualLayout,
@@ -59,7 +60,7 @@ describe("PDF assets layout", () => {
     expect(normalized.assets.examinerSignature.offsetY).toBe(80);
   });
 
-  it("stores separate layouts per mode and orientation", () => {
+  it("stores non-signature assets separately per mode and orientation", () => {
     const dasar = getDefaultRaportVisualLayout("portrait");
     dasar.assets.leftLogo.x = 25;
     saveRaportVisualLayout("Tahsin Dasar", "portrait", dasar);
@@ -72,5 +73,100 @@ describe("PDF assets layout", () => {
     expect(loadRaportVisualLayout("Tahfizh", "landscape").assets.qrCode.width).toBe(24);
     expect(window.localStorage.getItem("tahsin-dasar-pdf-assets-layout")).toBeTruthy();
     expect(window.localStorage.getItem("tahfizh-pdf-assets-layout")).toBeTruthy();
+  });
+
+  it("shares signature settings across all raport modes without sharing x and y", () => {
+    const dasar = getDefaultRaportVisualLayout("portrait");
+    dasar.assets.examinerSignature = {
+      ...dasar.assets.examinerSignature,
+      x: 82,
+      y: 230,
+      width: 55,
+      height: 23,
+      placement: "manual",
+      offsetY: 12,
+    };
+    dasar.assets.headmasterSignature = {
+      ...dasar.assets.headmasterSignature,
+      x: 151,
+      y: 235,
+      width: 48,
+      height: 20,
+      visible: false,
+      offsetY: -7,
+    };
+    saveRaportVisualLayout("Tahsin Dasar", "portrait", dasar);
+
+    const lanjutan = loadRaportVisualLayout("Tahsin Lanjutan", "portrait");
+    const tahfizh = loadRaportVisualLayout("Tahfizh", "landscape");
+
+    expect(lanjutan.assets.examinerSignature).toMatchObject({
+      x: 70,
+      y: 247,
+      width: 55,
+      height: 23,
+      placement: "manual",
+      offsetY: 12,
+    });
+    expect(tahfizh.assets.examinerSignature).toMatchObject({
+      x: 124,
+      y: 165,
+      width: 55,
+      height: 23,
+      placement: "manual",
+      offsetY: 12,
+    });
+    expect(lanjutan.assets.headmasterSignature).toMatchObject({
+      x: 145,
+      y: 247,
+      width: 48,
+      height: 20,
+      visible: false,
+      offsetY: -7,
+    });
+    expect(tahfizh.assets.headmasterSignature).toMatchObject({
+      x: 222,
+      y: 165,
+      width: 48,
+      height: 20,
+      visible: false,
+      offsetY: -7,
+    });
+  });
+
+  it("stores only global signature fields and keeps other visual settings local", () => {
+    const dasar = getDefaultRaportVisualLayout("portrait");
+    dasar.assets.leftLogo.width = 28;
+    dasar.assets.qrCode.visible = false;
+    dasar.assets.examinerSignature.x = 91;
+    dasar.assets.examinerSignature.y = 229;
+    dasar.assets.examinerSignature.width = 51;
+    dasar.text = { color: "#123456", bold: true };
+    saveRaportVisualLayout("Tahsin Dasar", "portrait", dasar);
+
+    const globalSignature = JSON.parse(
+      window.localStorage.getItem(GLOBAL_RAPORT_SIGNATURE_LAYOUT_KEY) || "{}",
+    );
+    const tahfizh = loadRaportVisualLayout("Tahfizh", "portrait");
+
+    expect(globalSignature.examinerSignature).toEqual({
+      visible: true,
+      width: 51,
+      height: 18,
+      placement: "auto",
+      offsetY: 0,
+    });
+    expect(globalSignature.examinerSignature).not.toHaveProperty("x");
+    expect(globalSignature.examinerSignature).not.toHaveProperty("y");
+    expect(globalSignature).not.toHaveProperty("leftLogo");
+    expect(globalSignature).not.toHaveProperty("qrCode");
+    expect(globalSignature).not.toHaveProperty("text");
+
+    expect(tahfizh.assets.leftLogo.width).toBe(17);
+    expect(tahfizh.assets.qrCode.visible).toBe(true);
+    expect(tahfizh.text).toEqual({ color: "#374151", bold: false });
+    expect(tahfizh.assets.examinerSignature.x).toBe(70);
+    expect(tahfizh.assets.examinerSignature.y).toBe(247);
+    expect(tahfizh.assets.examinerSignature.width).toBe(51);
   });
 });

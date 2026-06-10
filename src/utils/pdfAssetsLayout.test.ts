@@ -1,15 +1,38 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  applySharedRaportSignatureLayout,
   GLOBAL_RAPORT_SIGNATURE_LAYOUT_KEY,
   getDefaultRaportVisualLayout,
   loadRaportVisualLayout,
   normalizeRaportVisualLayout,
   saveRaportVisualLayout,
+  syncGlobalRaportSignatureLayout,
 } from "./pdfAssetsLayout";
+
+const maybeSingle = vi.fn();
+const upsert = vi.fn();
+
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: {
+    auth: {
+      getUser: vi.fn(async () => ({ data: { user: { id: "user-id" } } })),
+    },
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({ maybeSingle })),
+      })),
+      upsert,
+    })),
+  },
+}));
 
 describe("PDF assets layout", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    maybeSingle.mockReset();
+    upsert.mockReset();
+    maybeSingle.mockResolvedValue({ data: null, error: null });
+    upsert.mockResolvedValue({ error: null });
   });
 
   it("provides A4 defaults for portrait and landscape", () => {
@@ -268,5 +291,60 @@ describe("PDF assets layout", () => {
 
     expect(loadRaportVisualLayout("Tahsin Dasar", "portrait").assets.examinerSignature.width)
       .toBe(56);
+  });
+
+  it("syncs the shared Supabase signature layout into the local cache", async () => {
+    maybeSingle.mockResolvedValue({
+      data: {
+        value: {
+          updatedAt: "2026-06-10T13:00:00.000Z",
+          updatedFromMode: "Tahfizh",
+          updatedFromOrientation: "landscape",
+          examinerSignature: {
+            visible: true,
+            width: 61,
+            height: 21,
+            placement: "auto",
+            offsetY: 4,
+          },
+          headmasterSignature: {
+            visible: false,
+            width: 49,
+            height: 19,
+            placement: "manual",
+            offsetY: -3,
+          },
+        },
+      },
+      error: null,
+    });
+
+    expect(await syncGlobalRaportSignatureLayout()).toBe(true);
+    expect(loadRaportVisualLayout("Tahsin Dasar", "portrait").assets.examinerSignature)
+      .toMatchObject({ x: 70, y: 247, width: 61, offsetY: 4 });
+    expect(loadRaportVisualLayout("Tahsin Lanjutan", "portrait").assets.headmasterSignature)
+      .toMatchObject({ x: 145, y: 247, visible: false, placement: "manual" });
+  });
+
+  it("applies realtime shared values without replacing local x and y", () => {
+    expect(applySharedRaportSignatureLayout({
+      examinerSignature: {
+        visible: true,
+        width: 58,
+        height: 20,
+        placement: "auto",
+        offsetY: 2,
+      },
+      headmasterSignature: {
+        visible: true,
+        width: 50,
+        height: 20,
+        placement: "auto",
+        offsetY: 0,
+      },
+    })).toBe(true);
+
+    expect(loadRaportVisualLayout("Tahfizh", "landscape").assets.examinerSignature)
+      .toMatchObject({ x: 124, y: 165, width: 58 });
   });
 });

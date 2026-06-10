@@ -47,8 +47,11 @@ import {
   type RaportMode,
 } from "@/utils/raportPdf";
 import {
+  applySharedRaportSignatureLayout,
+  GLOBAL_RAPORT_SIGNATURE_SETTINGS_ID,
   loadRaportVisualLayout,
   saveRaportVisualLayout,
+  syncGlobalRaportSignatureLayout,
   type RaportVisualLayout,
 } from "@/utils/pdfAssetsLayout";
 import { resolveRaportSignatureAssets } from "@/utils/officialSignatures";
@@ -163,6 +166,41 @@ export default function RaportPreviewDialog({
   useEffect(() => {
     if (!open) return;
     setVisualLayout(loadRaportVisualLayout(activeMode, opts.orientation));
+  }, [activeMode, open, opts.orientation]);
+
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+
+    syncGlobalRaportSignatureLayout()
+      .then(() => {
+        if (alive) setVisualLayout(loadRaportVisualLayout(activeMode, opts.orientation));
+      })
+      .catch((error) => console.error("Gagal menyinkronkan layout tanda tangan:", error));
+
+    const channel = supabase
+      .channel(`raport-signature-layout-${activeMode}-${opts.orientation}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "app_settings",
+          filter: `id=eq.${GLOBAL_RAPORT_SIGNATURE_SETTINGS_ID}`,
+        },
+        (payload) => {
+          const value = (payload.new as { value?: unknown } | null)?.value;
+          if (applySharedRaportSignatureLayout(value)) {
+            setVisualLayout(loadRaportVisualLayout(activeMode, opts.orientation));
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      alive = false;
+      void supabase.removeChannel(channel);
+    };
   }, [activeMode, open, opts.orientation]);
 
   useEffect(() => {
@@ -476,7 +514,7 @@ export default function RaportPreviewDialog({
 
   const handlePrint = async () => {
     try {
-      await printRaportPDF(data, header, assets, effectiveOpts);
+      await printRaportPDF(data, header, effectiveAssets, effectiveOpts);
     } catch (e: any) {
       toast.error("Gagal print: " + (e?.message || ""));
     }
@@ -511,10 +549,14 @@ export default function RaportPreviewDialog({
     setVisualLayout((current) => ({ ...current }));
   };
 
-  const handleSaveVisualLayout = () => {
-    const saved = saveRaportVisualLayout(activeMode, opts.orientation, visualLayout);
-    setVisualLayout(saved);
-    toast.success(`Layout aset ${activeMode} berhasil disimpan`);
+  const handleSaveVisualLayout = async () => {
+    try {
+      const saved = await saveRaportVisualLayout(activeMode, opts.orientation, visualLayout);
+      setVisualLayout(saved);
+      toast.success(`Layout aset ${activeMode} berhasil disimpan dan disinkronkan`);
+    } catch (error: any) {
+      toast.error(`Gagal menyinkronkan layout tanda tangan: ${error?.message || ""}`);
+    }
   };
 
   if (!activeUjian) return null;

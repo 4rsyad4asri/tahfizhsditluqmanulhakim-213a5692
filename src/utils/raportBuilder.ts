@@ -20,7 +20,10 @@ import type {
   TahsinPenaltyConfig,
   WaqafSymbolTest,
 } from "@/data/tahsinScoring";
-import { loadRaportVisualLayout } from "@/utils/pdfAssetsLayout";
+import {
+  loadRaportVisualLayout,
+  syncGlobalRaportSignatureLayout,
+} from "@/utils/pdfAssetsLayout";
 import { DEFAULT_RAPORT_HEADER, loadGlobalRaportHeader } from "@/utils/raportSettings";
 
 const STORAGE_KEY = "raport_settings_v3";
@@ -41,7 +44,10 @@ export interface RaportSettings {
 }
 
 export async function loadRaportSettings(): Promise<RaportSettings> {
-  const header = await loadGlobalRaportHeader();
+  const [header] = await Promise.all([
+    loadGlobalRaportHeader(),
+    syncGlobalRaportSignatureLayout().catch(() => false),
+  ]);
   let assets: RaportAssets = {};
   let opts = { ...DEFAULT_OPTS };
   try {

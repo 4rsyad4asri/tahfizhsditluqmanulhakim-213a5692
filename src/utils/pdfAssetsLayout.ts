@@ -1,3 +1,4 @@
+import { supabase } from "@/integrations/supabase/client";
 import type { Orientation, RaportMode } from "@/utils/raportPdf";
 
 export interface PdfAssetPosition {
@@ -57,6 +58,7 @@ export const PDF_PAGE_SIZE: Record<Orientation, { width: number; height: number 
 };
 
 export const GLOBAL_RAPORT_SIGNATURE_LAYOUT_KEY = "raport-global-signature-layout-v1";
+export const GLOBAL_RAPORT_SIGNATURE_SETTINGS_ID = "raport-global-signature-layout-v1";
 
 const STORAGE_KEYS: Record<RaportMode, string> = {
   "Tahsin Dasar": "tahsin-dasar-pdf-assets-layout",
@@ -218,6 +220,32 @@ const hasGlobalSignatureSettings = (
 ) => [value.examinerSignature, value.headmasterSignature]
   .some((signature) => signature && typeof signature === "object");
 
+const cacheGlobalRaportSignatureLayout = (value: unknown) => {
+  if (typeof window === "undefined" || !value || typeof value !== "object") return false;
+  const parsed = value as Partial<GlobalRaportSignatureLayout>;
+  if (!hasGlobalSignatureSettings(parsed)) return false;
+
+  window.localStorage.setItem(
+    GLOBAL_RAPORT_SIGNATURE_LAYOUT_KEY,
+    JSON.stringify(parsed),
+  );
+  return true;
+};
+
+export const applySharedRaportSignatureLayout = (value: unknown) =>
+  cacheGlobalRaportSignatureLayout(value);
+
+export const syncGlobalRaportSignatureLayout = async () => {
+  const { data, error } = await supabase
+    .from("app_settings")
+    .select("value")
+    .eq("id", GLOBAL_RAPORT_SIGNATURE_SETTINGS_ID)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.value ? cacheGlobalRaportSignatureLayout(data.value) : false;
+};
+
 const loadStoredModeLayout = (
   mode: RaportMode,
   orientation: Orientation,
@@ -343,8 +371,15 @@ export const saveRaportVisualLayout = (
   mode: RaportMode,
   orientation: Orientation,
   value: RaportVisualLayout,
-) => {
+): Promise<RaportVisualLayout> => {
   const layout = normalizeRaportVisualLayout(value, orientation);
+  const globalSignature = {
+    updatedAt: new Date().toISOString(),
+    updatedFromMode: mode,
+    updatedFromOrientation: orientation,
+    ...toGlobalSignatureLayout(layout),
+  } satisfies GlobalRaportSignatureLayout;
+
   if (typeof window !== "undefined") {
     let current: Record<string, unknown> = {};
     try {
@@ -362,13 +397,20 @@ export const saveRaportVisualLayout = (
     );
     window.localStorage.setItem(
       GLOBAL_RAPORT_SIGNATURE_LAYOUT_KEY,
-      JSON.stringify({
-        updatedAt: new Date().toISOString(),
-        updatedFromMode: mode,
-        updatedFromOrientation: orientation,
-        ...toGlobalSignatureLayout(layout),
-      } satisfies GlobalRaportSignatureLayout),
+      JSON.stringify(globalSignature),
     );
   }
-  return layout;
+
+  return supabase.auth.getUser()
+    .then(({ data: userData }) => supabase
+      .from("app_settings")
+      .upsert({
+        id: GLOBAL_RAPORT_SIGNATURE_SETTINGS_ID,
+        value: globalSignature,
+        updated_by: userData.user?.id || null,
+      }))
+    .then(({ error }) => {
+      if (error) throw error;
+      return layout;
+    });
 };

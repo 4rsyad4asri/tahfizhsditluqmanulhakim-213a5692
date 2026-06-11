@@ -165,9 +165,6 @@ export default function RaportPreviewDialog({
   const [tableLayoutDraft, setTableLayoutDraft] = useState<RaportTableLayoutSettings>(() =>
     getDefaultRaportTableLayout(DEFAULT_OPTS.orientation)
   );
-  const [appliedTableLayout, setAppliedTableLayout] = useState<RaportTableLayoutSettings>(() =>
-    getDefaultRaportTableLayout(DEFAULT_OPTS.orientation)
-  );
 
   const generatedCatatan = useMemo(
     () => generateCatatanOtomatisFromUjian(activeUjian, studentName),
@@ -195,7 +192,6 @@ export default function RaportPreviewDialog({
     if (!open) return;
     const next = tableLayouts[opts.orientation];
     setTableLayoutDraft(next);
-    setAppliedTableLayout(next);
   }, [open, opts.orientation, tableLayouts]);
 
   useEffect(() => {
@@ -465,9 +461,9 @@ export default function RaportPreviewDialog({
       ...opts,
       verifyUrl,
       visualLayout,
-      tableLayout: appliedTableLayout,
+      tableLayout: tableLayoutDraft,
     }),
-    [opts, verifyUrl, visualLayout, appliedTableLayout]
+    [opts, verifyUrl, visualLayout, tableLayoutDraft]
   );
   const effectiveAssets: RaportAssets = useMemo(
     () => ({
@@ -504,7 +500,7 @@ export default function RaportPreviewDialog({
       } finally {
         if (seq === previewSeqRef.current) setLoadingPreview(false);
       }
-    }, 250);
+    }, 400);
 
     return () => clearTimeout(t);
   }, [open, data, header, effectiveAssets, effectiveOpts, activeUjian]);
@@ -600,8 +596,8 @@ export default function RaportPreviewDialog({
   };
 
   const handleApplyTableLayout = () => {
-    setAppliedTableLayout(tableLayoutDraft);
-    toast.success("Pengaturan tabel diterapkan ke preview");
+    refreshPreview();
+    toast.success("Preview diperbarui");
   };
 
   const persistTableLayout = async (message: string) => {
@@ -615,7 +611,6 @@ export default function RaportPreviewDialog({
       });
       const saved = await saveGlobalRaportTableLayoutSettings(next);
       setTableLayouts(saved);
-      setAppliedTableLayout(saved[opts.orientation]);
       toast.success(message);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "";
@@ -625,11 +620,14 @@ export default function RaportPreviewDialog({
     }
   };
 
-  const handleResetTableLayout = () => {
-    const reset = getDefaultRaportTableLayout(opts.orientation);
+  const handleTableLayoutPreset = (orientation: Orientation) => {
+    const reset = getDefaultRaportTableLayout(orientation);
+    setTableLayouts((current) => ({
+      ...current,
+      [orientation]: reset,
+    }));
+    setOpts((current) => ({ ...current, orientation }));
     setTableLayoutDraft(reset);
-    setAppliedTableLayout(reset);
-    toast.success(`Default ${opts.orientation} diterapkan ke preview`);
   };
 
   if (!activeUjian) return null;
@@ -968,7 +966,7 @@ export default function RaportPreviewDialog({
             onChange={setTableLayoutDraft}
             onApply={handleApplyTableLayout}
             onSave={() => void persistTableLayout("Pengaturan tabel global berhasil disimpan")}
-            onReset={handleResetTableLayout}
+            onPreset={handleTableLayoutPreset}
             onApplyAll={() =>
               void persistTableLayout("Pengaturan diterapkan ke semua jenis ujian")
             }

@@ -565,15 +565,16 @@ function sectionTitle(
   y: number,
   tableLayout: RaportTableLayoutSettings,
 ) {
+  const titleHeight = Math.max(5, tableLayout.sectionTitleFontSize * 0.55);
   doc.setFillColor(...GOLD);
-  doc.rect(margin, y, 1.2, 4, "F");
+  doc.rect(margin, y, 1.2, titleHeight, "F");
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(tableLayout.sectionTitleFontSize);
   doc.setTextColor(...EMERALD);
-  doc.text(text, margin + 3, y + 3);
+  doc.text(text, margin + 3, y + titleHeight * 0.75);
 
-  return y + 5;
+  return y + titleHeight + 1;
 }
 
 function drawDetail(
@@ -997,13 +998,21 @@ function drawCatatan(
   const left = tableLayout.tableMarginLeft;
   const contentWidth =
     pageW - tableLayout.tableMarginLeft - tableLayout.tableMarginRight;
+  const titleHeight = Math.max(
+    4,
+    tableLayout.catatanTitleFontSize * 0.45 + tableLayout.catatanPadding,
+  );
   doc.setFillColor(...EMERALD);
-  doc.rect(left, startY, contentWidth, 4, "F");
+  doc.rect(left, startY, contentWidth, titleHeight, "F");
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
+  doc.setFontSize(tableLayout.catatanTitleFontSize);
   doc.setTextColor(255, 255, 255);
-  doc.text("CATATAN", left + 2, startY + 2.8);
+  doc.text(
+    "CATATAN",
+    left + tableLayout.catatanPadding,
+    startY + titleHeight - tableLayout.catatanPadding * 0.45,
+  );
 
   const text = catatan || "-";
   const isArabicText = /[\u0600-\u06FF]/.test(text);
@@ -1012,35 +1021,43 @@ function drawCatatan(
     isArabicText ? "Amiri" : "helvetica",
     visualLayout.text.bold ? "bold" : "normal",
   );
-  doc.setFontSize(6.8);
+  doc.setFontSize(tableLayout.catatanBodyFontSize);
   doc.setCharSpace(0);
-  doc.setLineHeightFactor(1.3);
+  doc.setLineHeightFactor(tableLayout.catatanLineHeight);
   doc.setTextColor(...hexToRgb(visualLayout.text.color));
 
-  const textWidth = contentWidth - 6;
+  const textWidth = contentWidth - tableLayout.catatanPadding * 2;
   const lines = doc.splitTextToSize(text, textWidth);
-  const lineHeight = isArabicText ? 4.8 : 3;
-  const extraPadding = isArabicText ? 6 : 3;
+  const lineHeight =
+    tableLayout.catatanBodyFontSize *
+    (isArabicText ? 0.55 : 0.4) *
+    tableLayout.catatanLineHeight;
+  const extraPadding =
+    tableLayout.catatanPadding * (isArabicText ? 2 : 1.5);
   const blockH = Math.max(
     10,
     lines.length * lineHeight + extraPadding
   );
 
   doc.setDrawColor(...GRAY_LINE);
-  doc.rect(left, startY + 4, contentWidth, blockH);
+  doc.rect(left, startY + titleHeight, contentWidth, blockH);
 
   const centerX = left + contentWidth / 2;
 
   if (isArabicText) {
-    doc.text(text, centerX, startY + 10, {
+    doc.text(text, centerX, startY + titleHeight + tableLayout.catatanPadding + lineHeight, {
       align: "center",
       maxWidth: textWidth,
     });
   } else {
-    doc.text(lines, left + 3, startY + 8.5);
+    doc.text(
+      lines,
+      left + tableLayout.catatanPadding,
+      startY + titleHeight + tableLayout.catatanPadding + lineHeight * 0.8,
+    );
   }
 
-  return startY + 4 + blockH + 5;
+  return startY + titleHeight + blockH + 5;
 }
 
 function drawSignatures(

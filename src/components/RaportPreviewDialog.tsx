@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import PdfAssetsLayoutEditor from "@/components/PdfAssetsLayoutEditor";
+import PdfTableLayoutEditor from "@/components/PdfTableLayoutEditor";
+import { useAuthContext } from "@/contexts/AuthContext";
 import {
   Download,
   Printer,
@@ -56,6 +58,14 @@ import {
 } from "@/utils/pdfAssetsLayout";
 import { resolveRaportSignatureAssets } from "@/utils/officialSignatures";
 import { DEFAULT_RAPORT_HEADER, loadGlobalRaportHeader } from "@/utils/raportSettings";
+import {
+  getDefaultRaportTableLayout,
+  loadGlobalRaportTableLayoutSettings,
+  normalizeGlobalRaportTableLayout,
+  saveGlobalRaportTableLayoutSettings,
+  type GlobalRaportTableLayoutSettings,
+  type RaportTableLayoutSettings,
+} from "@/utils/raportTableLayout";
 import { formatStudentName } from "@/utils/formatName";
 import type {
   TahsinDasarEntry,
@@ -129,12 +139,15 @@ export default function RaportPreviewDialog({
   nisn,
   assessorName,
 }: Props) {
+  const { isAdmin } = useAuthContext();
   const [header, setHeader] = useState<RaportHeader>(DEFAULT_RAPORT_HEADER);
   const [assets, setAssets] = useState<RaportAssets>({});
   const [profileAssets, setProfileAssets] = useState<RaportAssets>({});
   const [opts, setOpts] = useState<RaportPdfOptions>(DEFAULT_OPTS);
   const [editing, setEditing] = useState(false);
   const [assetEditing, setAssetEditing] = useState(false);
+  const [tableEditing, setTableEditing] = useState(false);
+  const [savingTableLayout, setSavingTableLayout] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
@@ -145,6 +158,15 @@ export default function RaportPreviewDialog({
   const activeMode = (activeUjian?.mode || "Tahfizh") as RaportMode;
   const [visualLayout, setVisualLayout] = useState<RaportVisualLayout>(() =>
     loadRaportVisualLayout(activeMode, DEFAULT_OPTS.orientation)
+  );
+  const [tableLayouts, setTableLayouts] = useState<GlobalRaportTableLayoutSettings>(() =>
+    normalizeGlobalRaportTableLayout(null)
+  );
+  const [tableLayoutDraft, setTableLayoutDraft] = useState<RaportTableLayoutSettings>(() =>
+    getDefaultRaportTableLayout(DEFAULT_OPTS.orientation)
+  );
+  const [appliedTableLayout, setAppliedTableLayout] = useState<RaportTableLayoutSettings>(() =>
+    getDefaultRaportTableLayout(DEFAULT_OPTS.orientation)
   );
 
   const generatedCatatan = useMemo(
@@ -168,6 +190,13 @@ export default function RaportPreviewDialog({
     if (!open) return;
     setVisualLayout(loadRaportVisualLayout(activeMode, opts.orientation));
   }, [activeMode, open, opts.orientation]);
+
+  useEffect(() => {
+    if (!open) return;
+    const next = tableLayouts[opts.orientation];
+    setTableLayoutDraft(next);
+    setAppliedTableLayout(next);
+  }, [open, opts.orientation, tableLayouts]);
 
   useEffect(() => {
     if (!open) return;
@@ -228,9 +257,14 @@ export default function RaportPreviewDialog({
     if (!open) return;
     let alive = true;
 
-    loadGlobalRaportHeader()
-      .then((globalHeader) => {
-        if (alive) setHeader(globalHeader);
+    Promise.all([
+      loadGlobalRaportHeader(),
+      loadGlobalRaportTableLayoutSettings(),
+    ])
+      .then(([globalHeader, globalTableLayouts]) => {
+        if (!alive) return;
+        setHeader(globalHeader);
+        setTableLayouts(globalTableLayouts);
       })
       .catch((error) => console.error("Gagal memuat pengaturan rapor global:", error));
 
@@ -427,8 +461,13 @@ export default function RaportPreviewDialog({
   );
 
   const effectiveOpts: RaportPdfOptions = useMemo(
-    () => ({ ...opts, verifyUrl, visualLayout }),
-    [opts, verifyUrl, visualLayout]
+    () => ({
+      ...opts,
+      verifyUrl,
+      visualLayout,
+      tableLayout: appliedTableLayout,
+    }),
+    [opts, verifyUrl, visualLayout, appliedTableLayout]
   );
   const effectiveAssets: RaportAssets = useMemo(
     () => ({
@@ -560,6 +599,39 @@ export default function RaportPreviewDialog({
     }
   };
 
+  const handleApplyTableLayout = () => {
+    setAppliedTableLayout(tableLayoutDraft);
+    toast.success("Pengaturan tabel diterapkan ke preview");
+  };
+
+  const persistTableLayout = async (message: string) => {
+    if (!isAdmin) return;
+    setSavingTableLayout(true);
+    try {
+      const next = normalizeGlobalRaportTableLayout({
+        ...tableLayouts,
+        [opts.orientation]: tableLayoutDraft,
+        applyToAllExamTypes: true,
+      });
+      const saved = await saveGlobalRaportTableLayoutSettings(next);
+      setTableLayouts(saved);
+      setAppliedTableLayout(saved[opts.orientation]);
+      toast.success(message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "";
+      toast.error(`Gagal menyimpan pengaturan tabel: ${message}`);
+    } finally {
+      setSavingTableLayout(false);
+    }
+  };
+
+  const handleResetTableLayout = () => {
+    const reset = getDefaultRaportTableLayout(opts.orientation);
+    setTableLayoutDraft(reset);
+    setAppliedTableLayout(reset);
+    toast.success(`Default ${opts.orientation} diterapkan ke preview`);
+  };
+
   if (!activeUjian) return null;
 
   return (
@@ -672,6 +744,17 @@ export default function RaportPreviewDialog({
               <Move className="mr-1 h-4 w-4" />
               {assetEditing ? "Tutup Pengaturan Aset" : "Pengaturan Aset PDF"}
             </Button>
+
+            {isAdmin && (
+              <Button
+                variant={tableEditing ? "default" : "outline"}
+                size="sm"
+                onClick={() => setTableEditing((value) => !value)}
+              >
+                <Settings2 className="mr-1 h-4 w-4" />
+                {tableEditing ? "Tutup Editor Tabel" : "Editor Tabel PDF"}
+              </Button>
+            )}
 
             <Button size="sm" onClick={handleDownload} disabled={exporting}>
               {exporting ? (
@@ -798,7 +881,7 @@ export default function RaportPreviewDialog({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+            <div className="grid grid-cols-1 gap-3 pt-2 border-t">
               <div className="space-y-1">
                 <Label className="text-xs">
                   Ukuran Font Body ({opts.fontSize}pt)
@@ -812,24 +895,6 @@ export default function RaportPreviewDialog({
                     setOpts({
                       ...opts,
                       fontSize: Number(e.target.value),
-                    })
-                  }
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs">
-                  Ukuran Font Tabel ({opts.tableFontSize}pt)
-                </Label>
-                <Input
-                  type="range"
-                  min={6}
-                  max={11}
-                  value={opts.tableFontSize}
-                  onChange={(e) =>
-                    setOpts({
-                      ...opts,
-                      tableFontSize: Number(e.target.value),
                     })
                   }
                 />
@@ -893,6 +958,21 @@ export default function RaportPreviewDialog({
               ))}
             </div>
           </div>
+        )}
+
+        {isAdmin && tableEditing && (
+          <PdfTableLayoutEditor
+            orientation={opts.orientation}
+            value={tableLayoutDraft}
+            saving={savingTableLayout}
+            onChange={setTableLayoutDraft}
+            onApply={handleApplyTableLayout}
+            onSave={() => void persistTableLayout("Pengaturan tabel global berhasil disimpan")}
+            onReset={handleResetTableLayout}
+            onApplyAll={() =>
+              void persistTableLayout("Pengaturan diterapkan ke semua jenis ujian")
+            }
+          />
         )}
 
         {assetEditing ? (

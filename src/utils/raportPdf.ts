@@ -26,6 +26,10 @@ import {
   normalizeRaportVisualLayout,
   type RaportVisualLayout,
 } from "@/utils/pdfAssetsLayout";
+import {
+  normalizeRaportTableLayout,
+  type RaportTableLayoutSettings,
+} from "@/utils/raportTableLayout";
 import { formatClassName } from "@/utils/className";
 import { formatStudentName } from "@/utils/formatName";
 
@@ -59,6 +63,7 @@ export interface RaportPdfOptions {
   showQR: boolean;
   verifyUrl?: string;
   visualLayout?: RaportVisualLayout;
+  tableLayout?: RaportTableLayoutSettings;
 }
 
 export interface RaportData {
@@ -409,24 +414,32 @@ function drawStudentInfo(
   doc: jsPDF,
   data: RaportData,
   pageW: number,
-  margin: number,
   startY: number,
   visualLayout: RaportVisualLayout,
+  tableLayout: RaportTableLayoutSettings,
 ) {
   const textColor = hexToRgb(visualLayout.text.color);
+  const tableWidth =
+    pageW - tableLayout.tableMarginLeft - tableLayout.tableMarginRight;
   autoTable(doc, {
     startY,
     margin: {
-      left: margin,
-      right: margin,
+      left: tableLayout.tableMarginLeft,
+      right: tableLayout.tableMarginRight,
     },
     theme: "grid",
     styles: {
       font: "helvetica",
-      fontSize: 7,
-      cellPadding: 1,
+      fontSize: tableLayout.studentInfoFontSize,
+      cellPadding: {
+        top: tableLayout.cellPaddingY,
+        bottom: tableLayout.cellPaddingY,
+        left: tableLayout.cellPaddingX,
+        right: tableLayout.cellPaddingX,
+      },
       lineColor: GRAY_LINE,
-      lineWidth: 0.15,
+      lineWidth: tableLayout.lineWidth,
+      minCellHeight: tableLayout.rowMinCellHeight,
       textColor,
       fontStyle: visualLayout.text.bold ? "bold" : "normal",
     },
@@ -434,18 +447,18 @@ function drawStudentInfo(
       0: {
         fillColor: EMERALD_SOFT,
         fontStyle: "bold",
-        cellWidth: (pageW - margin * 2) * 0.16,
+        cellWidth: tableWidth * 0.16,
       },
       1: {
-        cellWidth: (pageW - margin * 2) * 0.34,
+        cellWidth: tableWidth * 0.34,
       },
       2: {
         fillColor: EMERALD_SOFT,
         fontStyle: "bold",
-        cellWidth: (pageW - margin * 2) * 0.16,
+        cellWidth: tableWidth * 0.16,
       },
       3: {
-        cellWidth: (pageW - margin * 2) * 0.34,
+        cellWidth: tableWidth * 0.34,
       },
     },
     body: [
@@ -459,11 +472,13 @@ function drawScoreSummary(
   doc: jsPDF,
   data: RaportData,
   pageW: number,
-  margin: number,
-  startY: number
+  startY: number,
+  tableLayout: RaportTableLayoutSettings,
 ) {
   const gap = 4;
-  const boxW = (pageW - margin * 2 - gap * 2) / 3;
+  const left = tableLayout.tableMarginLeft;
+  const boxW =
+    (pageW - left - tableLayout.tableMarginRight - gap * 2) / 3;
   const h = 18;
   const centerY = startY + h / 2;
 
@@ -492,10 +507,10 @@ function drawScoreSummary(
     });
   };
 
-  drawCard(margin, "Nilai", String(data.nilaiAkhir), EMERALD);
-  drawCard(margin + boxW + gap, "Grade", data.grade, GOLD);
+  drawCard(left, "Nilai", String(data.nilaiAkhir), EMERALD);
+  drawCard(left + boxW + gap, "Grade", data.grade, GOLD);
 
-  const statusX = margin + (boxW + gap) * 2;
+  const statusX = left + (boxW + gap) * 2;
 
   doc.setDrawColor(...EMERALD);
   doc.setLineWidth(0.7);
@@ -535,12 +550,18 @@ function drawScoreSummary(
   doc.text(data.predikat, startX + labelWidth, predY);
 }
 
-function sectionTitle(doc: jsPDF, text: string, margin: number, y: number) {
+function sectionTitle(
+  doc: jsPDF,
+  text: string,
+  margin: number,
+  y: number,
+  tableLayout: RaportTableLayoutSettings,
+) {
   doc.setFillColor(...GOLD);
   doc.rect(margin, y, 1.2, 4, "F");
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
+  doc.setFontSize(tableLayout.sectionTitleFontSize);
   doc.setTextColor(...EMERALD);
   doc.text(text, margin + 3, y + 3);
 
@@ -551,35 +572,53 @@ function drawDetail(
   doc: jsPDF,
   data: RaportData,
   pageW: number,
-  margin: number,
-  startY: number
+  startY: number,
+  tableLayout: RaportTableLayoutSettings,
 ): number {
   let y = startY;
+  const tableMargin = {
+    left: tableLayout.tableMarginLeft,
+    right: tableLayout.tableMarginRight,
+  };
+  const cellPadding = {
+    top: tableLayout.cellPaddingY,
+    bottom: tableLayout.cellPaddingY,
+    left: tableLayout.cellPaddingX,
+    right: tableLayout.cellPaddingX,
+  };
 
   if (data.mode === "Tahfizh" && data.tahfizhEntries) {
     if (data.tahfizhReportType === "summary") {
-      y = sectionTitle(doc, "RINGKASAN UJIAN TAHFIZH PER JUZ", margin, y) || y;
+      y = sectionTitle(
+        doc,
+        "RINGKASAN UJIAN TAHFIZH PER JUZ",
+        tableLayout.tableMarginLeft,
+        y,
+        tableLayout,
+      ) || y;
 
       const { head, body } = getTahfizhSummaryRows(data);
 
       autoTable(doc, {
         startY: y,
-        margin: { left: margin, right: margin },
+        margin: tableMargin,
         head,
         body,
         theme: "grid",
         styles: {
           font: "helvetica",
-          fontSize: 6.2,
-          cellPadding: 0.9,
+          fontSize: tableLayout.summaryBodyFontSize,
+          cellPadding,
           lineColor: GRAY_LINE,
-          lineWidth: 0.12,
+          lineWidth: tableLayout.lineWidth,
+          minCellHeight: tableLayout.rowMinCellHeight,
           halign: "center",
         },
         headStyles: {
           fillColor: EMERALD,
           textColor: 255,
           fontStyle: "bold",
+          fontSize: tableLayout.summaryHeadFontSize,
         },
         alternateRowStyles: {
           fillColor: [247, 254, 250],
@@ -590,10 +629,17 @@ function drawDetail(
         },
       });
 
-      return (doc as any).lastAutoTable.finalY + 2;
+      y = (doc as any).lastAutoTable.finalY + tableLayout.gapAfterDetail;
+      return y;
     }
 
-    y = sectionTitle(doc, "DETAIL UJIAN TAHFIZH", margin, y) || y;
+    y = sectionTitle(
+      doc,
+      "DETAIL UJIAN TAHFIZH",
+      tableLayout.tableMarginLeft,
+      y,
+      tableLayout,
+    ) || y;
 
     const head = [
       [
@@ -627,24 +673,25 @@ function drawDetail(
     autoTable(doc, {
       startY: y,
       margin: {
-        left: margin,
-        right: margin,
+        ...tableMargin,
       },
       head,
       body,
       theme: "grid",
       styles: {
         font: "helvetica",
-        fontSize: 6.3,
-        cellPadding: 0.8,
+        fontSize: tableLayout.detailBodyFontSize,
+        cellPadding,
         lineColor: GRAY_LINE,
-        lineWidth: 0.12,
+        lineWidth: tableLayout.lineWidth,
+        minCellHeight: tableLayout.rowMinCellHeight,
         halign: "center",
       },
       headStyles: {
         fillColor: EMERALD,
         textColor: 255,
         fontStyle: "bold",
+        fontSize: tableLayout.detailHeadFontSize,
       },
       alternateRowStyles: {
         fillColor: [247, 254, 250],
@@ -661,7 +708,7 @@ function drawDetail(
       },
     });
 
-    y = (doc as any).lastAutoTable.finalY + 2;
+    y = (doc as any).lastAutoTable.finalY + tableLayout.gapAfterDetail;
   }
 
   if (data.mode === "Tahsin Dasar" && data.dasarEntries) {
@@ -672,7 +719,13 @@ function drawDetail(
         bobot_kelancaran: 40,
       };
 
-    y = sectionTitle(doc, "DETAIL UJIAN TAHSIN DASAR", margin, y) || y;
+    y = sectionTitle(
+      doc,
+      "DETAIL UJIAN TAHSIN DASAR",
+      tableLayout.tableMarginLeft,
+      y,
+      tableLayout,
+    ) || y;
 
     const head = [
       [
@@ -705,24 +758,25 @@ function drawDetail(
     autoTable(doc, {
       startY: y,
       margin: {
-        left: margin,
-        right: margin,
+        ...tableMargin,
       },
       head,
       body,
       theme: "grid",
       styles: {
         font: "helvetica",
-        fontSize: 6,
-        cellPadding: 0.8,
+        fontSize: tableLayout.detailBodyFontSize,
+        cellPadding,
         lineColor: GRAY_LINE,
-        lineWidth: 0.12,
+        lineWidth: tableLayout.lineWidth,
+        minCellHeight: tableLayout.rowMinCellHeight,
         halign: "center",
       },
       headStyles: {
         fillColor: EMERALD,
         textColor: 255,
         fontStyle: "bold",
+        fontSize: tableLayout.detailHeadFontSize,
       },
       alternateRowStyles: {
         fillColor: [247, 254, 250],
@@ -739,7 +793,7 @@ function drawDetail(
       },
     });
 
-    y = (doc as any).lastAutoTable.finalY + 2;
+    y = (doc as any).lastAutoTable.finalY + tableLayout.gapAfterDetail;
   }
 
   if (data.mode === "Tahsin Lanjutan" && data.lanjutanEntries) {
@@ -752,7 +806,13 @@ function drawDetail(
 
     const pw = data.penaltiWaqaf ?? 2;
 
-    y = sectionTitle(doc, "DETAIL UJIAN TAHSIN LANJUTAN", margin, y) || y;
+    y = sectionTitle(
+      doc,
+      "DETAIL UJIAN TAHSIN LANJUTAN",
+      tableLayout.tableMarginLeft,
+      y,
+      tableLayout,
+    ) || y;
 
     const head = [
       [
@@ -787,24 +847,25 @@ function drawDetail(
     autoTable(doc, {
       startY: y,
       margin: {
-        left: margin,
-        right: margin,
+        ...tableMargin,
       },
       head,
       body,
       theme: "grid",
       styles: {
         font: "helvetica",
-        fontSize: 5.8,
-        cellPadding: 0.7,
+        fontSize: tableLayout.detailBodyFontSize,
+        cellPadding,
         lineColor: GRAY_LINE,
-        lineWidth: 0.12,
+        lineWidth: tableLayout.lineWidth,
+        minCellHeight: tableLayout.rowMinCellHeight,
         halign: "center",
       },
       headStyles: {
         fillColor: EMERALD,
         textColor: 255,
         fontStyle: "bold",
+        fontSize: tableLayout.detailHeadFontSize,
       },
       alternateRowStyles: {
         fillColor: [247, 254, 250],
@@ -821,16 +882,28 @@ function drawDetail(
       },
     });
 
-    y = (doc as any).lastAutoTable.finalY + 2;
+    y = (doc as any).lastAutoTable.finalY + tableLayout.gapAfterDetail;
   }
 
   if (data.waqafTest) {
-    y = sectionTitle(doc, "TES SIMBOL WAQAF", margin, y) || y;
+    y += tableLayout.gapBeforeWaqaf;
+    y = sectionTitle(
+      doc,
+      "TES SIMBOL WAQAF",
+      tableLayout.tableMarginLeft,
+      y,
+      tableLayout,
+    ) || y;
 
     const entries = Object.entries(data.waqafTest);
     const cols = entries.length;
     const gap = 2;
-    const cardW = (pageW - margin * 2 - (cols - 1) * gap) / (cols || 1);
+    const cardW =
+      (pageW -
+        tableLayout.tableMarginLeft -
+        tableLayout.tableMarginRight -
+        (cols - 1) * gap) /
+      (cols || 1);
     const cardH = 10;
 
     const waqafArabic: any = {
@@ -858,7 +931,7 @@ function drawDetail(
     };
 
     entries.forEach(([key, val], index) => {
-      const x = margin + index * (cardW + gap);
+      const x = tableLayout.tableMarginLeft + index * (cardW + gap);
       const color: [number, number, number] = val
         ? [22, 163, 74]
         : [220, 38, 38];
@@ -899,7 +972,7 @@ function drawDetail(
       doc.text(val ? "Benar" : "Salah", x + 8, y + 8);
     });
 
-    y += cardH + 4;
+    y += cardH + tableLayout.gapAfterWaqaf;
   }
 
   return y;
@@ -909,17 +982,20 @@ function drawCatatan(
   doc: jsPDF,
   catatan: string,
   pageW: number,
-  margin: number,
   startY: number,
   visualLayout: RaportVisualLayout,
+  tableLayout: RaportTableLayoutSettings,
 ): number {
+  const left = tableLayout.tableMarginLeft;
+  const contentWidth =
+    pageW - tableLayout.tableMarginLeft - tableLayout.tableMarginRight;
   doc.setFillColor(...EMERALD);
-  doc.rect(margin, startY, pageW - margin * 2, 4, "F");
+  doc.rect(left, startY, contentWidth, 4, "F");
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7);
   doc.setTextColor(255, 255, 255);
-  doc.text("CATATAN", margin + 2, startY + 2.8);
+  doc.text("CATATAN", left + 2, startY + 2.8);
 
   const text = catatan || "-";
   const isArabicText = /[\u0600-\u06FF]/.test(text);
@@ -933,7 +1009,7 @@ function drawCatatan(
   doc.setLineHeightFactor(1.3);
   doc.setTextColor(...hexToRgb(visualLayout.text.color));
 
-  const textWidth = pageW - margin * 2 - 6;
+  const textWidth = contentWidth - 6;
   const lines = doc.splitTextToSize(text, textWidth);
   const lineHeight = isArabicText ? 4.8 : 3;
   const extraPadding = isArabicText ? 6 : 3;
@@ -943,9 +1019,9 @@ function drawCatatan(
   );
 
   doc.setDrawColor(...GRAY_LINE);
-  doc.rect(margin, startY + 4, pageW - margin * 2, blockH);
+  doc.rect(left, startY + 4, contentWidth, blockH);
 
-  const centerX = margin + (pageW - margin * 2) / 2;
+  const centerX = left + contentWidth / 2;
 
   if (isArabicText) {
     doc.text(text, centerX, startY + 10, {
@@ -953,7 +1029,7 @@ function drawCatatan(
       maxWidth: textWidth,
     });
   } else {
-    doc.text(lines, margin + 3, startY + 8.5);
+    doc.text(lines, left + 3, startY + 8.5);
   }
 
   return startY + 4 + blockH + 5;
@@ -1096,6 +1172,26 @@ export async function generateRaportPDF(
     opts.visualLayout,
     opts.orientation,
   );
+  const normalizedTableLayout = normalizeRaportTableLayout(
+    opts.tableLayout,
+    opts.orientation,
+  );
+  const legacyTableFontSize = Number(opts.tableFontSize);
+  const tableLayout = opts.tableLayout || !Number.isFinite(legacyTableFontSize)
+    ? normalizedTableLayout
+    : {
+        ...normalizedTableLayout,
+        detailBodyFontSize: legacyTableFontSize,
+        detailHeadFontSize: legacyTableFontSize,
+        summaryBodyFontSize: legacyTableFontSize,
+        summaryHeadFontSize: legacyTableFontSize,
+      };
+  const effectiveOpts: RaportPdfOptions = {
+    ...opts,
+    verifyUrl: opts.verifyUrl,
+    visualLayout,
+    tableLayout,
+  };
 
   const nomor = generateNomorDokumen(data.mode, data.ujianId);
 
@@ -1112,11 +1208,13 @@ export async function generateRaportPDF(
     effectiveVerifyUrl ||
     `${data.mode}|${data.studentName}|${data.tanggal}|${data.nilaiAkhir}|${data.status}|${nomor}`;
 
-  const qrUrl = opts.showQR && visualLayout.assets.qrCode.visible
+  effectiveOpts.verifyUrl = effectiveVerifyUrl;
+
+  const qrUrl = effectiveOpts.showQR && visualLayout.assets.qrCode.visible
     ? await makeQR(verifyText)
     : undefined;
 
-  drawWatermark(doc, header, assets, opts, pageW, pageH);
+  drawWatermark(doc, header, assets, effectiveOpts, pageW, pageH);
   drawHeader(
     doc,
     data,
@@ -1132,15 +1230,16 @@ export async function generateRaportPDF(
 
   let y = margin + 26 + 16;
 
-  drawStudentInfo(doc, data, pageW, margin, y, visualLayout);
+  drawStudentInfo(doc, data, pageW, y, visualLayout, tableLayout);
 
-  y = (doc as any).lastAutoTable.finalY + 3;
+  y = (doc as any).lastAutoTable.finalY + tableLayout.gapAfterStudentInfo;
 
-  drawScoreSummary(doc, data, pageW, margin, y);
+  drawScoreSummary(doc, data, pageW, y, tableLayout);
 
-  y += 22;
+  y += 18 + tableLayout.gapAfterScoreSummary;
+  y += tableLayout.gapBeforeDetail;
 
-  y = drawDetail(doc, data, pageW, margin, y);
+  y = drawDetail(doc, data, pageW, y, tableLayout);
 
   let catatanFinal = data.catatanGuru?.trim() || "";
 
@@ -1253,9 +1352,28 @@ export async function generateRaportPDF(
     }
   }
 
-  y = drawCatatan(doc, catatanFinal, pageW, margin, y, visualLayout);
+  y += tableLayout.gapBeforeCatatan;
+  y = drawCatatan(
+    doc,
+    catatanFinal,
+    pageW,
+    y,
+    visualLayout,
+    tableLayout,
+  );
 
-  drawSignatures(doc, data, header, opts, pageW, pageH, margin, y, assets, visualLayout);
+  drawSignatures(
+    doc,
+    data,
+    header,
+    effectiveOpts,
+    pageW,
+    pageH,
+    margin,
+    y,
+    assets,
+    visualLayout,
+  );
 
   const totalPages = doc.getNumberOfPages();
 

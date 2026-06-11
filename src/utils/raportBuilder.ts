@@ -25,6 +25,7 @@ import {
   syncGlobalRaportSignatureLayout,
 } from "@/utils/pdfAssetsLayout";
 import { DEFAULT_RAPORT_HEADER, loadGlobalRaportHeader } from "@/utils/raportSettings";
+import { loadGlobalRaportTableLayoutSettings } from "@/utils/raportTableLayout";
 
 const STORAGE_KEY = "raport_settings_v3";
 export const DEFAULT_HEADER = DEFAULT_RAPORT_HEADER;
@@ -44,8 +45,9 @@ export interface RaportSettings {
 }
 
 export async function loadRaportSettings(): Promise<RaportSettings> {
-  const [header] = await Promise.all([
+  const [header, tableLayouts] = await Promise.all([
     loadGlobalRaportHeader(),
+    loadGlobalRaportTableLayoutSettings(),
     syncGlobalRaportSignatureLayout().catch(() => false),
   ]);
   let assets: RaportAssets = {};
@@ -58,6 +60,7 @@ export async function loadRaportSettings(): Promise<RaportSettings> {
       if (p.opts) opts = { ...opts, ...p.opts };
     }
   } catch {}
+  opts.tableLayout = tableLayouts[opts.orientation];
   return { header, assets, opts };
 }
 

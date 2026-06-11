@@ -29,28 +29,25 @@ export interface RaportVisualLayout {
   text: PdfTextLayout;
 }
 
-type RaportSignatureSettings = {
-  examinerSignature: {
-    visible: boolean;
-    width: number;
-    height: number;
-    placement: "auto" | "manual";
-    offsetY: number;
-  };
-  headmasterSignature: {
-    visible: boolean;
-    width: number;
-    height: number;
-    placement: "auto" | "manual";
-    offsetY: number;
-  };
+type GlobalRaportOrientationAssets = Pick<
+  PdfAssetsLayout,
+  "leftLogo" | "rightLogo" | "examinerSignature" | "headmasterSignature" | "qrCode"
+>;
+
+type LegacyRaportSignatureSettings = {
+  examinerSignature?: Partial<PdfAssetPosition>;
+  headmasterSignature?: Partial<PdfAssetPosition>;
 };
 
-export type GlobalRaportSignatureLayout = RaportSignatureSettings & {
+export type GlobalRaportAssetsLayout = {
+  portrait?: GlobalRaportOrientationAssets;
+  landscape?: GlobalRaportOrientationAssets;
   updatedAt: string;
   updatedFromMode: RaportMode;
   updatedFromOrientation: Orientation;
 };
+
+export type GlobalRaportSignatureLayout = GlobalRaportAssetsLayout;
 
 export const PDF_PAGE_SIZE: Record<Orientation, { width: number; height: number }> = {
   portrait: { width: 210, height: 297 },
@@ -176,23 +173,14 @@ export const normalizeRaportVisualLayout = (
   };
 };
 
-const toGlobalSignatureLayout = (
+const toGlobalAssetsLayout = (
   layout: RaportVisualLayout,
-): RaportSignatureSettings => ({
-  examinerSignature: {
-    visible: layout.assets.examinerSignature.visible,
-    width: layout.assets.examinerSignature.width,
-    height: layout.assets.examinerSignature.height,
-    placement: layout.assets.examinerSignature.placement ?? "auto",
-    offsetY: layout.assets.examinerSignature.offsetY ?? 0,
-  },
-  headmasterSignature: {
-    visible: layout.assets.headmasterSignature.visible,
-    width: layout.assets.headmasterSignature.width,
-    height: layout.assets.headmasterSignature.height,
-    placement: layout.assets.headmasterSignature.placement ?? "auto",
-    offsetY: layout.assets.headmasterSignature.offsetY ?? 0,
-  },
+): GlobalRaportOrientationAssets => ({
+  leftLogo: { ...layout.assets.leftLogo },
+  rightLogo: { ...layout.assets.rightLogo },
+  examinerSignature: { ...layout.assets.examinerSignature },
+  headmasterSignature: { ...layout.assets.headmasterSignature },
+  qrCode: { ...layout.assets.qrCode },
 });
 
 const getStoredOrientationLayout = (
@@ -215,19 +203,30 @@ const hasStoredSignatureSettings = (value: unknown) => {
   });
 };
 
-const hasGlobalSignatureSettings = (
-  value: Partial<GlobalRaportSignatureLayout>,
-) => [value.examinerSignature, value.headmasterSignature]
-  .some((signature) => signature && typeof signature === "object");
+const hasAssetObject = (value: unknown) =>
+  Boolean(value && typeof value === "object");
+
+const hasGlobalAssetsSettings = (value: unknown) => {
+  if (!value || typeof value !== "object") return false;
+  const parsed = value as Record<string, unknown>;
+  const hasOrientation = ["portrait", "landscape"].some((orientation) => {
+    const assets = parsed[orientation];
+    if (!assets || typeof assets !== "object") return false;
+    return ["leftLogo", "rightLogo", "examinerSignature", "headmasterSignature", "qrCode"]
+      .some((key) => hasAssetObject((assets as Record<string, unknown>)[key]));
+  });
+  const hasLegacySignature = ["examinerSignature", "headmasterSignature"]
+    .some((key) => hasAssetObject(parsed[key]));
+  return hasOrientation || hasLegacySignature;
+};
 
 const cacheGlobalRaportSignatureLayout = (value: unknown) => {
   if (typeof window === "undefined" || !value || typeof value !== "object") return false;
-  const parsed = value as Partial<GlobalRaportSignatureLayout>;
-  if (!hasGlobalSignatureSettings(parsed)) return false;
+  if (!hasGlobalAssetsSettings(value)) return false;
 
   window.localStorage.setItem(
     GLOBAL_RAPORT_SIGNATURE_LAYOUT_KEY,
-    JSON.stringify(parsed),
+    JSON.stringify(value),
   );
   return true;
 };
@@ -277,48 +276,69 @@ const loadStoredModeLayout = (
   }
 };
 
-const loadGlobalRaportSignatureLayout = (
+const getLegacyGlobalSignatures = (value: unknown): LegacyRaportSignatureSettings => {
+  if (!value || typeof value !== "object") return {};
+  const parsed = value as Record<string, unknown>;
+  return {
+    examinerSignature: hasAssetObject(parsed.examinerSignature)
+      ? parsed.examinerSignature as Partial<PdfAssetPosition>
+      : undefined,
+    headmasterSignature: hasAssetObject(parsed.headmasterSignature)
+      ? parsed.headmasterSignature as Partial<PdfAssetPosition>
+      : undefined,
+  };
+};
+
+const toOrientationSafeSignature = (
+  asset: PdfAssetPosition,
+): Partial<PdfAssetPosition> => ({
+  visible: asset.visible,
+  width: asset.width,
+  height: asset.height,
+  placement: asset.placement,
+  offsetY: asset.offsetY,
+});
+
+const getGlobalOrientationAssets = (
+  value: unknown,
+  orientation: Orientation,
+): Partial<GlobalRaportOrientationAssets> | null => {
+  if (!value || typeof value !== "object") return null;
+  const parsed = value as Record<string, unknown>;
+  const orientationValue = parsed[orientation];
+  if (orientationValue && typeof orientationValue === "object") {
+    return orientationValue as Partial<GlobalRaportOrientationAssets>;
+  }
+
+  const legacy = getLegacyGlobalSignatures(value);
+  return legacy.examinerSignature || legacy.headmasterSignature
+    ? legacy as Partial<GlobalRaportOrientationAssets>
+    : null;
+};
+
+const loadGlobalRaportAssetsLayout = (
   mode: RaportMode,
   orientation: Orientation,
   baseLayout: RaportVisualLayout,
   baseRawLayout?: unknown,
-): RaportSignatureSettings => {
+): Partial<GlobalRaportOrientationAssets> => {
   try {
     const raw = window.localStorage.getItem(GLOBAL_RAPORT_SIGNATURE_LAYOUT_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw) as Partial<GlobalRaportSignatureLayout>;
-      if (!hasGlobalSignatureSettings(parsed)) {
-        throw new Error("Invalid global signature layout");
-      }
-      const examinerSignature = parsed.examinerSignature &&
-        typeof parsed.examinerSignature === "object"
-        ? parsed.examinerSignature
-        : {};
-      const headmasterSignature = parsed.headmasterSignature &&
-        typeof parsed.headmasterSignature === "object"
-        ? parsed.headmasterSignature
-        : {};
-      const normalized = normalizeRaportVisualLayout({
-        assets: {
-          examinerSignature: {
-            ...baseLayout.assets.examinerSignature,
-            ...examinerSignature,
-          },
-          headmasterSignature: {
-            ...baseLayout.assets.headmasterSignature,
-            ...headmasterSignature,
-          },
-        },
-      }, orientation);
-
-      return toGlobalSignatureLayout(normalized);
+      const parsed = JSON.parse(raw);
+      const globalAssets = getGlobalOrientationAssets(parsed, orientation);
+      if (!globalAssets) throw new Error("Invalid global assets layout");
+      return globalAssets;
     }
   } catch {
     // Continue to legacy per-mode storage fallback.
   }
 
   if (hasStoredSignatureSettings(baseRawLayout)) {
-    return toGlobalSignatureLayout(baseLayout);
+    return {
+      examinerSignature: baseLayout.assets.examinerSignature,
+      headmasterSignature: baseLayout.assets.headmasterSignature,
+    };
   }
 
   const otherModes = (Object.keys(STORAGE_KEYS) as RaportMode[])
@@ -326,30 +346,41 @@ const loadGlobalRaportSignatureLayout = (
   for (const candidateMode of otherModes) {
     const candidate = loadStoredModeLayout(candidateMode, orientation, true);
     if (candidate.hasStoredLayout && hasStoredSignatureSettings(candidate.rawLayout)) {
-      return toGlobalSignatureLayout(candidate.layout);
+      return {
+        examinerSignature: toOrientationSafeSignature(
+          candidate.layout.assets.examinerSignature,
+        ),
+        headmasterSignature: toOrientationSafeSignature(
+          candidate.layout.assets.headmasterSignature,
+        ),
+      };
     }
   }
 
-  return toGlobalSignatureLayout(baseLayout);
+  return {};
 };
 
-const applyGlobalSignatureLayout = (
+const applyGlobalAssetsLayout = (
   baseLayout: RaportVisualLayout,
-  globalSignature: RaportSignatureSettings,
-): RaportVisualLayout => ({
+  globalAssets: Partial<GlobalRaportOrientationAssets>,
+  orientation: Orientation,
+): RaportVisualLayout => normalizeRaportVisualLayout({
   ...baseLayout,
   assets: {
     ...baseLayout.assets,
-    examinerSignature: {
-      ...baseLayout.assets.examinerSignature,
-      ...globalSignature.examinerSignature,
-    },
-    headmasterSignature: {
-      ...baseLayout.assets.headmasterSignature,
-      ...globalSignature.headmasterSignature,
-    },
+    ...Object.fromEntries(
+      Object.entries(globalAssets)
+        .filter(([, asset]) => asset && typeof asset === "object")
+        .map(([key, asset]) => [
+          key,
+          {
+            ...baseLayout.assets[key as keyof PdfAssetsLayout],
+            ...asset,
+          },
+        ]),
+    ),
   },
-});
+}, orientation);
 
 export const loadRaportVisualLayout = (
   mode: RaportMode,
@@ -358,13 +389,13 @@ export const loadRaportVisualLayout = (
   if (typeof window === "undefined") return getDefaultRaportVisualLayout(orientation);
 
   const stored = loadStoredModeLayout(mode, orientation);
-  const globalSignature = loadGlobalRaportSignatureLayout(
+  const globalAssets = loadGlobalRaportAssetsLayout(
     mode,
     orientation,
     stored.layout,
     stored.rawLayout,
   );
-  return applyGlobalSignatureLayout(stored.layout, globalSignature);
+  return applyGlobalAssetsLayout(stored.layout, globalAssets, orientation);
 };
 
 export const saveRaportVisualLayout = (
@@ -373,12 +404,52 @@ export const saveRaportVisualLayout = (
   value: RaportVisualLayout,
 ): Promise<RaportVisualLayout> => {
   const layout = normalizeRaportVisualLayout(value, orientation);
-  const globalSignature = {
+  let currentGlobal: Record<string, unknown> = {};
+  if (typeof window !== "undefined") {
+    try {
+      const raw = window.localStorage.getItem(GLOBAL_RAPORT_SIGNATURE_LAYOUT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") currentGlobal = parsed;
+      }
+    } catch {
+      currentGlobal = {};
+    }
+  }
+
+  const legacySignatures = getLegacyGlobalSignatures(currentGlobal);
+  const buildPreservedOrientation = (
+    targetOrientation: Orientation,
+  ): GlobalRaportOrientationAssets => {
+    const defaults = getDefaultRaportVisualLayout(targetOrientation);
+    return toGlobalAssetsLayout(normalizeRaportVisualLayout({
+      ...defaults,
+      assets: {
+        ...defaults.assets,
+        examinerSignature: {
+          ...defaults.assets.examinerSignature,
+          ...legacySignatures.examinerSignature,
+        },
+        headmasterSignature: {
+          ...defaults.assets.headmasterSignature,
+          ...legacySignatures.headmasterSignature,
+        },
+      },
+    }, targetOrientation));
+  };
+  const globalAssets = {
+    portrait: orientation === "portrait"
+      ? toGlobalAssetsLayout(layout)
+      : getGlobalOrientationAssets(currentGlobal, "portrait") ??
+        buildPreservedOrientation("portrait"),
+    landscape: orientation === "landscape"
+      ? toGlobalAssetsLayout(layout)
+      : getGlobalOrientationAssets(currentGlobal, "landscape") ??
+        buildPreservedOrientation("landscape"),
     updatedAt: new Date().toISOString(),
     updatedFromMode: mode,
     updatedFromOrientation: orientation,
-    ...toGlobalSignatureLayout(layout),
-  } satisfies GlobalRaportSignatureLayout;
+  } satisfies GlobalRaportAssetsLayout;
 
   if (typeof window !== "undefined") {
     let current: Record<string, unknown> = {};
@@ -397,7 +468,7 @@ export const saveRaportVisualLayout = (
     );
     window.localStorage.setItem(
       GLOBAL_RAPORT_SIGNATURE_LAYOUT_KEY,
-      JSON.stringify(globalSignature),
+      JSON.stringify(globalAssets),
     );
   }
 
@@ -406,7 +477,7 @@ export const saveRaportVisualLayout = (
       .from("app_settings")
       .upsert({
         id: GLOBAL_RAPORT_SIGNATURE_SETTINGS_ID,
-        value: globalSignature,
+        value: globalAssets,
         updated_by: userData.user?.id || null,
       }))
     .then(({ error }) => {

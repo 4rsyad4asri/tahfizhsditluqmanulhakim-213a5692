@@ -100,6 +100,8 @@ export interface RaportData {
 
 const EMERALD: [number, number, number] = [6, 95, 70];
 const EMERALD_SOFT: [number, number, number] = [236, 253, 245];
+const BLUE: [number, number, number] = [37, 99, 235];
+const BLUE_SOFT: [number, number, number] = [239, 246, 255];
 const GOLD: [number, number, number] = [180, 140, 50];
 const GRAY_LINE: [number, number, number] = [209, 213, 219];
 const GRAY_TEXT: [number, number, number] = [55, 65, 81];
@@ -512,7 +514,13 @@ function drawScoreSummary(
 
   const statusX = left + (boxW + gap) * 2;
 
-  doc.setDrawColor(...EMERALD);
+  const statusColor: [number, number, number] =
+    data.status === "Lulus" ? BLUE : [220, 38, 38];
+  doc.setDrawColor(...statusColor);
+  if (data.status === "Lulus") {
+    doc.setFillColor(...BLUE_SOFT);
+    doc.roundedRect(statusX, startY, boxW, h, 2, 2, "F");
+  }
   doc.setLineWidth(0.7);
   doc.roundedRect(statusX, startY, boxW, h, 2, 2, "S");
 
@@ -525,7 +533,7 @@ function drawScoreSummary(
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
-  doc.setTextColor(...((data.status === "Lulus" ? EMERALD : [220, 38, 38]) as [number, number, number]));
+  doc.setTextColor(...statusColor);
   doc.text(data.status.toUpperCase(), statusX + boxW / 2, centerY + 2, {
     align: "center",
   });

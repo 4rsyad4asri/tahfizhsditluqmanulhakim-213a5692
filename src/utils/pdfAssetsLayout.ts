@@ -56,6 +56,10 @@ export const PDF_PAGE_SIZE: Record<Orientation, { width: number; height: number 
 
 export const GLOBAL_RAPORT_SIGNATURE_LAYOUT_KEY = "raport-global-signature-layout-v1";
 export const GLOBAL_RAPORT_SIGNATURE_SETTINGS_ID = "raport-global-signature-layout-v1";
+export const EXAMINER_RAPORT_SIGNATURE_LAYOUT_PREFIX = "raport-examiner-signature-layout-v1:";
+
+const getExaminerSignatureLayoutKey = (examinerId: string) =>
+  `${EXAMINER_RAPORT_SIGNATURE_LAYOUT_PREFIX}${examinerId}`;
 
 const STORAGE_KEYS: Record<RaportMode, string> = {
   "Tahsin Dasar": "tahsin-dasar-pdf-assets-layout",
@@ -234,15 +238,50 @@ const cacheGlobalRaportSignatureLayout = (value: unknown) => {
 export const applySharedRaportSignatureLayout = (value: unknown) =>
   cacheGlobalRaportSignatureLayout(value);
 
-export const syncGlobalRaportSignatureLayout = async () => {
-  const { data, error } = await supabase
+const cacheExaminerSignatureLayout = (examinerId: string, value: unknown) => {
+  if (typeof window === "undefined" || !value || typeof value !== "object") return false;
+  if (!hasGlobalAssetsSettings(value)) return false;
+
+  window.localStorage.setItem(
+    getExaminerSignatureLayoutKey(examinerId),
+    JSON.stringify(value),
+  );
+  return true;
+};
+
+export const applyExaminerRaportSignatureLayout = (
+  examinerId: string,
+  value: unknown,
+) => cacheExaminerSignatureLayout(examinerId, value);
+
+export const syncGlobalRaportSignatureLayout = async (examinerId?: string | null) => {
+  const globalRequest = supabase
     .from("app_settings")
     .select("value")
     .eq("id", GLOBAL_RAPORT_SIGNATURE_SETTINGS_ID)
     .maybeSingle();
+  const examinerRequest = examinerId
+    ? supabase
+      .from("app_settings")
+      .select("value")
+      .eq("id", getExaminerSignatureLayoutKey(examinerId))
+      .maybeSingle()
+    : Promise.resolve({ data: null, error: null });
+  const [globalResult, examinerResult] = await Promise.all([
+    globalRequest,
+    examinerRequest,
+  ]);
 
-  if (error) throw error;
-  return data?.value ? cacheGlobalRaportSignatureLayout(data.value) : false;
+  if (globalResult.error) throw globalResult.error;
+  if (examinerResult.error) throw examinerResult.error;
+
+  const globalSynced = globalResult.data?.value
+    ? cacheGlobalRaportSignatureLayout(globalResult.data.value)
+    : false;
+  const examinerSynced = examinerId && examinerResult.data?.value
+    ? cacheExaminerSignatureLayout(examinerId, examinerResult.data.value)
+    : false;
+  return globalSynced || examinerSynced;
 };
 
 const loadStoredModeLayout = (
@@ -360,6 +399,25 @@ const loadGlobalRaportAssetsLayout = (
   return {};
 };
 
+const loadExaminerSignatureLayout = (
+  examinerId: string | null | undefined,
+  orientation: Orientation,
+): Partial<PdfAssetPosition> | null => {
+  if (!examinerId) return null;
+
+  try {
+    const raw = window.localStorage.getItem(getExaminerSignatureLayoutKey(examinerId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const assets = getGlobalOrientationAssets(parsed, orientation);
+    return assets?.examinerSignature && typeof assets.examinerSignature === "object"
+      ? assets.examinerSignature
+      : null;
+  } catch {
+    return null;
+  }
+};
+
 const applyGlobalAssetsLayout = (
   baseLayout: RaportVisualLayout,
   globalAssets: Partial<GlobalRaportOrientationAssets>,
@@ -385,6 +443,7 @@ const applyGlobalAssetsLayout = (
 export const loadRaportVisualLayout = (
   mode: RaportMode,
   orientation: Orientation,
+  examinerId?: string | null,
 ): RaportVisualLayout => {
   if (typeof window === "undefined") return getDefaultRaportVisualLayout(orientation);
 
@@ -395,13 +454,18 @@ export const loadRaportVisualLayout = (
     stored.layout,
     stored.rawLayout,
   );
-  return applyGlobalAssetsLayout(stored.layout, globalAssets, orientation);
+  const examinerSignature = loadExaminerSignatureLayout(examinerId, orientation);
+  return applyGlobalAssetsLayout(stored.layout, {
+    ...globalAssets,
+    ...(examinerSignature ? { examinerSignature } : {}),
+  }, orientation);
 };
 
 export const saveRaportVisualLayout = (
   mode: RaportMode,
   orientation: Orientation,
   value: RaportVisualLayout,
+  examinerId?: string | null,
 ): Promise<RaportVisualLayout> => {
   const layout = normalizeRaportVisualLayout(value, orientation);
   let currentGlobal: Record<string, unknown> = {};
@@ -437,19 +501,65 @@ export const saveRaportVisualLayout = (
       },
     }, targetOrientation));
   };
+  const preserveGlobalExaminerSignature = (
+    targetOrientation: Orientation,
+    nextAssets: GlobalRaportOrientationAssets,
+  ): GlobalRaportOrientationAssets => {
+    if (!examinerId) return nextAssets;
+    const existing = getGlobalOrientationAssets(currentGlobal, targetOrientation);
+    return {
+      ...nextAssets,
+      examinerSignature: {
+        ...nextAssets.examinerSignature,
+        ...(existing?.examinerSignature || legacySignatures.examinerSignature),
+      },
+    };
+  };
   const globalAssets = {
     portrait: orientation === "portrait"
-      ? toGlobalAssetsLayout(layout)
+      ? preserveGlobalExaminerSignature("portrait", toGlobalAssetsLayout(layout))
       : getGlobalOrientationAssets(currentGlobal, "portrait") ??
         buildPreservedOrientation("portrait"),
     landscape: orientation === "landscape"
-      ? toGlobalAssetsLayout(layout)
+      ? preserveGlobalExaminerSignature("landscape", toGlobalAssetsLayout(layout))
       : getGlobalOrientationAssets(currentGlobal, "landscape") ??
         buildPreservedOrientation("landscape"),
     updatedAt: new Date().toISOString(),
     updatedFromMode: mode,
     updatedFromOrientation: orientation,
   } satisfies GlobalRaportAssetsLayout;
+  const currentExaminer = examinerId && typeof window !== "undefined"
+    ? (() => {
+      try {
+        const raw = window.localStorage.getItem(getExaminerSignatureLayoutKey(examinerId));
+        const parsed = raw ? JSON.parse(raw) : {};
+        return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : {};
+      } catch {
+        return {};
+      }
+    })()
+    : {};
+  const examinerAssets = examinerId
+    ? {
+      portrait: orientation === "portrait"
+        ? { examinerSignature: { ...layout.assets.examinerSignature } }
+        : getGlobalOrientationAssets(currentExaminer, "portrait") ?? {
+          examinerSignature: {
+            ...getDefaultRaportVisualLayout("portrait").assets.examinerSignature,
+          },
+        },
+      landscape: orientation === "landscape"
+        ? { examinerSignature: { ...layout.assets.examinerSignature } }
+        : getGlobalOrientationAssets(currentExaminer, "landscape") ?? {
+          examinerSignature: {
+            ...getDefaultRaportVisualLayout("landscape").assets.examinerSignature,
+          },
+        },
+      updatedAt: new Date().toISOString(),
+      updatedFromMode: mode,
+      updatedFromOrientation: orientation,
+    } satisfies GlobalRaportAssetsLayout
+    : null;
 
   if (typeof window !== "undefined") {
     let current: Record<string, unknown> = {};
@@ -470,17 +580,35 @@ export const saveRaportVisualLayout = (
       GLOBAL_RAPORT_SIGNATURE_LAYOUT_KEY,
       JSON.stringify(globalAssets),
     );
+    if (examinerId && examinerAssets) {
+      window.localStorage.setItem(
+        getExaminerSignatureLayoutKey(examinerId),
+        JSON.stringify(examinerAssets),
+      );
+    }
   }
 
   return supabase.auth.getUser()
-    .then(({ data: userData }) => supabase
-      .from("app_settings")
-      .upsert({
-        id: GLOBAL_RAPORT_SIGNATURE_SETTINGS_ID,
-        value: globalAssets,
-        updated_by: userData.user?.id || null,
-      }))
-    .then(({ error }) => {
+    .then(({ data: userData }) => Promise.all([
+      supabase
+        .from("app_settings")
+        .upsert({
+          id: GLOBAL_RAPORT_SIGNATURE_SETTINGS_ID,
+          value: globalAssets,
+          updated_by: userData.user?.id || null,
+        }),
+      examinerId && examinerAssets
+        ? supabase
+          .from("app_settings")
+          .upsert({
+            id: getExaminerSignatureLayoutKey(examinerId),
+            value: examinerAssets,
+            updated_by: userData.user?.id || null,
+          })
+        : Promise.resolve({ error: null }),
+    ]))
+    .then((results) => {
+      const error = results.find((result) => result.error)?.error;
       if (error) throw error;
       return layout;
     });

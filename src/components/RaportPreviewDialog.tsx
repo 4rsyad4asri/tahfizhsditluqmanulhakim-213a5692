@@ -50,6 +50,8 @@ import {
 } from "@/utils/raportPdf";
 import {
   applySharedRaportSignatureLayout,
+  applyExaminerRaportSignatureLayout,
+  EXAMINER_RAPORT_SIGNATURE_LAYOUT_PREFIX,
   GLOBAL_RAPORT_SIGNATURE_SETTINGS_ID,
   loadRaportVisualLayout,
   saveRaportVisualLayout,
@@ -156,8 +158,9 @@ export default function RaportPreviewDialog({
   const previewSeqRef = useRef(0);
   const activeUjian = localUjian || ujian;
   const activeMode = (activeUjian?.mode || "Tahfizh") as RaportMode;
+  const examinerId = activeUjian?.assessed_by as string | null | undefined;
   const [visualLayout, setVisualLayout] = useState<RaportVisualLayout>(() =>
-    loadRaportVisualLayout(activeMode, DEFAULT_OPTS.orientation)
+    loadRaportVisualLayout(activeMode, DEFAULT_OPTS.orientation, examinerId)
   );
   const [tableLayouts, setTableLayouts] = useState<GlobalRaportTableLayoutSettings>(() =>
     normalizeGlobalRaportTableLayout(null)
@@ -185,8 +188,8 @@ export default function RaportPreviewDialog({
 
   useEffect(() => {
     if (!open) return;
-    setVisualLayout(loadRaportVisualLayout(activeMode, opts.orientation));
-  }, [activeMode, open, opts.orientation]);
+    setVisualLayout(loadRaportVisualLayout(activeMode, opts.orientation, examinerId));
+  }, [activeMode, examinerId, open, opts.orientation]);
 
   useEffect(() => {
     if (!open) return;
@@ -198,13 +201,15 @@ export default function RaportPreviewDialog({
     if (!open) return;
     let alive = true;
 
-    syncGlobalRaportSignatureLayout()
+    syncGlobalRaportSignatureLayout(examinerId)
       .then(() => {
-        if (alive) setVisualLayout(loadRaportVisualLayout(activeMode, opts.orientation));
+        if (alive) {
+          setVisualLayout(loadRaportVisualLayout(activeMode, opts.orientation, examinerId));
+        }
       })
       .catch((error) => console.error("Gagal menyinkronkan layout tanda tangan:", error));
 
-    const channel = supabase
+    let channel = supabase
       .channel(`raport-signature-layout-${activeMode}-${opts.orientation}`)
       .on(
         "postgres_changes",
@@ -217,17 +222,34 @@ export default function RaportPreviewDialog({
         (payload) => {
           const value = (payload.new as { value?: unknown } | null)?.value;
           if (applySharedRaportSignatureLayout(value)) {
-            setVisualLayout(loadRaportVisualLayout(activeMode, opts.orientation));
+            setVisualLayout(loadRaportVisualLayout(activeMode, opts.orientation, examinerId));
           }
         },
-      )
-      .subscribe();
+      );
+    if (examinerId) {
+      channel = channel.on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "app_settings",
+          filter: `id=eq.${EXAMINER_RAPORT_SIGNATURE_LAYOUT_PREFIX}${examinerId}`,
+        },
+        (payload) => {
+          const value = (payload.new as { value?: unknown } | null)?.value;
+          if (applyExaminerRaportSignatureLayout(examinerId, value)) {
+            setVisualLayout(loadRaportVisualLayout(activeMode, opts.orientation, examinerId));
+          }
+        },
+      );
+    }
+    channel.subscribe();
 
     return () => {
       alive = false;
       void supabase.removeChannel(channel);
     };
-  }, [activeMode, open, opts.orientation]);
+  }, [activeMode, examinerId, open, opts.orientation]);
 
   useEffect(() => {
     try {
@@ -587,7 +609,12 @@ export default function RaportPreviewDialog({
 
   const handleSaveVisualLayout = async () => {
     try {
-      const saved = await saveRaportVisualLayout(activeMode, opts.orientation, visualLayout);
+      const saved = await saveRaportVisualLayout(
+        activeMode,
+        opts.orientation,
+        visualLayout,
+        examinerId,
+      );
       setVisualLayout(saved);
       toast.success(`Layout aset ${activeMode} berhasil disimpan dan disinkronkan`);
     } catch (error: any) {

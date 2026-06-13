@@ -172,11 +172,11 @@ export function buildRaportData(
   };
 }
 
-export function buildEffectiveOpts(
+export async function buildEffectiveOpts(
   opts: RaportPdfOptions,
   data: Pick<RaportData, "mode" | "tahfizhMode" | "verificationToken">,
   ujian?: { assessed_by?: string | null; tanggal?: string | null; nilai_aspek?: Record<string, unknown> | null }
-): RaportPdfOptions {
+): Promise<RaportPdfOptions> {
   const verifyUrl =
     buildVerificationUrlForExam(
       {
@@ -189,9 +189,10 @@ export function buildEffectiveOpts(
       data.verificationToken
     ) ||
     opts.verifyUrl;
+  await syncGlobalRaportSignatureLayout(ujian?.assessed_by).catch(() => false);
   return {
     ...opts,
     verifyUrl,
-    visualLayout: loadRaportVisualLayout(data.mode, opts.orientation),
+    visualLayout: loadRaportVisualLayout(data.mode, opts.orientation, ujian?.assessed_by),
   };
 }

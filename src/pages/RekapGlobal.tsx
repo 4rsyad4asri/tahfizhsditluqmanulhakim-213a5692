@@ -295,7 +295,7 @@ export default function RekapGlobal() {
         r.nis,
         r.nisn
       );
-      const eff = buildEffectiveOpts(opts, data, r.ujian);
+      const eff = await buildEffectiveOpts(opts, data, r.ujian);
       const resolvedAssets = await resolveRaportSignatureAssets(r.ujian?.assessed_by, assets);
       await downloadRaportPDF(data, header, resolvedAssets, eff);
       toast.success(`Raport ${r.studentName} berhasil diunduh`);
@@ -385,7 +385,7 @@ export default function RekapGlobal() {
               r.nis,
               r.nisn
             );
-            const eff = buildEffectiveOpts(opts, data, r.ujian);
+            const eff = await buildEffectiveOpts(opts, data, r.ujian);
             const resolvedAssets = await resolveRaportSignatureAssets(r.ujian?.assessed_by, assets);
             const doc = await generateRaportPDF(data, header, resolvedAssets, eff);
             const blob = doc.output("blob") as Blob;

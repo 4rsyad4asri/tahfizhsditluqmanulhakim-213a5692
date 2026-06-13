@@ -156,6 +156,45 @@ describe("PDF assets layout", () => {
     });
   });
 
+  it("keeps examiner signature layouts separate for each user", async () => {
+    const dinda = getDefaultRaportVisualLayout("portrait");
+    dinda.assets.examinerSignature.width = 54;
+    dinda.assets.examinerSignature.offsetY = 6;
+    await saveRaportVisualLayout(
+      "Tahsin Dasar",
+      "portrait",
+      dinda,
+      "dinda-user-id",
+    );
+
+    const admin = loadRaportVisualLayout(
+      "Tahsin Dasar",
+      "portrait",
+      "admin-user-id",
+    );
+    admin.assets.examinerSignature.width = 68;
+    admin.assets.examinerSignature.offsetY = -4;
+    await saveRaportVisualLayout(
+      "Tahsin Dasar",
+      "portrait",
+      admin,
+      "admin-user-id",
+    );
+
+    expect(
+      loadRaportVisualLayout("Tahfizh", "portrait", "dinda-user-id")
+        .assets.examinerSignature,
+    ).toMatchObject({ width: 54, offsetY: 6 });
+    expect(
+      loadRaportVisualLayout("Tahsin Lanjutan", "portrait", "admin-user-id")
+        .assets.examinerSignature,
+    ).toMatchObject({ width: 68, offsetY: -4 });
+    expect(
+      loadRaportVisualLayout("Tahfizh", "portrait", "new-user-without-settings")
+        .assets.examinerSignature.width,
+    ).toBe(54);
+  });
+
   it("stores all global assets per orientation and keeps text settings local", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-10T12:00:00.000Z"));

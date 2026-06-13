@@ -62,6 +62,8 @@ const CertificatePreviewDialog = ({
   const [officialRightLogo, setOfficialRightLogo] = useState<string>();
   const [coordinatorName, setCoordinatorName] = useState("-");
   const [showOfficialLogos, setShowOfficialLogos] = useState(false);
+  const [showCoordinatorIdentity, setShowCoordinatorIdentity] = useState(false);
+  const [showPrincipalIdentity, setShowPrincipalIdentity] = useState(false);
 
   const customizedData = useMemo(
     () =>
@@ -74,6 +76,8 @@ const CertificatePreviewDialog = ({
             coordinatorSignatureDataUrl: coordinatorSignature || profileCoordinatorSignature,
             principalSignatureDataUrl: principalSignature || officialPrincipalSignature,
             coordinatorName: data.coordinatorName || coordinatorName,
+            showCoordinatorIdentity,
+            showPrincipalIdentity,
           }
         : null,
     [
@@ -88,6 +92,8 @@ const CertificatePreviewDialog = ({
       officialRightLogo,
       coordinatorName,
       showOfficialLogos,
+      showCoordinatorIdentity,
+      showPrincipalIdentity,
     ],
   );
 
@@ -103,6 +109,9 @@ const CertificatePreviewDialog = ({
 
   useEffect(() => {
     if (!open) return;
+    setShowOfficialLogos(false);
+    setShowCoordinatorIdentity(false);
+    setShowPrincipalIdentity(false);
     loadCertificateLayout()
       .then(setLayout)
       .catch((error) => console.error("Layout sertifikat gagal dimuat:", error));
@@ -181,6 +190,22 @@ const CertificatePreviewDialog = ({
                 onCheckedChange={setShowOfficialLogos}
               />
               Tampilkan logo resmi pada sertifikat
+              <span className="text-muted-foreground">(default OFF)</span>
+            </label>
+            <label className="col-span-2 flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium">
+              <Switch
+                checked={showCoordinatorIdentity}
+                onCheckedChange={setShowCoordinatorIdentity}
+              />
+              Tampilkan jabatan dan nama Koordinator Tahfizh
+              <span className="text-muted-foreground">(default OFF)</span>
+            </label>
+            <label className="col-span-2 flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium">
+              <Switch
+                checked={showPrincipalIdentity}
+                onCheckedChange={setShowPrincipalIdentity}
+              />
+              Tampilkan jabatan dan nama Kepala Sekolah
               <span className="text-muted-foreground">(default OFF)</span>
             </label>
             {[

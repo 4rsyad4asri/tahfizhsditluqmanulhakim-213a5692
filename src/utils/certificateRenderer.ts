@@ -29,6 +29,8 @@ export interface CertificateData {
   coordinatorTitle?: string;
   principalName?: string;
   principalTitle?: string;
+  showCoordinatorIdentity?: boolean;
+  showPrincipalIdentity?: boolean;
 }
 
 const TEMPLATE_PATH = "/certificate-template-tahfizh.png";
@@ -345,38 +347,43 @@ export const renderCertificateImage = async (
     layout.principalSignature.height,
   );
 
-  drawSpacedText(
-    ctx,
-    safeText(data.coordinatorTitle, DEFAULT_COORDINATOR_TITLE),
-    layout.coordinatorTitle.x,
-    layout.coordinatorTitle.y,
-    layout.coordinatorTitle,
-    { minSize: 10 },
-  );
-  drawSpacedText(
-    ctx,
-    safeText(data.coordinatorName),
-    layout.coordinatorName.x,
-    layout.coordinatorName.y,
-    layout.coordinatorName,
-    { minSize: 10 },
-  );
-  drawSpacedText(
-    ctx,
-    safeText(data.principalTitle, DEFAULT_PRINCIPAL_TITLE),
-    layout.principalTitle.x,
-    layout.principalTitle.y,
-    layout.principalTitle,
-    { minSize: 10 },
-  );
-  drawSpacedText(
-    ctx,
-    safeText(data.principalName, DEFAULT_PRINCIPAL_NAME),
-    layout.principalName.x,
-    layout.principalName.y,
-    layout.principalName,
-    { minSize: 10 },
-  );
+  if (data.showCoordinatorIdentity) {
+    drawSpacedText(
+      ctx,
+      safeText(data.coordinatorTitle, DEFAULT_COORDINATOR_TITLE),
+      layout.coordinatorTitle.x,
+      layout.coordinatorTitle.y,
+      layout.coordinatorTitle,
+      { minSize: 10 },
+    );
+    drawSpacedText(
+      ctx,
+      safeText(data.coordinatorName),
+      layout.coordinatorName.x,
+      layout.coordinatorName.y,
+      layout.coordinatorName,
+      { minSize: 10 },
+    );
+  }
+
+  if (data.showPrincipalIdentity) {
+    drawSpacedText(
+      ctx,
+      safeText(data.principalTitle, DEFAULT_PRINCIPAL_TITLE),
+      layout.principalTitle.x,
+      layout.principalTitle.y,
+      layout.principalTitle,
+      { minSize: 10 },
+    );
+    drawSpacedText(
+      ctx,
+      safeText(data.principalName, DEFAULT_PRINCIPAL_NAME),
+      layout.principalName.x,
+      layout.principalName.y,
+      layout.principalName,
+      { minSize: 10 },
+    );
+  }
 
   return canvas.toDataURL("image/png", 1);
 };
@@ -416,4 +423,6 @@ export const CERTIFICATE_SAMPLE_DATA: CertificateData = {
   coordinatorTitle: DEFAULT_COORDINATOR_TITLE,
   principalName: DEFAULT_PRINCIPAL_NAME,
   principalTitle: DEFAULT_PRINCIPAL_TITLE,
+  showCoordinatorIdentity: false,
+  showPrincipalIdentity: false,
 };

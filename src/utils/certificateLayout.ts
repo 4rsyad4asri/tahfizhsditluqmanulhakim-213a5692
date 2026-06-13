@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 
 export const CERTIFICATE_WIDTH = 1448;
 export const CERTIFICATE_HEIGHT = 1086;
@@ -337,8 +338,14 @@ const readLocalLayout = () => {
 };
 
 const writeLocalLayout = (layout: CertificateLayout) => {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(layout));
+  if (typeof window === "undefined") return false;
+  try {
+    window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(layout));
+    return true;
+  } catch (error) {
+    console.warn("Layout sertifikat tidak dapat disimpan ke localStorage:", error);
+    return false;
+  }
 };
 
 export const loadCertificateLayout = async (
@@ -349,13 +356,13 @@ export const loadCertificateLayout = async (
   const localLayout = readLocalLayout();
   try {
     const { data, error } = await supabase
-      .from("certificate_layouts" as any)
+      .from("certificate_layouts")
       .select("layout")
       .eq("id", CERTIFICATE_LAYOUT_ID)
       .maybeSingle();
 
     if (error) throw error;
-    cachedLayout = normalizeCertificateLayout((data as any)?.layout ?? localLayout);
+    cachedLayout = normalizeCertificateLayout(data?.layout ?? localLayout);
   } catch (error) {
     console.warn("Layout sertifikat Supabase tidak tersedia, memakai fallback lokal:", error);
     cachedLayout = localLayout ?? DEFAULT_CERTIFICATE_LAYOUT;
@@ -368,22 +375,36 @@ export const loadCertificateLayout = async (
 export const saveCertificateLayout = async (value: CertificateLayout) => {
   const layout = normalizeCertificateLayout(value);
   cachedLayout = layout;
-  writeLocalLayout(layout);
+  const localSaved = writeLocalLayout(layout);
 
   try {
-    const { data: userData } = await supabase.auth.getUser();
-    const { error } = await supabase
-      .from("certificate_layouts" as any)
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) {
+      throw userError ?? new Error("Sesi login tidak tersedia");
+    }
+
+    const { data, error } = await supabase
+      .from("certificate_layouts")
       .upsert({
         id: CERTIFICATE_LAYOUT_ID,
-        layout,
-        updated_by: userData.user?.id ?? null,
-      } as any);
+        layout: layout as unknown as Json,
+        updated_by: userData.user.id,
+      }, { onConflict: "id" })
+      .select("id")
+      .single();
     if (error) throw error;
-    return { layout, synced: true };
+    if ((data as { id?: string } | null)?.id !== CERTIFICATE_LAYOUT_ID) {
+      throw new Error("Supabase tidak mengembalikan layout yang disimpan");
+    }
+    return { layout, localSaved, synced: true, errorMessage: null };
   } catch (error) {
     console.warn("Layout tersimpan lokal tetapi belum tersinkron ke Supabase:", error);
-    return { layout, synced: false };
+    return {
+      layout,
+      localSaved,
+      synced: false,
+      errorMessage: error instanceof Error ? error.message : "Sinkronisasi Supabase gagal",
+    };
   }
 };
 

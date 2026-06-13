@@ -73,8 +73,13 @@ const IMAGE_ELEMENT_IDS: CertificateElementId[] = [
 
 const PREVIEW_SCENARIOS = [
   {
+    id: "current",
+    label: "Data sertifikat aktif",
+    patch: {},
+  },
+  {
     id: "normal",
-    label: "Data normal - Jayyid",
+    label: "Contoh nama pendek - Jayyid",
     patch: { studentName: "Ahmad Fauzan", predikat: "Jayyid" },
   },
   {
@@ -123,7 +128,7 @@ const CertificateLayoutEditor = ({
   const [selected, setSelected] = useState<CertificateElementId>("studentName");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [previewScenario, setPreviewScenario] = useState("normal");
+  const [previewScenario, setPreviewScenario] = useState("current");
   const dragRef = useRef<{
     id: CertificateElementId;
     startClientX: number;
@@ -140,7 +145,10 @@ const CertificateLayoutEditor = ({
   }, [data, previewScenario]);
 
   useEffect(() => {
-    if (open) setLayout(cloneLayout(initialLayout));
+    if (open) {
+      setLayout(cloneLayout(initialLayout));
+      setPreviewScenario("current");
+    }
   }, [open, initialLayout]);
 
   useEffect(() => {
@@ -254,11 +262,21 @@ const CertificateLayoutEditor = ({
       const result = await saveCertificateLayout(layout);
       onSaved(result.layout);
       if (result.synced) {
-        toast.success("Layout sertifikat berhasil disimpan");
+        toast.success(
+          result.localSaved
+            ? "Layout tersimpan di perangkat dan tersinkron ke Supabase"
+            : "Layout tersinkron ke Supabase, tetapi localStorage tidak tersedia",
+        );
+      } else if (result.localSaved) {
+        toast.warning(
+          `Layout tersimpan di perangkat, tetapi Supabase gagal: ${result.errorMessage}`,
+        );
       } else {
-        toast.warning("Layout tersimpan di perangkat ini; sinkronisasi Supabase menunggu migrasi.");
+        toast.error(
+          `Layout belum dapat disimpan. Supabase gagal: ${result.errorMessage}`,
+        );
       }
-      onOpenChange(false);
+      if (result.synced || result.localSaved) onOpenChange(false);
     } catch (error) {
       console.error("Gagal menyimpan layout sertifikat:", error);
       toast.error("Layout belum tersimpan. Pastikan migrasi database sudah diterapkan.");

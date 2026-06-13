@@ -799,12 +799,14 @@ const RekapSertifikat = () => {
                                         const {
                                           coordinatorSignatureDataUrl,
                                           principalSignatureDataUrl,
+                                          coordinatorName,
                                         } = await resolveCertificateSignatures(item.assessedBy);
                                         await downloadCertificatePDF(
                                           {
                                             ...item,
                                             coordinatorSignatureDataUrl,
                                             principalSignatureDataUrl,
+                                            coordinatorName,
                                             documentNumber: buildReportDocumentNumber(
                                               "Tahfizh",
                                               item.id,

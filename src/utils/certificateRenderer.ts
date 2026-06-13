@@ -25,13 +25,17 @@ export interface CertificateData {
   rightLogoDataUrl?: string;
   coordinatorSignatureDataUrl?: string;
   principalSignatureDataUrl?: string;
+  coordinatorName?: string;
+  coordinatorTitle?: string;
+  principalName?: string;
+  principalTitle?: string;
 }
 
 const TEMPLATE_PATH = "/certificate-template-tahfizh.png";
 const NAVY = "#072346";
-const GREEN = "#0f5132";
-const GOLD = "#d87909";
-const PURPLE = "#5b2a86";
+const DEFAULT_COORDINATOR_TITLE = "Koordinator Tahfizh";
+const DEFAULT_PRINCIPAL_NAME = "Amrullah Rozy Dalimunthe, S.Si";
+const DEFAULT_PRINCIPAL_TITLE = "Kepala Sekolah";
 
 let templatePromise: Promise<HTMLImageElement> | null = null;
 
@@ -197,8 +201,22 @@ export const renderCertificateImage = async (
   const template = await getTemplateImage();
   ctx.drawImage(template, 0, 0, CERTIFICATE_WIDTH, CERTIFICATE_HEIGHT);
 
-  await drawContainedImage(ctx, data.leftLogoDataUrl, 134, 117, 184, 184);
-  await drawContainedImage(ctx, data.rightLogoDataUrl, 1318, 119, 184, 184);
+  await drawContainedImage(
+    ctx,
+    data.leftLogoDataUrl,
+    layout.leftLogo.x,
+    layout.leftLogo.y,
+    layout.leftLogo.width,
+    layout.leftLogo.height,
+  );
+  await drawContainedImage(
+    ctx,
+    data.rightLogoDataUrl,
+    layout.rightLogo.x,
+    layout.rightLogo.y,
+    layout.rightLogo.width,
+    layout.rightLogo.height,
+  );
 
   drawSpacedText(
     ctx,
@@ -247,46 +265,30 @@ export const renderCertificateImage = async (
     { minSize: 12 },
   );
 
-  const scoreLayout: CertificateElementLayout = {
-    ...layout.date,
-    x: 445,
-    y: 729,
-    width: 105,
-    fontSize: 38,
-    fontFamily: "Arial",
-    fontWeight: 700,
-    letterSpacing: 0,
-    color: GREEN,
-    textAlign: "center",
-  };
   drawSpacedText(
     ctx,
     Number.isFinite(data.nilaiAkhir) ? String(data.nilaiAkhir) : "0",
-    scoreLayout.x,
-    scoreLayout.y,
-    scoreLayout,
+    layout.finalScore.x,
+    layout.finalScore.y,
+    layout.finalScore,
+    { minSize: 12 },
   );
 
-  const gradeLayout: CertificateElementLayout = {
-    ...scoreLayout,
-    x: 738,
-    y: 729,
-    width: 170,
-    fontSize: 27,
-    color: GOLD,
-  };
-  drawSpacedText(ctx, safeText(data.predikat), gradeLayout.x, gradeLayout.y, gradeLayout, { minSize: 18 });
+  drawSpacedText(
+    ctx,
+    safeText(data.predikat),
+    layout.grade.x,
+    layout.grade.y,
+    layout.grade,
+    { minSize: 12 },
+  );
 
-  const dateLayout: CertificateElementLayout = {
-    ...layout.date,
-    width: 190,
-  };
   drawSpacedText(
     ctx,
     safeDate(data.tanggal),
-    dateLayout.x,
-    dateLayout.y,
-    dateLayout,
+    layout.date.x,
+    layout.date.y,
+    layout.date,
     { minSize: 13 },
   );
 
@@ -343,6 +345,39 @@ export const renderCertificateImage = async (
     layout.principalSignature.height,
   );
 
+  drawSpacedText(
+    ctx,
+    safeText(data.coordinatorTitle, DEFAULT_COORDINATOR_TITLE),
+    layout.coordinatorTitle.x,
+    layout.coordinatorTitle.y,
+    layout.coordinatorTitle,
+    { minSize: 10 },
+  );
+  drawSpacedText(
+    ctx,
+    safeText(data.coordinatorName),
+    layout.coordinatorName.x,
+    layout.coordinatorName.y,
+    layout.coordinatorName,
+    { minSize: 10 },
+  );
+  drawSpacedText(
+    ctx,
+    safeText(data.principalTitle, DEFAULT_PRINCIPAL_TITLE),
+    layout.principalTitle.x,
+    layout.principalTitle.y,
+    layout.principalTitle,
+    { minSize: 10 },
+  );
+  drawSpacedText(
+    ctx,
+    safeText(data.principalName, DEFAULT_PRINCIPAL_NAME),
+    layout.principalName.x,
+    layout.principalName.y,
+    layout.principalName,
+    { minSize: 10 },
+  );
+
   return canvas.toDataURL("image/png", 1);
 };
 
@@ -354,10 +389,18 @@ export const CERTIFICATE_EDITOR_BOUNDS: Record<
   certificateNumber: { width: 330, height: 42 },
   className: { width: 220, height: 46 },
   juzInfo: { width: 960, height: 86 },
+  finalScore: { width: 120, height: 58 },
+  grade: { width: 240, height: 52 },
   qrCode: { width: 150, height: 150 },
   date: { width: 230, height: 52 },
   coordinatorSignature: { width: 240, height: 78 },
+  coordinatorName: { width: 320, height: 42 },
+  coordinatorTitle: { width: 260, height: 42 },
   principalSignature: { width: 240, height: 78 },
+  principalName: { width: 360, height: 42 },
+  principalTitle: { width: 260, height: 42 },
+  leftLogo: { width: 184, height: 184 },
+  rightLogo: { width: 184, height: 184 },
 };
 
 export const CERTIFICATE_SAMPLE_DATA: CertificateData = {
@@ -369,4 +412,8 @@ export const CERTIFICATE_SAMPLE_DATA: CertificateData = {
   tanggal: "2026-05-15",
   nomorSertifikat: "148/SDITLH/STQ/2526/V/2026",
   verificationUrl: "https://example.com/verifikasi/sertifikat",
+  coordinatorName: "-",
+  coordinatorTitle: DEFAULT_COORDINATOR_TITLE,
+  principalName: DEFAULT_PRINCIPAL_NAME,
+  principalTitle: DEFAULT_PRINCIPAL_TITLE,
 };

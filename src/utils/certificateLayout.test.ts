@@ -13,6 +13,8 @@ describe("certificate layout", () => {
     expect(DEFAULT_CERTIFICATE_LAYOUT.certificateNumber.fontSize).toBe(18);
     expect(DEFAULT_CERTIFICATE_LAYOUT.studentName.fontSize).toBe(48);
     expect(DEFAULT_CERTIFICATE_LAYOUT.className.fontSize).toBe(27);
+    expect(DEFAULT_CERTIFICATE_LAYOUT.finalScore.x).toBe(445);
+    expect(DEFAULT_CERTIFICATE_LAYOUT.grade.width).toBe(240);
     expect(DEFAULT_CERTIFICATE_LAYOUT.date.fontSize).toBe(19);
     expect(DEFAULT_CERTIFICATE_LAYOUT.studentName.fontWeight).toBe(700);
     expect(DEFAULT_CERTIFICATE_LAYOUT.coordinatorSignature).toEqual({
@@ -21,6 +23,8 @@ describe("certificate layout", () => {
       width: 240,
       height: 78,
     });
+    expect(DEFAULT_CERTIFICATE_LAYOUT.principalName.x).toBe(1048);
+    expect(DEFAULT_CERTIFICATE_LAYOUT.leftLogo.width).toBe(184);
   });
 
   it("normalizes unsafe layout values", () => {
@@ -64,19 +68,35 @@ describe("certificate layout", () => {
     expect(imported).toEqual(DEFAULT_CERTIFICATE_LAYOUT);
   });
 
-  it("adds movable signature defaults to older saved layouts", () => {
+  it("adds all new movable defaults to older saved layouts", () => {
     const oldLayout = {
       ...DEFAULT_CERTIFICATE_LAYOUT,
+      finalScore: undefined,
+      grade: undefined,
       coordinatorSignature: undefined,
+      coordinatorName: undefined,
+      coordinatorTitle: undefined,
       principalSignature: undefined,
+      principalName: undefined,
+      principalTitle: undefined,
+      leftLogo: undefined,
+      rightLogo: undefined,
     };
     const normalized = normalizeCertificateLayout(oldLayout);
 
+    expect(normalized.finalScore).toEqual(DEFAULT_CERTIFICATE_LAYOUT.finalScore);
+    expect(normalized.grade).toEqual(DEFAULT_CERTIFICATE_LAYOUT.grade);
     expect(normalized.coordinatorSignature).toEqual(
       DEFAULT_CERTIFICATE_LAYOUT.coordinatorSignature,
     );
+    expect(normalized.coordinatorName).toEqual(DEFAULT_CERTIFICATE_LAYOUT.coordinatorName);
+    expect(normalized.coordinatorTitle).toEqual(DEFAULT_CERTIFICATE_LAYOUT.coordinatorTitle);
     expect(normalized.principalSignature).toEqual(
       DEFAULT_CERTIFICATE_LAYOUT.principalSignature,
     );
+    expect(normalized.principalName).toEqual(DEFAULT_CERTIFICATE_LAYOUT.principalName);
+    expect(normalized.principalTitle).toEqual(DEFAULT_CERTIFICATE_LAYOUT.principalTitle);
+    expect(normalized.leftLogo).toEqual(DEFAULT_CERTIFICATE_LAYOUT.leftLogo);
+    expect(normalized.rightLogo).toEqual(DEFAULT_CERTIFICATE_LAYOUT.rightLogo);
   });
 });

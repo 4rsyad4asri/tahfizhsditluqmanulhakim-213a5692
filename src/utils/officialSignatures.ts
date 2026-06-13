@@ -44,6 +44,28 @@ export async function getProfileSignatureDataUrl(userId?: string | null) {
   return storagePathToDataUrl("signatures", data?.signature_url);
 }
 
+export async function getProfileCertificateIdentity(userId?: string | null) {
+  if (!userId) return { coordinatorName: "-" };
+
+  const { data } = await supabase
+    .from("profiles")
+    .select("full_name, display_name_certificate")
+    .eq("id", userId)
+    .maybeSingle();
+
+  const profile = data as {
+    full_name?: string | null;
+    display_name_certificate?: string | null;
+  } | null;
+
+  return {
+    coordinatorName:
+      profile?.display_name_certificate?.trim()
+      || profile?.full_name?.trim()
+      || "-",
+  };
+}
+
 export async function loadOfficialSignatureSettings(): Promise<OfficialSignatureSettings> {
   const { data } = await supabase
     .from("app_settings" as any)
@@ -105,10 +127,16 @@ export async function resolveRaportSignatureAssets(
 }
 
 export async function resolveCertificateSignatures(coordinatorUserId?: string | null) {
-  const [coordinatorSignatureDataUrl, principalSignatureDataUrl, branding] = await Promise.all([
+  const [
+    coordinatorSignatureDataUrl,
+    principalSignatureDataUrl,
+    branding,
+    coordinatorIdentity,
+  ] = await Promise.all([
     getProfileSignatureDataUrl(coordinatorUserId),
     getHeadmasterSignatureDataUrl(),
     getOfficialBrandingDataUrls(),
+    getProfileCertificateIdentity(coordinatorUserId),
   ]);
 
   return {
@@ -116,5 +144,6 @@ export async function resolveCertificateSignatures(coordinatorUserId?: string | 
     principalSignatureDataUrl,
     leftLogoDataUrl: branding.logoLeft,
     rightLogoDataUrl: branding.logoRight,
+    coordinatorName: coordinatorIdentity.coordinatorName,
   };
 }

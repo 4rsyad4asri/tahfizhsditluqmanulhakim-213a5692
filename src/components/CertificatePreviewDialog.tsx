@@ -60,6 +60,7 @@ const CertificatePreviewDialog = ({
   const [officialPrincipalSignature, setOfficialPrincipalSignature] = useState<string>();
   const [officialLeftLogo, setOfficialLeftLogo] = useState<string>();
   const [officialRightLogo, setOfficialRightLogo] = useState<string>();
+  const [coordinatorName, setCoordinatorName] = useState("-");
   const [showOfficialLogos, setShowOfficialLogos] = useState(false);
 
   const customizedData = useMemo(
@@ -72,6 +73,7 @@ const CertificatePreviewDialog = ({
             rightLogoDataUrl: showOfficialLogos ? rightLogo || officialRightLogo : undefined,
             coordinatorSignatureDataUrl: coordinatorSignature || profileCoordinatorSignature,
             principalSignatureDataUrl: principalSignature || officialPrincipalSignature,
+            coordinatorName: data.coordinatorName || coordinatorName,
           }
         : null,
     [
@@ -84,6 +86,7 @@ const CertificatePreviewDialog = ({
       officialPrincipalSignature,
       officialLeftLogo,
       officialRightLogo,
+      coordinatorName,
       showOfficialLogos,
     ],
   );
@@ -116,6 +119,7 @@ const CertificatePreviewDialog = ({
         setOfficialPrincipalSignature(signatures.principalSignatureDataUrl);
         setOfficialLeftLogo(signatures.leftLogoDataUrl);
         setOfficialRightLogo(signatures.rightLogoDataUrl);
+        setCoordinatorName(signatures.coordinatorName);
       })
       .catch((error) => {
         console.error("Tanda tangan sertifikat gagal dimuat:", error);
@@ -124,6 +128,7 @@ const CertificatePreviewDialog = ({
         setOfficialPrincipalSignature(undefined);
         setOfficialLeftLogo(undefined);
         setOfficialRightLogo(undefined);
+        setCoordinatorName("-");
       });
 
     return () => {

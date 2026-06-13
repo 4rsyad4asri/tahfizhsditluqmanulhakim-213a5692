@@ -10,10 +10,18 @@ export type CertificateElementId =
   | "certificateNumber"
   | "className"
   | "juzInfo"
+  | "finalScore"
+  | "grade"
   | "qrCode"
   | "date"
   | "coordinatorSignature"
-  | "principalSignature";
+  | "coordinatorName"
+  | "coordinatorTitle"
+  | "principalSignature"
+  | "principalName"
+  | "principalTitle"
+  | "leftLogo"
+  | "rightLogo";
 
 export type CertificateTextAlign = "left" | "center" | "right";
 
@@ -47,10 +55,18 @@ export interface CertificateLayout {
   certificateNumber: CertificateElementLayout;
   className: CertificateElementLayout;
   juzInfo: CertificateElementLayout;
+  finalScore: CertificateElementLayout;
+  grade: CertificateElementLayout;
   qrCode: CertificateQrLayout;
   date: CertificateElementLayout;
   coordinatorSignature: CertificateImageLayout;
+  coordinatorName: CertificateElementLayout;
+  coordinatorTitle: CertificateElementLayout;
   principalSignature: CertificateImageLayout;
+  principalName: CertificateElementLayout;
+  principalTitle: CertificateElementLayout;
+  leftLogo: CertificateImageLayout;
+  rightLogo: CertificateImageLayout;
 }
 
 export const DEFAULT_CERTIFICATE_LAYOUT: CertificateLayout = {
@@ -98,6 +114,28 @@ export const DEFAULT_CERTIFICATE_LAYOUT: CertificateLayout = {
     color: "#072346",
     textAlign: "center",
   },
+  finalScore: {
+    x: 445,
+    y: 729,
+    width: 120,
+    fontSize: 38,
+    fontFamily: "Arial",
+    fontWeight: 700,
+    letterSpacing: 0,
+    color: "#0f5132",
+    textAlign: "center",
+  },
+  grade: {
+    x: 724,
+    y: 729,
+    width: 240,
+    fontSize: 24,
+    fontFamily: "Arial",
+    fontWeight: 700,
+    letterSpacing: 0,
+    color: "#d87909",
+    textAlign: "center",
+  },
   date: {
     x: 1082,
     y: 729,
@@ -120,11 +158,67 @@ export const DEFAULT_CERTIFICATE_LAYOUT: CertificateLayout = {
     width: 240,
     height: 78,
   },
+  coordinatorTitle: {
+    x: 400,
+    y: 790,
+    width: 260,
+    fontSize: 18,
+    fontFamily: "Arial",
+    fontWeight: 600,
+    letterSpacing: 0,
+    color: "#072346",
+    textAlign: "center",
+  },
+  coordinatorName: {
+    x: 400,
+    y: 950,
+    width: 320,
+    fontSize: 18,
+    fontFamily: "Arial",
+    fontWeight: 700,
+    letterSpacing: 0,
+    color: "#072346",
+    textAlign: "center",
+  },
   principalSignature: {
     x: 1048,
     y: 874,
     width: 240,
     height: 78,
+  },
+  principalTitle: {
+    x: 1048,
+    y: 790,
+    width: 260,
+    fontSize: 18,
+    fontFamily: "Arial",
+    fontWeight: 600,
+    letterSpacing: 0,
+    color: "#072346",
+    textAlign: "center",
+  },
+  principalName: {
+    x: 1048,
+    y: 950,
+    width: 360,
+    fontSize: 18,
+    fontFamily: "Arial",
+    fontWeight: 700,
+    letterSpacing: 0,
+    color: "#072346",
+    textAlign: "center",
+  },
+  leftLogo: {
+    x: 134,
+    y: 117,
+    width: 184,
+    height: 184,
+  },
+  rightLogo: {
+    x: 1318,
+    y: 119,
+    width: 184,
+    height: 184,
   },
 };
 
@@ -195,6 +289,8 @@ export const normalizeCertificateLayout = (value: unknown): CertificateLayout =>
     ),
     className: normalizeTextElement(raw.className, DEFAULT_CERTIFICATE_LAYOUT.className),
     juzInfo: normalizeTextElement(raw.juzInfo, DEFAULT_CERTIFICATE_LAYOUT.juzInfo),
+    finalScore: normalizeTextElement(raw.finalScore, DEFAULT_CERTIFICATE_LAYOUT.finalScore),
+    grade: normalizeTextElement(raw.grade, DEFAULT_CERTIFICATE_LAYOUT.grade),
     date: normalizeTextElement(raw.date, DEFAULT_CERTIFICATE_LAYOUT.date),
     qrCode: {
       x: clamp(qr.x, DEFAULT_CERTIFICATE_LAYOUT.qrCode.x, 0, CERTIFICATE_WIDTH),
@@ -205,10 +301,28 @@ export const normalizeCertificateLayout = (value: unknown): CertificateLayout =>
       raw.coordinatorSignature,
       DEFAULT_CERTIFICATE_LAYOUT.coordinatorSignature,
     ),
+    coordinatorName: normalizeTextElement(
+      raw.coordinatorName,
+      DEFAULT_CERTIFICATE_LAYOUT.coordinatorName,
+    ),
+    coordinatorTitle: normalizeTextElement(
+      raw.coordinatorTitle,
+      DEFAULT_CERTIFICATE_LAYOUT.coordinatorTitle,
+    ),
     principalSignature: normalizeImageElement(
       raw.principalSignature,
       DEFAULT_CERTIFICATE_LAYOUT.principalSignature,
     ),
+    principalName: normalizeTextElement(
+      raw.principalName,
+      DEFAULT_CERTIFICATE_LAYOUT.principalName,
+    ),
+    principalTitle: normalizeTextElement(
+      raw.principalTitle,
+      DEFAULT_CERTIFICATE_LAYOUT.principalTitle,
+    ),
+    leftLogo: normalizeImageElement(raw.leftLogo, DEFAULT_CERTIFICATE_LAYOUT.leftLogo),
+    rightLogo: normalizeImageElement(raw.rightLogo, DEFAULT_CERTIFICATE_LAYOUT.rightLogo),
   };
 };
 

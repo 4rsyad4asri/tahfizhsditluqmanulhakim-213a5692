@@ -178,12 +178,14 @@ const CertificatePreviewDialog = ({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-[96vw] max-w-6xl gap-0 p-0">
-          <DialogHeader className="border-b px-6 py-4">
-            <DialogTitle>Preview Sertifikat - {formatStudentName(data?.studentName ?? "")}</DialogTitle>
+        <DialogContent className="grid h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-6xl grid-rows-[auto_auto_minmax(0,1fr)_auto] gap-0 overflow-hidden rounded-lg p-0 sm:h-[96dvh] sm:w-[96vw]">
+          <DialogHeader className="border-b px-4 py-3 pr-12 sm:px-6 sm:py-4">
+            <DialogTitle className="truncate text-left text-base sm:text-lg">
+              Preview Sertifikat - {formatStudentName(data?.studentName ?? "")}
+            </DialogTitle>
           </DialogHeader>
 
-          <div className="grid grid-cols-2 gap-2 border-b bg-background px-4 py-3 sm:grid-cols-4">
+          <div className="grid max-h-[34dvh] grid-cols-2 gap-2 overflow-y-auto border-b bg-background px-3 py-2 sm:max-h-none sm:grid-cols-4 sm:px-4 sm:py-3">
             <label className="col-span-2 flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium sm:col-span-4">
               <Switch
                 checked={showOfficialLogos}
@@ -192,7 +194,7 @@ const CertificatePreviewDialog = ({
               Tampilkan logo resmi pada sertifikat
               <span className="text-muted-foreground">(default OFF)</span>
             </label>
-            <label className="col-span-2 flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium">
+            <label className="col-span-2 flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium sm:col-span-2">
               <Switch
                 checked={showCoordinatorIdentity}
                 onCheckedChange={setShowCoordinatorIdentity}
@@ -200,7 +202,7 @@ const CertificatePreviewDialog = ({
               Tampilkan jabatan dan nama Koordinator Tahfizh
               <span className="text-muted-foreground">(default OFF)</span>
             </label>
-            <label className="col-span-2 flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium">
+            <label className="col-span-2 flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium sm:col-span-2">
               <Switch
                 checked={showPrincipalIdentity}
                 onCheckedChange={setShowPrincipalIdentity}
@@ -243,7 +245,7 @@ const CertificatePreviewDialog = ({
             </p>
           </div>
 
-          <div className="flex h-[64vh] items-center justify-center overflow-auto bg-slate-100 p-3">
+          <div className="flex min-h-0 items-center justify-center overflow-hidden bg-slate-100 p-2 sm:p-3">
             {loading || !previewUrl ? (
               <div className="flex items-center text-muted-foreground">
                 <Loader2 className="mr-2 h-6 w-6 animate-spin" />
@@ -253,17 +255,17 @@ const CertificatePreviewDialog = ({
               <img
                 src={previewUrl}
                 alt={`Preview sertifikat ${formatStudentName(data?.studentName ?? "")}`}
-                className="max-h-full max-w-full border bg-white shadow-lg"
+                className="h-full w-full border bg-white object-contain shadow-lg"
               />
             )}
           </div>
 
-          <DialogFooter className="flex-row justify-end gap-2 border-t px-6 py-4 sm:gap-2">
+          <DialogFooter className="grid grid-cols-2 gap-2 border-t px-3 py-3 sm:flex sm:flex-row sm:px-6 sm:py-4">
             <Select
               value={pdfFormat}
               onValueChange={(value) => setPdfFormat(value as CertificatePdfFormat)}
             >
-              <SelectTrigger className="mr-auto w-[210px]">
+              <SelectTrigger className="col-span-2 w-full sm:mr-auto sm:w-[210px]">
                 <SelectValue placeholder="Format PDF" />
               </SelectTrigger>
               <SelectContent>
@@ -271,15 +273,19 @@ const CertificatePreviewDialog = ({
                 <SelectItem value="original">Rasio Asli 4:3</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button className="w-full" variant="outline" onClick={() => onOpenChange(false)}>
               <X className="mr-1 h-4 w-4" /> Tutup
             </Button>
             {isAdmin && customizedData && (
-              <Button variant="outline" onClick={() => setEditorOpen(true)}>
+              <Button className="w-full" variant="outline" onClick={() => setEditorOpen(true)}>
                 <Settings2 className="mr-1 h-4 w-4" /> Atur Layout
               </Button>
             )}
-            <Button onClick={handleDownload} disabled={loading || !customizedData}>
+            <Button
+              className={isAdmin ? "col-span-2 w-full sm:col-span-1" : "w-full"}
+              onClick={handleDownload}
+              disabled={loading || !customizedData}
+            >
               <Download className="mr-1 h-4 w-4" /> Download PDF
             </Button>
           </DialogFooter>

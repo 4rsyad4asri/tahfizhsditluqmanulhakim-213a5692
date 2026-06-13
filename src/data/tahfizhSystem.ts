@@ -207,6 +207,10 @@ function readOptionalString(value: unknown) {
   return typeof value === "string" ? value : undefined;
 }
 
+function hasAyatValue(value: unknown) {
+  return value !== null && value !== undefined && String(value).trim() !== "";
+}
+
 function normalizeSurahKey(value: unknown) {
   return String(value || "")
     .toLowerCase()
@@ -280,13 +284,18 @@ export function normalizeTahfizhAssessment(
       : fallback.surah ?? ""
   );
   const groupedJuz30Label = juz === 30 ? getJuz30GroupLabel(rawSurah) : undefined;
+  const ayatAwal = raw.ayatAwal ?? raw.ayat_awal ?? raw.ayat_mulai ?? fallback.ayatAwal;
+  const ayatAkhir = raw.ayatAkhir ?? raw.ayat_akhir ?? fallback.ayatAkhir;
+  const hasManualAyatRange = hasAyatValue(ayatAwal) || hasAyatValue(ayatAkhir);
 
   return {
     surah: groupedJuz30Label || rawSurah.replace(/\s+s\.d\s+/gi, " - "),
     juz,
-    ayatAwal: (raw.ayatAwal ?? raw.ayat_awal ?? raw.ayat_mulai ?? fallback.ayatAwal) as number | string | undefined,
-    ayatAkhir: (raw.ayatAkhir ?? raw.ayat_akhir ?? fallback.ayatAkhir) as number | string | undefined,
-    ayatRange: readOptionalString(raw.ayatRange ?? raw.ayat_range) ?? fallback.ayatRange,
+    ayatAwal: ayatAwal as number | string | undefined,
+    ayatAkhir: ayatAkhir as number | string | undefined,
+    ayatRange: hasManualAyatRange
+      ? undefined
+      : readOptionalString(raw.ayatRange ?? raw.ayat_range) ?? fallback.ayatRange,
     kelancaran: toSafeNumber(raw.kelancaran, fallback.kelancaran),
     lahnJali: toSafeNumber(raw.lahnJali ?? raw.lahn_jali, fallback.lahnJali || 0),
     lahnKhofi: toSafeNumber(raw.lahnKhofi ?? raw.lahn_khofi, fallback.lahnKhofi || 0),

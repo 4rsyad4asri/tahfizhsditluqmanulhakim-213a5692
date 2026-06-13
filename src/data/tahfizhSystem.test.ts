@@ -4,6 +4,7 @@ import {
   calculateTahfizhSurahScore,
   normalizeTahfizhAssessment,
   normalizeTahfizhPayload,
+  toLegacyTahfizhEntry,
 } from "@/data/tahfizhSystem";
 
 describe("Tahfizh scoring", () => {
@@ -42,6 +43,44 @@ describe("Tahfizh scoring", () => {
 
     expect(assessment.kelancaran).toBe(0);
     expect(calculateTahfizhSurahScore(assessment)).toBe(0);
+  });
+
+  it.each([
+    { surah: "Al-Baqarah", juz: 1, manualStart: "25", manualEnd: "40", systemRange: "1-141" },
+    { surah: "Al-Baqarah", juz: 2, manualStart: "180", manualEnd: "190", systemRange: "142-252" },
+    { surah: "Adh-Dhariyat", juz: 27, manualStart: "35", manualEnd: "45", systemRange: "31-60" },
+  ])(
+    "prioritizes manually entered verses over the default range in Juz $juz",
+    ({ surah, juz, manualStart, manualEnd, systemRange }) => {
+      const assessment = normalizeTahfizhAssessment({
+        surah,
+        juz,
+        ayat_awal: manualStart,
+        ayat_akhir: manualEnd,
+        ayat_range: systemRange,
+        kelancaran: 90,
+      });
+
+      expect(assessment.ayatAwal).toBe(manualStart);
+      expect(assessment.ayatAkhir).toBe(manualEnd);
+      expect(assessment.ayatRange).toBeUndefined();
+      expect(toLegacyTahfizhEntry(assessment)).toMatchObject({
+        ayat_awal: manualStart,
+        ayat_akhir: manualEnd,
+        ayat_range: undefined,
+      });
+    }
+  );
+
+  it("keeps the system range when no manual verse is entered", () => {
+    const assessment = normalizeTahfizhAssessment({
+      surah: "Al-Baqarah",
+      juz: 2,
+      ayat_range: "142-252",
+      kelancaran: 90,
+    });
+
+    expect(assessment.ayatRange).toBe("142-252");
   });
 
   it("uses the current penalty formula with waqaf weight one", () => {

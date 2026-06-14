@@ -20,7 +20,8 @@ import {
 } from "@/data/tahsinScoring";
 import generateCatatanOtomatis from "@/utils/catatanOtomatis";
 import { usesLegacyTahfizhScoring } from "@/utils/verificationUrl";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import {
   aggregateTahfizhAssessmentsForDisplay,
   calculateTahfizhSummary,
@@ -102,6 +103,25 @@ function getEntryAyatLabel(entry: TahfizhSurahAssessment) {
   if (entry.ayatAwal) return String(entry.ayatAwal);
   if (entry.ayatAkhir) return String(entry.ayatAkhir);
   return "-";
+}
+
+export function confirmQuestionRemoval(
+  questionCount: number,
+  questionNumber: number,
+  onRemove: () => void
+) {
+  if (questionCount <= 1) {
+    toast.error("Minimal harus ada satu soal dalam hasil ujian.");
+    return;
+  }
+
+  if (
+    window.confirm(
+      `Hapus soal ${questionNumber}? Nilai dan catatan pada soal ini juga akan dihapus.`
+    )
+  ) {
+    onRemove();
+  }
 }
 
 export default function EditUjianDialog({
@@ -544,8 +564,30 @@ export default function EditUjianDialog({
                       <p className="text-sm font-semibold text-foreground">Detail #{i + 1}: {e.surah}</p>
                       <p className="text-xs text-muted-foreground">Juz {e.juz} - Ayat {getEntryAyatLabel(e)}</p>
                     </div>
-                    <div className="rounded-lg bg-primary/10 px-3 py-1 text-sm font-bold text-primary">
-                      Nilai {calculateTahfizhSurahScore(e, tahfizhConfig)}
+                    <div className="flex items-center gap-2">
+                      <div className="rounded-lg bg-primary/10 px-3 py-1 text-sm font-bold text-primary">
+                        Nilai {calculateTahfizhSurahScore(e, tahfizhConfig)}
+                      </div>
+                      <button
+                        type="button"
+                        aria-label={`Hapus soal ${i + 1}`}
+                        title="Hapus soal"
+                        onClick={() =>
+                          confirmQuestionRemoval(
+                            tahfizhEntries.length,
+                            i + 1,
+                            () =>
+                              setTahfizhEntries((current) =>
+                                current.filter(
+                                  (_, entryIndex) => entryIndex !== i
+                                )
+                              )
+                          )
+                        }
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-destructive transition-colors hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
 
@@ -645,9 +687,31 @@ export default function EditUjianDialog({
                   key={i}
                   className="p-3 rounded-md border border-border bg-muted/30"
                 >
-                  <p className="text-sm font-semibold text-foreground mb-2">
-                    {e.nama_ebta}
-                  </p>
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-foreground">
+                      Soal {i + 1}: {e.nama_ebta}
+                    </p>
+                    <button
+                      type="button"
+                      aria-label={`Hapus soal ${i + 1}`}
+                      title="Hapus soal"
+                      onClick={() =>
+                        confirmQuestionRemoval(
+                          dasarEntries.length,
+                          i + 1,
+                          () =>
+                            setDasarEntries((current) =>
+                              current.filter(
+                                (_, entryIndex) => entryIndex !== i
+                              )
+                            )
+                        )
+                      }
+                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-destructive transition-colors hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     {[
@@ -701,6 +765,31 @@ export default function EditUjianDialog({
                   key={i}
                   className="p-3 rounded-md border border-border bg-muted/30"
                 >
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-foreground">
+                      Soal {i + 1}
+                    </p>
+                    <button
+                      type="button"
+                      aria-label={`Hapus soal ${i + 1}`}
+                      title="Hapus soal"
+                      onClick={() =>
+                        confirmQuestionRemoval(
+                          lanjutanEntries.length,
+                          i + 1,
+                          () =>
+                            setLanjutanEntries((current) =>
+                              current.filter(
+                                (_, entryIndex) => entryIndex !== i
+                              )
+                            )
+                        )
+                      }
+                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-destructive transition-colors hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                   <div className="flex gap-2 mb-2">
                     <input
                       type="text"

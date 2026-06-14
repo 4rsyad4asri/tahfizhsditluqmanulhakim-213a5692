@@ -41,7 +41,17 @@ interface CertificatePreviewDialogProps {
   coordinatorUserId?: string | null;
   layoutOverride?: CertificateLayout | null;
   lockLayout?: boolean;
+  ujianId?: string;
+  studentId?: string | null;
+  layoutMode?: "global" | "student_override" | "published_snapshot";
+  onLayoutOverrideSaved?: (layout: CertificateLayout | null) => void;
 }
+
+const LAYOUT_MODE_LABELS = {
+  global: "Template Global",
+  student_override: "Layout Khusus Siswa Ini",
+  published_snapshot: "Snapshot Published",
+} as const;
 
 const CertificatePreviewDialog = ({
   open,
@@ -50,6 +60,10 @@ const CertificatePreviewDialog = ({
   coordinatorUserId,
   layoutOverride,
   lockLayout = false,
+  ujianId,
+  studentId,
+  layoutMode = "global",
+  onLayoutOverrideSaved,
 }: CertificatePreviewDialogProps) => {
   const { isAdmin } = useAuthContext();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -192,6 +206,16 @@ const CertificatePreviewDialog = ({
             <DialogTitle className="truncate text-left text-base sm:text-lg">
               Preview Sertifikat - {formatStudentName(data?.studentName ?? "")}
             </DialogTitle>
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="inline-flex rounded-full border bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground">
+                {LAYOUT_MODE_LABELS[layoutMode]}
+              </span>
+              {lockLayout && (
+                <span className="text-xs text-muted-foreground">
+                  Sertifikat sudah dipublish. Layout memakai snapshot resmi.
+                </span>
+              )}
+            </div>
           </DialogHeader>
 
           <div className="grid max-h-[34dvh] grid-cols-2 gap-2 overflow-y-auto border-b bg-background px-3 py-2 sm:max-h-none sm:grid-cols-4 sm:px-4 sm:py-3">
@@ -308,6 +332,10 @@ const CertificatePreviewDialog = ({
           data={customizedData}
           initialLayout={layout}
           onSaved={setLayout}
+          ujianId={ujianId}
+          studentId={studentId}
+          layoutMode={layoutMode}
+          onLayoutOverrideSaved={onLayoutOverrideSaved}
         />
       )}
     </>

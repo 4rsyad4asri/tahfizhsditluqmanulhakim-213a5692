@@ -59,6 +59,8 @@ interface RekapItem {
   publishedBy?: string | null;
   documentNumber?: string | null;
   layoutSnapshot?: CertificateLayout | null;
+  layoutOverride?: CertificateLayout | null;
+  hasLayoutOverride: boolean;
   coordinatorNameSnapshot?: string | null;
   principalNameSnapshot?: string | null;
   hasStoredCertificateNumber: boolean;
@@ -260,7 +262,7 @@ const RekapSertifikat = () => {
       if (studentIds.length === 0) return { items: [] as RekapItem[], classes: [] as string[] };
       const ujianIds = (ujianData || []).map((u) => u.id);
 
-      const [{ data: students }, certificateResult] = await Promise.all([
+      const [{ data: students }, certificateResult, overrideResult] = await Promise.all([
         supabase
           .from("students")
           .select("id, name, class_id, status_sertifikasi")
@@ -268,6 +270,10 @@ const RekapSertifikat = () => {
         supabase
           .from("tahfizh_certificates")
           .select("*")
+          .in("ujian_id", ujianIds),
+        supabase
+          .from("tahfizh_certificate_layout_overrides")
+          .select("ujian_id, layout")
           .in("ujian_id", ujianIds),
       ]);
       const certificatesAvailable = !certificateResult.error;
@@ -278,6 +284,13 @@ const RekapSertifikat = () => {
         );
       }
       const certificates = certificateResult.data || [];
+      if (overrideResult.error) {
+        console.warn(
+          "Layout khusus siswa belum tersedia, memakai template global:",
+          overrideResult.error,
+        );
+      }
+      const layoutOverrides = overrideResult.data || [];
 
       const classIds = [...new Set((students || []).map((s) => s.class_id))];
       const { data: classes } = await supabase
@@ -290,6 +303,10 @@ const RekapSertifikat = () => {
       const certificateMap = new Map(certificates.map((certificate) => [
         certificate.ujian_id,
         certificate,
+      ]));
+      const layoutOverrideMap = new Map(layoutOverrides.map((override) => [
+        override.ujian_id,
+        normalizeCertificateLayout(override.layout),
       ]));
       const certificateUjianData = (ujianData || []).filter((u) =>
         shouldShowInCertificateRecap(u, studentMap.get(u.student_id))
@@ -314,6 +331,7 @@ const RekapSertifikat = () => {
         const isLulus = syncedResult.status === "Lulus";
         const receivesCertificateNumber = isLulus || forceIncluded;
         const certificate = certificateMap.get(u.id);
+        const layoutOverride = layoutOverrideMap.get(u.id) || null;
 
         const sequenceNumber = receivesCertificateNumber ? lulusIndex++ : -1;
 
@@ -350,6 +368,8 @@ const RekapSertifikat = () => {
           layoutSnapshot: certificate?.layout_snapshot
             ? normalizeCertificateLayout(certificate.layout_snapshot)
             : null,
+          layoutOverride,
+          hasLayoutOverride: Boolean(layoutOverride),
           coordinatorNameSnapshot: certificate?.coordinator_name_snapshot ?? null,
           principalNameSnapshot: certificate?.principal_name_snapshot ?? null,
           hasStoredCertificateNumber: Boolean(nomorSertifikatFromDb),
@@ -364,7 +384,11 @@ const RekapSertifikat = () => {
         : allItems.filter((item) => item.status === "Lulus" || item.forceIncluded);
 
       const uniqueClasses = [...new Set(items.map((i) => i.className))].sort();
-      return { items, classes: uniqueClasses, certificatesAvailable };
+      return {
+        items,
+        classes: uniqueClasses,
+        certificatesAvailable,
+      };
     },
   });
 
@@ -492,10 +516,12 @@ const RekapSertifikat = () => {
         null,
         item.tanggal,
       );
-      const [layout, signatures] = await Promise.all([
-        loadCertificateLayout(),
+      const [globalLayout, signatures] = await Promise.all([
+        item.layoutOverride ? Promise.resolve(null) : loadCertificateLayout(),
         resolveCertificateSignatures(item.assessedBy),
       ]);
+      const layout = item.layoutOverride || globalLayout;
+      if (!layout) throw new Error("Layout sertifikat tidak tersedia");
 
       if (!item.hasStoredCertificateNumber) {
         const { error: updateError } = await supabase
@@ -838,7 +864,7 @@ const RekapSertifikat = () => {
                 onChange={(e) => setShowAll(e.target.checked)}
                 className="rounded border-input text-primary focus:ring-ring h-4 w-4"
               />
-              <span className="text-sm text-muted-foreground">Tampilkan semua hasil ujian</span>
+              <span className="text-sm text-muted-foreground">Tampilkan semua hasil sertifikasi</span>
             </label>
           )}
         </div>
@@ -869,7 +895,7 @@ const RekapSertifikat = () => {
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
               Tombol ini hanya mengubah metadata `tahfizhMode`, `reportType`, dan `verificationType`.
-              Nilai, token, NIS/NISN, dan data ujian lain tidak diubah.
+              Nilai, token, NIS/NISN, dan data sertifikasi lain tidak diubah.
             </p>
           </div>
         )}
@@ -1037,6 +1063,13 @@ const RekapSertifikat = () => {
                           <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${PUBLISH_STATUS_CLASSES[item.publishStatus]}`}>
                             {PUBLISH_STATUS_LABELS[item.publishStatus]}
                           </span>
+                          <span className="mt-1 block text-[10px] font-medium text-muted-foreground">
+                            {item.certificateId
+                              ? "Snapshot"
+                              : item.hasLayoutOverride
+                                ? "Khusus"
+                                : "Global"}
+                          </span>
                         </td>
                         {isAdmin && (
                           <td className="px-4 py-3 text-center">
@@ -1082,7 +1115,7 @@ const RekapSertifikat = () => {
                                         } as CertificateData;
                                         const doc = await buildCertificatePDF(
                                           certificateData,
-                                          item.layoutSnapshot || undefined,
+                                          item.layoutSnapshot || item.layoutOverride || undefined,
                                           "a4-landscape",
                                         );
                                         doc.save(`Sertifikat_${safeFileName(item.studentName)}.pdf`);
@@ -1176,7 +1209,7 @@ const RekapSertifikat = () => {
                     {filtered.length === 0 && (
                       <tr>
                         <td colSpan={isAdmin ? 11 : 10} className="px-4 py-12 text-center text-muted-foreground">
-                          {showAll ? "Belum ada hasil ujian Tahfizh" : "Belum ada siswa yang lulus sertifikasi Tahfizh"}
+                          {showAll ? "Belum ada hasil sertifikasi Tahfizh" : "Belum ada siswa yang lulus sertifikasi Tahfizh"}
                         </td>
                       </tr>
                     )}
@@ -1191,8 +1224,27 @@ const RekapSertifikat = () => {
         open={!!previewItem}
         onOpenChange={(o) => { if (!o) setPreviewItem(null); }}
         coordinatorUserId={previewItem?.assessedBy}
-        layoutOverride={previewItem?.layoutSnapshot}
+        layoutOverride={previewItem?.layoutSnapshot || previewItem?.layoutOverride || null}
         lockLayout={Boolean(previewItem?.certificateId)}
+        ujianId={previewItem?.id}
+        studentId={previewItem?.studentId}
+        layoutMode={
+          previewItem?.certificateId
+            ? "published_snapshot"
+            : previewItem?.hasLayoutOverride
+              ? "student_override"
+              : "global"
+        }
+        onLayoutOverrideSaved={(layout) => {
+          setPreviewItem((current) => current
+            ? {
+                ...current,
+                layoutOverride: layout,
+                hasLayoutOverride: Boolean(layout),
+              }
+            : null);
+          queryClient.invalidateQueries({ queryKey: ["rekap-sertifikat"] });
+        }}
         data={
           previewItem
             ? {

@@ -146,6 +146,51 @@ export type Database = {
           },
         ]
       }
+      tahfizh_certificate_layout_overrides: {
+        Row: {
+          created_at: string
+          id: string
+          layout: Json
+          student_id: string | null
+          ujian_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          layout: Json
+          student_id?: string | null
+          ujian_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          layout?: Json
+          student_id?: string | null
+          ujian_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tahfizh_certificate_layout_overrides_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tahfizh_certificate_layout_overrides_ujian_id_fkey"
+            columns: ["ujian_id"]
+            isOneToOne: true
+            referencedRelation: "ujian"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       class_penguji: {
         Row: {
           class_id: string

@@ -21,9 +21,12 @@ import {
   CERTIFICATE_HEIGHT,
   CERTIFICATE_WIDTH,
   DEFAULT_CERTIFICATE_LAYOUT,
+  deleteCertificateLayoutOverride,
   exportCertificateLayout,
   importCertificateLayout,
+  loadCertificateLayout,
   saveCertificateLayout,
+  saveCertificateLayoutOverride,
   type CertificateElementId,
   type CertificateElementLayout,
   type CertificateImageLayout,
@@ -43,6 +46,10 @@ interface CertificateLayoutEditorProps {
   data: CertificateData;
   initialLayout: CertificateLayout;
   onSaved: (layout: CertificateLayout) => void;
+  ujianId?: string;
+  studentId?: string | null;
+  layoutMode?: "global" | "student_override" | "published_snapshot";
+  onLayoutOverrideSaved?: (layout: CertificateLayout | null) => void;
 }
 
 const EDITABLE_ELEMENTS: Array<{ id: CertificateElementId; label: string }> = [
@@ -123,6 +130,10 @@ const CertificateLayoutEditor = ({
   data,
   initialLayout,
   onSaved,
+  ujianId,
+  studentId,
+  layoutMode = "global",
+  onLayoutOverrideSaved,
 }: CertificateLayoutEditorProps) => {
   const [layout, setLayout] = useState(() => cloneLayout(initialLayout));
   const [selected, setSelected] = useState<CertificateElementId>("studentName");
@@ -256,7 +267,7 @@ const CertificateLayoutEditor = ({
     });
   };
 
-  const handleSave = async () => {
+  const handleSaveGlobal = async () => {
     setSaving(true);
     try {
       const result = await saveCertificateLayout(layout);
@@ -285,6 +296,45 @@ const CertificateLayoutEditor = ({
     }
   };
 
+  const handleSaveStudent = async () => {
+    if (!ujianId || layoutMode === "published_snapshot") return;
+    setSaving(true);
+    try {
+      const result = await saveCertificateLayoutOverride({
+        ujianId,
+        studentId,
+        layout,
+      });
+      onSaved(result.layout);
+      onLayoutOverrideSaved?.(result.layout);
+      toast.success("Layout khusus siswa berhasil disimpan.");
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Gagal menyimpan layout khusus siswa:", error);
+      toast.error("Layout khusus siswa belum dapat disimpan. Pastikan migration database sudah diterapkan.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResetStudent = async () => {
+    if (!ujianId || layoutMode === "published_snapshot") return;
+    setSaving(true);
+    try {
+      await deleteCertificateLayoutOverride(ujianId);
+      const globalLayout = await loadCertificateLayout(true);
+      setLayout(cloneLayout(globalLayout));
+      onSaved(globalLayout);
+      onLayoutOverrideSaved?.(null);
+      toast.success("Layout khusus siswa dihapus.");
+    } catch (error) {
+      console.error("Gagal menghapus layout khusus siswa:", error);
+      toast.error("Layout khusus siswa belum dapat dihapus.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleExport = () => {
     const blob = new Blob([exportCertificateLayout(layout)], {
       type: "application/json;charset=utf-8",
@@ -303,7 +353,7 @@ const CertificateLayoutEditor = ({
     try {
       const imported = importCertificateLayout(JSON.parse(await file.text()));
       setLayout(imported);
-      toast.success("Layout berhasil diimpor. Klik Simpan Layout untuk menyimpan.");
+      toast.success("Layout berhasil diimpor. Pilih tujuan penyimpanan di bagian bawah.");
     } catch (error) {
       console.error("File layout tidak dapat diimpor:", error);
       toast.error(error instanceof Error ? error.message : "File layout tidak valid");
@@ -337,6 +387,12 @@ const CertificateLayoutEditor = ({
       <DialogContent className="grid h-[94vh] w-[98vw] max-w-none grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-0">
         <DialogHeader className="border-b px-5 py-4">
           <DialogTitle>Certificate Layout Editor</DialogTitle>
+          {ujianId && layoutMode !== "published_snapshot" && (
+            <p className="text-xs text-muted-foreground">
+              Gunakan Simpan untuk Siswa Ini Saja untuk menyesuaikan nama panjang/pendek
+              tanpa mengubah sertifikat lain.
+            </p>
+          )}
         </DialogHeader>
 
         <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[1fr_320px]">
@@ -607,9 +663,25 @@ const CertificateLayoutEditor = ({
           >
             <RotateCcw className="mr-2 h-4 w-4" /> Reset ke Default
           </Button>
-          <Button type="button" onClick={handleSave} disabled={saving}>
+          {ujianId && layoutMode !== "published_snapshot" && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleResetStudent}
+              disabled={saving || layoutMode !== "student_override"}
+            >
+              <RotateCcw className="mr-2 h-4 w-4" /> Reset Layout Siswa Ini
+            </Button>
+          )}
+          {ujianId && layoutMode !== "published_snapshot" && (
+            <Button type="button" variant="secondary" onClick={handleSaveStudent} disabled={saving}>
+              <Save className="mr-2 h-4 w-4" />
+              {saving ? "Menyimpan..." : "Simpan untuk Siswa Ini Saja"}
+            </Button>
+          )}
+          <Button type="button" onClick={handleSaveGlobal} disabled={saving}>
             <Save className="mr-2 h-4 w-4" />
-            {saving ? "Menyimpan..." : "Simpan Layout"}
+            {saving ? "Menyimpan..." : "Simpan untuk Semua Sertifikat"}
           </Button>
         </DialogFooter>
       </DialogContent>

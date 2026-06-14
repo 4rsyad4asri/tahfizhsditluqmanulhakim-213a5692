@@ -408,6 +408,56 @@ export const saveCertificateLayout = async (value: CertificateLayout) => {
   }
 };
 
+export const loadCertificateLayoutOverride = async (
+  ujianId: string,
+): Promise<CertificateLayout | null> => {
+  const { data, error } = await supabase
+    .from("tahfizh_certificate_layout_overrides")
+    .select("layout")
+    .eq("ujian_id", ujianId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.layout ? normalizeCertificateLayout(data.layout) : null;
+};
+
+export const saveCertificateLayoutOverride = async ({
+  ujianId,
+  studentId,
+  layout: value,
+}: {
+  ujianId: string;
+  studentId?: string | null;
+  layout: CertificateLayout;
+}): Promise<{ layout: CertificateLayout; synced: boolean }> => {
+  const layout = normalizeCertificateLayout(value);
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) {
+    throw userError ?? new Error("Sesi login tidak tersedia");
+  }
+
+  const { error } = await supabase
+    .from("tahfizh_certificate_layout_overrides")
+    .upsert({
+      ujian_id: ujianId,
+      student_id: studentId || null,
+      layout: layout as unknown as Json,
+      updated_by: userData.user.id,
+    }, { onConflict: "ujian_id" });
+
+  if (error) throw error;
+  return { layout, synced: true };
+};
+
+export const deleteCertificateLayoutOverride = async (ujianId: string): Promise<void> => {
+  const { error } = await supabase
+    .from("tahfizh_certificate_layout_overrides")
+    .delete()
+    .eq("ujian_id", ujianId);
+
+  if (error) throw error;
+};
+
 export const exportCertificateLayout = (value: CertificateLayout) =>
   JSON.stringify(
     {

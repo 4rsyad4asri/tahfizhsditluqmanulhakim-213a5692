@@ -35,6 +35,11 @@ import {
   type CertificateLayout,
 } from "@/utils/certificateLayout";
 import type { Json } from "@/integrations/supabase/types";
+import {
+  downloadBulkCertificatePDF,
+  type BulkCertificateItem,
+} from "@/utils/generateBulkCertificatePDF";
+import type { CertificatePdfFormat } from "@/utils/generateCertificatePDF";
 
 type PublishStatus = "belum_publish" | "published" | "revised" | "cancelled";
 
@@ -233,6 +238,8 @@ const RekapSertifikat = () => {
   const [filterPublish, setFilterPublish] = useState<PublishStatus | "all">("all");
   const [showAll, setShowAll] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [isBulkDownloading, setIsBulkDownloading] = useState(false);
+  const [bulkPdfFormat, setBulkPdfFormat] = useState<CertificatePdfFormat>("a4-landscape");
   const [previewItem, setPreviewItem] = useState<RekapItem | null>(null);
   const [editModal, setEditModal] = useState<EditModalState>({
     isOpen: false,
@@ -715,6 +722,13 @@ const RekapSertifikat = () => {
     [filteredByClassAndJuz],
   );
 
+  const bulkItems = useMemo(
+    () => filtered.filter(
+      (item) => item.publishStatus === "published" || item.publishStatus === "revised",
+    ),
+    [filtered],
+  );
+
   const chartData = useMemo(() => {
     const classCount: Record<string, number> = {};
     lulusItems.forEach((item) => {
@@ -754,6 +768,60 @@ const RekapSertifikat = () => {
     );
   };
 
+  const handleBulkDownload = async () => {
+    if (bulkItems.length === 0) {
+      toast({
+        title: "Tidak ada sertifikat",
+        description: "Tidak ada sertifikat published yang bisa diunduh.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsBulkDownloading(true);
+    try {
+      const itemsForPdf: BulkCertificateItem[] = bulkItems.map((item) => ({
+        studentName: item.studentName,
+        className: item.className,
+        juz: item.juz,
+        nilaiAkhir: item.nilaiAkhir,
+        predikat: item.predikat,
+        tanggal: item.tanggal,
+        nomorSertifikat: item.nomorSertifikat,
+        documentNumber:
+          item.documentNumber
+          || buildReportDocumentNumber("Tahfizh", item.id, item.publishedAt, item.tanggal),
+        verificationToken: item.verificationToken,
+        verificationUrl: buildVerificationUrl("sertifikat-tahfizh", item.verificationToken),
+        assessedBy: item.assessedBy,
+        coordinatorName: item.coordinatorNameSnapshot,
+        principalName: item.principalNameSnapshot || DEFAULT_PRINCIPAL_NAME,
+        layoutSnapshot: item.layoutSnapshot,
+        layoutOverride: item.layoutOverride,
+      }));
+      const classSuffix = filterKelas !== "all"
+        ? `_Kelas_${safeFileName(filterKelas)}`
+        : "_Terfilter";
+      await downloadBulkCertificatePDF(itemsForPdf, {
+        format: bulkPdfFormat,
+        fileName: `Sertifikat_Tahfizh${classSuffix}.pdf`,
+      });
+      toast({
+        title: "Download selesai",
+        description: `${bulkItems.length} sertifikat berhasil digabungkan.`,
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Download massal gagal",
+        description: error instanceof Error ? error.message : "Gagal membuat PDF gabungan.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsBulkDownloading(false);
+    }
+  };
+
   const CHART_COLORS = [
     "hsl(var(--primary))",
     "hsl(var(--secondary))",
@@ -772,7 +840,7 @@ const RekapSertifikat = () => {
             <h2 className="text-2xl font-bold text-foreground">📁 Rekap Siswa Bersertifikat</h2>
             <p className="text-sm text-muted-foreground">Data siswa yang lulus sertifikasi Tahfizh</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {isAdmin && (
               <button
                 onClick={() => {
@@ -811,6 +879,31 @@ const RekapSertifikat = () => {
               className="flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium bg-success text-success-foreground hover:bg-success/90 transition-colors disabled:opacity-50"
             >
               <Download className="w-4 h-4" /> Export Excel
+            </button>
+            <select
+              value={bulkPdfFormat}
+              onChange={(event) => setBulkPdfFormat(event.target.value as CertificatePdfFormat)}
+              disabled={isBulkDownloading}
+              className="rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground disabled:opacity-50"
+              aria-label="Format PDF massal"
+            >
+              <option value="a4-landscape">A4 Landscape</option>
+              <option value="original">Rasio Asli 4:3</option>
+            </select>
+            <button
+              type="button"
+              onClick={handleBulkDownload}
+              disabled={isBulkDownloading}
+              className="flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              {isBulkDownloading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              {isBulkDownloading
+                ? "Menyiapkan PDF..."
+                : `Download Massal PDF (${bulkItems.length})`}
             </button>
           </div>
         </div>

@@ -260,7 +260,7 @@ const RekapSertifikat = () => {
       if (studentIds.length === 0) return { items: [] as RekapItem[], classes: [] as string[] };
       const ujianIds = (ujianData || []).map((u) => u.id);
 
-      const [{ data: students }, { data: certificates, error: certificateError }] = await Promise.all([
+      const [{ data: students }, certificateResult] = await Promise.all([
         supabase
           .from("students")
           .select("id, name, class_id, status_sertifikasi")
@@ -270,7 +270,14 @@ const RekapSertifikat = () => {
           .select("*")
           .in("ujian_id", ujianIds),
       ]);
-      if (certificateError) throw certificateError;
+      const certificatesAvailable = !certificateResult.error;
+      if (certificateResult.error) {
+        console.warn(
+          "Tabel publish sertifikat belum tersedia, memakai data rekap lama:",
+          certificateResult.error,
+        );
+      }
+      const certificates = certificateResult.data || [];
 
       const classIds = [...new Set((students || []).map((s) => s.class_id))];
       const { data: classes } = await supabase
@@ -280,7 +287,7 @@ const RekapSertifikat = () => {
 
       const studentMap = new Map((students || []).map((s) => [s.id, s]));
       const classMap = new Map((classes || []).map((c) => [c.id, c]));
-      const certificateMap = new Map((certificates || []).map((certificate) => [
+      const certificateMap = new Map(certificates.map((certificate) => [
         certificate.ujian_id,
         certificate,
       ]));
@@ -357,7 +364,7 @@ const RekapSertifikat = () => {
         : allItems.filter((item) => item.status === "Lulus" || item.forceIncluded);
 
       const uniqueClasses = [...new Set(items.map((i) => i.className))].sort();
-      return { items, classes: uniqueClasses };
+      return { items, classes: uniqueClasses, certificatesAvailable };
     },
   });
 
@@ -641,6 +648,15 @@ const RekapSertifikat = () => {
   };
 
   const handlePublish = (item: RekapItem) => {
+    if (data?.certificatesAvailable === false) {
+      toast({
+        title: "Sistem publish belum aktif",
+        description:
+          "Data sertifikat tetap aman dan dapat dilihat. Migration database publish perlu diterapkan terlebih dahulu.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (
       confirm(
         `Publish sertifikat untuk ${item.studentName}? Setelah publish, data utama sertifikat akan dikunci.`,
@@ -855,6 +871,13 @@ const RekapSertifikat = () => {
               Tombol ini hanya mengubah metadata `tahfizhMode`, `reportType`, dan `verificationType`.
               Nilai, token, NIS/NISN, dan data ujian lain tidak diubah.
             </p>
+          </div>
+        )}
+
+        {data?.certificatesAvailable === false && (
+          <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200">
+            Data sertifikat lama tetap ditampilkan. Sistem publish resmi belum aktif karena migration
+            database belum diterapkan.
           </div>
         )}
 
@@ -1085,7 +1108,10 @@ const RekapSertifikat = () => {
                                     <>
                                       <button
                                         onClick={() => handlePublish(item)}
-                                        disabled={publishCertificateMutation.isPending}
+                                        disabled={
+                                          publishCertificateMutation.isPending
+                                          || data?.certificatesAvailable === false
+                                        }
                                         className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium bg-success text-success-foreground hover:bg-success/90 transition-colors disabled:opacity-50"
                                         title="Publish Sertifikat"
                                       >

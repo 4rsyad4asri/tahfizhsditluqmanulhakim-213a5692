@@ -21,6 +21,7 @@ import CertificateLayoutEditor from "@/components/CertificateLayoutEditor";
 import {
   DEFAULT_CERTIFICATE_LAYOUT,
   loadCertificateLayout,
+  normalizeCertificateLayout,
   type CertificateLayout,
 } from "@/utils/certificateLayout";
 import { renderCertificateImage } from "@/utils/certificateRenderer";
@@ -38,6 +39,8 @@ interface CertificatePreviewDialogProps {
   onOpenChange: (open: boolean) => void;
   data: CertificateData | null;
   coordinatorUserId?: string | null;
+  layoutOverride?: CertificateLayout | null;
+  lockLayout?: boolean;
 }
 
 const CertificatePreviewDialog = ({
@@ -45,6 +48,8 @@ const CertificatePreviewDialog = ({
   onOpenChange,
   data,
   coordinatorUserId,
+  layoutOverride,
+  lockLayout = false,
 }: CertificatePreviewDialogProps) => {
   const { isAdmin } = useAuthContext();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -112,10 +117,14 @@ const CertificatePreviewDialog = ({
     setShowOfficialLogos(false);
     setShowCoordinatorIdentity(false);
     setShowPrincipalIdentity(false);
+    if (layoutOverride) {
+      setLayout(normalizeCertificateLayout(layoutOverride));
+      return;
+    }
     loadCertificateLayout()
       .then(setLayout)
       .catch((error) => console.error("Layout sertifikat gagal dimuat:", error));
-  }, [open]);
+  }, [open, layoutOverride]);
 
   useEffect(() => {
     if (!open) return;
@@ -276,7 +285,7 @@ const CertificatePreviewDialog = ({
             <Button className="w-full" variant="outline" onClick={() => onOpenChange(false)}>
               <X className="mr-1 h-4 w-4" /> Tutup
             </Button>
-            {isAdmin && customizedData && (
+            {isAdmin && customizedData && !lockLayout && (
               <Button className="w-full" variant="outline" onClick={() => setEditorOpen(true)}>
                 <Settings2 className="mr-1 h-4 w-4" /> Atur Layout
               </Button>
@@ -292,7 +301,7 @@ const CertificatePreviewDialog = ({
         </DialogContent>
       </Dialog>
 
-      {isAdmin && customizedData && (
+      {isAdmin && customizedData && !lockLayout && (
         <CertificateLayoutEditor
           open={editorOpen}
           onOpenChange={setEditorOpen}

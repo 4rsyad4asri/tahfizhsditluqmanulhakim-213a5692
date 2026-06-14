@@ -56,6 +56,96 @@ export type Database = {
         }
         Relationships: []
       }
+      tahfizh_certificates: {
+        Row: {
+          certificate_number: string
+          class_name_snapshot: string
+          coordinator_name_snapshot: string | null
+          coordinator_user_id: string | null
+          created_at: string
+          document_number: string | null
+          final_score_snapshot: number
+          id: string
+          issued_date: string
+          juz_snapshot: string
+          layout_snapshot: Json | null
+          predicate_snapshot: string
+          principal_name_snapshot: string | null
+          published_at: string
+          published_by: string | null
+          revision_note: string | null
+          status: string
+          student_id: string
+          student_name_snapshot: string
+          ujian_id: string
+          updated_at: string
+          verification_token: string | null
+        }
+        Insert: {
+          certificate_number: string
+          class_name_snapshot: string
+          coordinator_name_snapshot?: string | null
+          coordinator_user_id?: string | null
+          created_at?: string
+          document_number?: string | null
+          final_score_snapshot: number
+          id?: string
+          issued_date: string
+          juz_snapshot: string
+          layout_snapshot?: Json | null
+          predicate_snapshot: string
+          principal_name_snapshot?: string | null
+          published_at?: string
+          published_by?: string | null
+          revision_note?: string | null
+          status?: string
+          student_id: string
+          student_name_snapshot: string
+          ujian_id: string
+          updated_at?: string
+          verification_token?: string | null
+        }
+        Update: {
+          certificate_number?: string
+          class_name_snapshot?: string
+          coordinator_name_snapshot?: string | null
+          coordinator_user_id?: string | null
+          created_at?: string
+          document_number?: string | null
+          final_score_snapshot?: number
+          id?: string
+          issued_date?: string
+          juz_snapshot?: string
+          layout_snapshot?: Json | null
+          predicate_snapshot?: string
+          principal_name_snapshot?: string | null
+          published_at?: string
+          published_by?: string | null
+          revision_note?: string | null
+          status?: string
+          student_id?: string
+          student_name_snapshot?: string
+          ujian_id?: string
+          updated_at?: string
+          verification_token?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tahfizh_certificates_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tahfizh_certificates_ujian_id_fkey"
+            columns: ["ujian_id"]
+            isOneToOne: true
+            referencedRelation: "ujian"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       class_penguji: {
         Row: {
           class_id: string
@@ -372,6 +462,7 @@ export type Database = {
           mode: Database["public"]["Enums"]["exam_mode"]
           nilai_akhir: number
           nilai_aspek: Json
+          nomor_sertifikat: string | null
           published_at: string | null
           status: Database["public"]["Enums"]["exam_status"]
           student_id: string
@@ -387,6 +478,7 @@ export type Database = {
           mode: Database["public"]["Enums"]["exam_mode"]
           nilai_akhir?: number
           nilai_aspek?: Json
+          nomor_sertifikat?: string | null
           published_at?: string | null
           status?: Database["public"]["Enums"]["exam_status"]
           student_id: string
@@ -402,6 +494,7 @@ export type Database = {
           mode?: Database["public"]["Enums"]["exam_mode"]
           nilai_akhir?: number
           nilai_aspek?: Json
+          nomor_sertifikat?: string | null
           published_at?: string | null
           status?: Database["public"]["Enums"]["exam_status"]
           student_id?: string

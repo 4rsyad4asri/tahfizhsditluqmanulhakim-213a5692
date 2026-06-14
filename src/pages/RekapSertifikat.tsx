@@ -10,12 +10,13 @@ import {
   type TahfizhSurahAssessment,
 } from "@/data/tahfizhSystem";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { Loader2, Download, Filter, CheckCircle2, XCircle, Edit2, FileText, X, Eye, RefreshCw } from "lucide-react";
+import { Loader2, Download, Filter, CheckCircle2, XCircle, Edit2, X, Eye, RefreshCw, Send } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { exportJsonToExcel } from "@/utils/excel";
 import {
-  downloadCertificatePDF,
+  buildCertificatePDF,
+  safeFileName,
   type CertificateData,
 } from "@/utils/generateCertificatePDF";
 import CertificatePreviewDialog from "@/components/CertificatePreviewDialog";
@@ -28,6 +29,14 @@ import { buildReportDocumentNumber } from "@/utils/documentNumber";
 import { formatClassName } from "@/utils/className";
 import { resolveCertificateSignatures } from "@/utils/officialSignatures";
 import { formatStudentName } from "@/utils/formatName";
+import {
+  loadCertificateLayout,
+  normalizeCertificateLayout,
+  type CertificateLayout,
+} from "@/utils/certificateLayout";
+import type { Json } from "@/integrations/supabase/types";
+
+type PublishStatus = "belum_publish" | "published" | "revised" | "cancelled";
 
 interface RekapItem {
   id: string;
@@ -44,6 +53,15 @@ interface RekapItem {
   verificationToken?: string | null;
   assessedBy?: string | null;
   forceIncluded?: boolean;
+  certificateId?: string;
+  publishStatus: PublishStatus;
+  publishedAt?: string | null;
+  publishedBy?: string | null;
+  documentNumber?: string | null;
+  layoutSnapshot?: CertificateLayout | null;
+  coordinatorNameSnapshot?: string | null;
+  principalNameSnapshot?: string | null;
+  hasStoredCertificateNumber: boolean;
 }
 
 interface EditModalState {
@@ -64,6 +82,7 @@ interface LegacyMigrationCandidate {
 }
 
 const BULAN_ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
+const DEFAULT_PRINCIPAL_NAME = "Amrullah Rozy Dalimunthe, S.Si";
 
 const generateNomorSertifikat = (tanggal: string, index: number): string => {
   const date = new Date(tanggal);
@@ -84,6 +103,27 @@ const isExplicitTahfizhRegularExam = (ujian: any) => {
     aspek.tahfizhMode === "Reguler" ||
     aspek.verificationType === "tahfizh-reguler"
   );
+};
+
+const toPublishStatus = (status?: string | null): PublishStatus => {
+  if (status === "published" || status === "revised" || status === "cancelled") {
+    return status;
+  }
+  return "belum_publish";
+};
+
+const PUBLISH_STATUS_LABELS: Record<PublishStatus, string> = {
+  belum_publish: "Belum Publish",
+  published: "Published",
+  revised: "Revised",
+  cancelled: "Cancelled",
+};
+
+const PUBLISH_STATUS_CLASSES: Record<PublishStatus, string> = {
+  belum_publish: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  published: "border-success/30 bg-success/10 text-success",
+  revised: "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300",
+  cancelled: "border-destructive/30 bg-destructive/10 text-destructive",
 };
 
 const hasCertificateMetadata = (ujian: any) => {
@@ -188,8 +228,8 @@ const getSyncedTahfizhCertificateResult = (
 const RekapSertifikat = () => {
   const [filterKelas, setFilterKelas] = useState<string>("all");
   const [filterJuz, setFilterJuz] = useState<string>("all");
+  const [filterPublish, setFilterPublish] = useState<PublishStatus | "all">("all");
   const [showAll, setShowAll] = useState(false);
-  const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<RekapItem | null>(null);
   const [editModal, setEditModal] = useState<EditModalState>({
@@ -199,7 +239,7 @@ const RekapSertifikat = () => {
     currentNomorSertifikat: "",
     newNomorSertifikat: "",
   });
-  const { role } = useAuthContext();
+  const { role, user } = useAuthContext();
   const isAdmin = role === "admin";
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -207,7 +247,7 @@ const RekapSertifikat = () => {
   const { data, isLoading } = useQuery({
     queryKey: ["rekap-sertifikat", showAll],
     queryFn: async () => {
-      let query = supabase
+      const query = supabase
         .from("ujian")
         .select("*")
         .eq("mode", "Tahfizh")
@@ -218,11 +258,19 @@ const RekapSertifikat = () => {
 
       const studentIds = [...new Set((ujianData || []).map((u) => u.student_id))];
       if (studentIds.length === 0) return { items: [] as RekapItem[], classes: [] as string[] };
+      const ujianIds = (ujianData || []).map((u) => u.id);
 
-      const { data: students } = await supabase
-        .from("students")
-        .select("id, name, class_id, status_sertifikasi")
-        .in("id", studentIds);
+      const [{ data: students }, { data: certificates, error: certificateError }] = await Promise.all([
+        supabase
+          .from("students")
+          .select("id, name, class_id, status_sertifikasi")
+          .in("id", studentIds),
+        supabase
+          .from("tahfizh_certificates")
+          .select("*")
+          .in("ujian_id", ujianIds),
+      ]);
+      if (certificateError) throw certificateError;
 
       const classIds = [...new Set((students || []).map((s) => s.class_id))];
       const { data: classes } = await supabase
@@ -232,6 +280,10 @@ const RekapSertifikat = () => {
 
       const studentMap = new Map((students || []).map((s) => [s.id, s]));
       const classMap = new Map((classes || []).map((c) => [c.id, c]));
+      const certificateMap = new Map((certificates || []).map((certificate) => [
+        certificate.ujian_id,
+        certificate,
+      ]));
       const certificateUjianData = (ujianData || []).filter((u) =>
         shouldShowInCertificateRecap(u, studentMap.get(u.student_id))
       );
@@ -254,11 +306,12 @@ const RekapSertifikat = () => {
         const forceIncluded = isForcedCertificateStudent(student);
         const isLulus = syncedResult.status === "Lulus";
         const receivesCertificateNumber = isLulus || forceIncluded;
+        const certificate = certificateMap.get(u.id);
 
         const sequenceNumber = receivesCertificateNumber ? lulusIndex++ : -1;
 
         // Gunakan nomor sertifikat dari database jika sudah ada, jika tidak generate otomatis
-        const nomorSertifikatFromDb = (u as any).nomor_sertifikat;
+        const nomorSertifikatFromDb = u.nomor_sertifikat;
         const nomorSertifikat = receivesCertificateNumber
           ? (nomorSertifikatFromDb || generateNomorSertifikat(u.tanggal, sequenceNumber))
           : "-";
@@ -266,18 +319,33 @@ const RekapSertifikat = () => {
         const item: RekapItem = {
           id: u.id,
           studentId: u.student_id,
-          studentName: formatStudentName(student?.name || "Unknown"),
-          className: cls ? formatClassName(cls) : "Unknown",
+          studentName: formatStudentName(
+            certificate?.student_name_snapshot || student?.name || "Unknown",
+          ),
+          className: certificate?.class_name_snapshot || (cls ? formatClassName(cls) : "Unknown"),
           classGrade,
-          juz: juzList.length > 0 ? juzList.join(", ") : "-",
-          nilaiAkhir: syncedResult.nilaiAkhir,
-          predikat: syncedResult.predikat,
-          tanggal: u.tanggal,
-          nomorSertifikat,
+          juz: certificate?.juz_snapshot || (juzList.length > 0 ? juzList.join(", ") : "-"),
+          nilaiAkhir: certificate
+            ? Number(certificate.final_score_snapshot)
+            : syncedResult.nilaiAkhir,
+          predikat: certificate?.predicate_snapshot || syncedResult.predikat,
+          tanggal: certificate?.issued_date || u.tanggal,
+          nomorSertifikat: certificate?.certificate_number || nomorSertifikat,
           status: syncedResult.status,
-          verificationToken: (u as any).verification_token ?? null,
-          assessedBy: u.assessed_by ?? null,
+          verificationToken: certificate?.verification_token ?? u.verification_token ?? null,
+          assessedBy: certificate?.coordinator_user_id ?? u.assessed_by ?? null,
           forceIncluded,
+          certificateId: certificate?.id,
+          publishStatus: toPublishStatus(certificate?.status),
+          publishedAt: certificate?.published_at ?? null,
+          publishedBy: certificate?.published_by ?? null,
+          documentNumber: certificate?.document_number ?? null,
+          layoutSnapshot: certificate?.layout_snapshot
+            ? normalizeCertificateLayout(certificate.layout_snapshot)
+            : null,
+          coordinatorNameSnapshot: certificate?.coordinator_name_snapshot ?? null,
+          principalNameSnapshot: certificate?.principal_name_snapshot ?? null,
+          hasStoredCertificateNumber: Boolean(nomorSertifikatFromDb),
         };
         return item;
       });
@@ -393,11 +461,88 @@ const RekapSertifikat = () => {
     },
   });
 
+  const publishCertificateMutation = useMutation({
+    mutationFn: async (item: RekapItem) => {
+      const requiredText = [
+        item.studentName,
+        item.className,
+        item.juz,
+        item.predikat,
+        item.tanggal,
+        item.nomorSertifikat,
+      ];
+      if (
+        requiredText.some((value) => !value?.trim() || value.trim() === "-")
+        || !Number.isFinite(item.nilaiAkhir)
+      ) {
+        throw new Error("Data wajib sertifikat belum lengkap");
+      }
+      if (!user?.id) throw new Error("Sesi admin tidak tersedia");
+
+      const documentNumber = buildReportDocumentNumber(
+        "Tahfizh",
+        item.id,
+        null,
+        item.tanggal,
+      );
+      const [layout, signatures] = await Promise.all([
+        loadCertificateLayout(),
+        resolveCertificateSignatures(item.assessedBy),
+      ]);
+
+      if (!item.hasStoredCertificateNumber) {
+        const { error: updateError } = await supabase
+          .from("ujian")
+          .update({ nomor_sertifikat: item.nomorSertifikat })
+          .eq("id", item.id);
+        if (updateError) throw updateError;
+      }
+
+      const { error: insertError } = await supabase
+        .from("tahfizh_certificates")
+        .insert({
+          ujian_id: item.id,
+          student_id: item.studentId,
+          student_name_snapshot: item.studentName,
+          class_name_snapshot: item.className,
+          juz_snapshot: item.juz,
+          final_score_snapshot: item.nilaiAkhir,
+          predicate_snapshot: item.predikat,
+          certificate_number: item.nomorSertifikat,
+          document_number: documentNumber,
+          verification_token: item.verificationToken || null,
+          coordinator_user_id: item.assessedBy || null,
+          coordinator_name_snapshot: signatures.coordinatorName || "-",
+          principal_name_snapshot: DEFAULT_PRINCIPAL_NAME,
+          issued_date: item.tanggal,
+          layout_snapshot: layout as unknown as Json,
+          status: "published",
+          published_by: user.id,
+        });
+      if (insertError) throw insertError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rekap-sertifikat"] });
+      toast({
+        title: "Sertifikat dipublish",
+        description: "Snapshot resmi berhasil disimpan dan data utama telah dikunci.",
+      });
+    },
+    onError: (error) => {
+      console.error(error);
+      toast({
+        title: "Publish gagal",
+        description: error instanceof Error ? error.message : "Gagal mempublish sertifikat",
+        variant: "destructive",
+      });
+    },
+  });
+
   const editNomorSertifikatMutation = useMutation({
     mutationFn: async ({ ujianId, nomorSertifikat }: { ujianId: string; nomorSertifikat: string }) => {
       const { error } = await supabase
         .from("ujian")
-        .update({ nomor_sertifikat: nomorSertifikat } as any)
+        .update({ nomor_sertifikat: nomorSertifikat })
         .eq("id", ujianId);
       if (error) throw error;
     },
@@ -424,7 +569,25 @@ const RekapSertifikat = () => {
     },
   });
 
-  const openEditModal = (ujianId: string, studentName: string, currentNomorSertifikat: string) => {
+  const showPublishedLockMessage = () => {
+    toast({
+      title: "Sertifikat sudah dipublish",
+      description:
+        "Sertifikat sudah dipublish. Data utama terkunci. Gunakan fitur revisi pada tahap berikutnya.",
+      variant: "destructive",
+    });
+  };
+
+  const openEditModal = (
+    ujianId: string,
+    studentName: string,
+    currentNomorSertifikat: string,
+    publishStatus: PublishStatus,
+  ) => {
+    if (publishStatus === "published") {
+      showPublishedLockMessage();
+      return;
+    }
     setEditModal({
       isOpen: true,
       ujianId,
@@ -477,10 +640,20 @@ const RekapSertifikat = () => {
     }
   };
 
-  const items = data?.items || [];
+  const handlePublish = (item: RekapItem) => {
+    if (
+      confirm(
+        `Publish sertifikat untuk ${item.studentName}? Setelah publish, data utama sertifikat akan dikunci.`,
+      )
+    ) {
+      publishCertificateMutation.mutate(item);
+    }
+  };
+
+  const items = useMemo(() => data?.items || [], [data?.items]);
   const classOptions = data?.classes || [];
 
-  const filtered = useMemo(() => {
+  const filteredByClassAndJuz = useMemo(() => {
     return items.filter((item) => {
       if (filterKelas !== "all" && item.className !== filterKelas) return false;
       if (filterJuz !== "all" && !item.juz.includes(filterJuz)) return false;
@@ -488,7 +661,17 @@ const RekapSertifikat = () => {
     });
   }, [items, filterKelas, filterJuz]);
 
-  const lulusItems = useMemo(() => filtered.filter((i) => i.status === "Lulus"), [filtered]);
+  const filtered = useMemo(
+    () => filteredByClassAndJuz.filter(
+      (item) => filterPublish === "all" || item.publishStatus === filterPublish,
+    ),
+    [filterPublish, filteredByClassAndJuz],
+  );
+
+  const lulusItems = useMemo(
+    () => filteredByClassAndJuz.filter((i) => i.status === "Lulus"),
+    [filteredByClassAndJuz],
+  );
 
   const chartData = useMemo(() => {
     const classCount: Record<string, number> = {};
@@ -520,6 +703,7 @@ const RekapSertifikat = () => {
         "Nilai Akhir": item.nilaiAkhir,
         Predikat: item.predikat,
         Status: item.status,
+        "Status Publish": item.publishStatus,
         "Tanggal Lulus": item.tanggal,
         "Nomor Sertifikat": item.nomorSertifikat,
       })),
@@ -616,6 +800,19 @@ const RekapSertifikat = () => {
               ))}
             </select>
           </div>
+          <div>
+            <select
+              value={filterPublish}
+              onChange={(e) => setFilterPublish(e.target.value as PublishStatus | "all")}
+              className="px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="all">Semua Status Publish</option>
+              <option value="belum_publish">Belum Publish</option>
+              <option value="published">Published</option>
+              <option value="revised">Revised</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
 
           {isAdmin && (
             <label className="flex items-center gap-2 ml-auto cursor-pointer select-none">
@@ -690,7 +887,39 @@ const RekapSertifikat = () => {
               </div>
             )}
 
-            {/* Summary */}
+            {/* Publish Summary */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+              <div className="bg-card rounded-lg border border-border p-4 shadow-card text-center">
+                <p className="text-2xl font-bold text-primary">{lulusItems.length}</p>
+                <p className="text-xs text-muted-foreground">Total Lulus</p>
+              </div>
+              <div className="bg-card rounded-lg border border-amber-500/20 p-4 shadow-card text-center">
+                <p className="text-2xl font-bold text-amber-600">
+                  {lulusItems.filter((i) => i.publishStatus === "belum_publish").length}
+                </p>
+                <p className="text-xs text-muted-foreground">Belum Publish</p>
+              </div>
+              <div className="bg-card rounded-lg border border-success/20 p-4 shadow-card text-center">
+                <p className="text-2xl font-bold text-success">
+                  {lulusItems.filter((i) => i.publishStatus === "published").length}
+                </p>
+                <p className="text-xs text-muted-foreground">Sudah Publish</p>
+              </div>
+              <div className="bg-card rounded-lg border border-blue-500/20 p-4 shadow-card text-center">
+                <p className="text-2xl font-bold text-blue-600">
+                  {lulusItems.filter((i) => i.publishStatus === "revised").length}
+                </p>
+                <p className="text-xs text-muted-foreground">Perlu Revisi</p>
+              </div>
+              <div className="bg-card rounded-lg border border-destructive/20 p-4 shadow-card text-center">
+                <p className="text-2xl font-bold text-destructive">
+                  {lulusItems.filter((i) => i.publishStatus === "cancelled").length}
+                </p>
+                <p className="text-xs text-muted-foreground">Dibatalkan</p>
+              </div>
+            </div>
+
+            {/* Predicate Summary */}
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
               <div className="bg-card rounded-lg border border-border p-4 shadow-card text-center">
                 <p className="text-2xl font-bold text-primary">{lulusItems.length}</p>
@@ -736,6 +965,7 @@ const RekapSertifikat = () => {
                       <th className="px-4 py-3 text-center font-medium text-muted-foreground">Status</th>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">Tanggal</th>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">No. Sertifikat</th>
+                      <th className="px-4 py-3 text-center font-medium text-muted-foreground">Status Publish</th>
                       {isAdmin && <th className="px-4 py-3 text-center font-medium text-muted-foreground">Aksi</th>}
                     </tr>
                   </thead>
@@ -780,6 +1010,11 @@ const RekapSertifikat = () => {
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{item.tanggal}</td>
                         <td className="px-4 py-3 text-xs font-mono text-muted-foreground">{item.nomorSertifikat}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${PUBLISH_STATUS_CLASSES[item.publishStatus]}`}>
+                            {PUBLISH_STATUS_LABELS[item.publishStatus]}
+                          </span>
+                        </td>
                         {isAdmin && (
                           <td className="px-4 py-3 text-center">
                             <div className="flex items-center justify-center gap-1">
@@ -801,22 +1036,33 @@ const RekapSertifikat = () => {
                                           principalSignatureDataUrl,
                                           coordinatorName,
                                         } = await resolveCertificateSignatures(item.assessedBy);
-                                        await downloadCertificatePDF(
-                                          {
-                                            ...item,
-                                            coordinatorSignatureDataUrl,
-                                            principalSignatureDataUrl,
-                                            coordinatorName,
-                                            documentNumber: buildReportDocumentNumber(
+                                        const certificateData = {
+                                          ...item,
+                                          coordinatorSignatureDataUrl,
+                                          principalSignatureDataUrl,
+                                          coordinatorName:
+                                            item.coordinatorNameSnapshot || coordinatorName,
+                                          principalName:
+                                            item.principalNameSnapshot || DEFAULT_PRINCIPAL_NAME,
+                                          documentNumber:
+                                            item.documentNumber
+                                            || buildReportDocumentNumber(
                                               "Tahfizh",
                                               item.id,
-                                              null,
+                                              item.publishedAt,
                                               item.tanggal,
                                             ),
-                                            verificationUrl: buildVerificationUrl("sertifikat-tahfizh", item.verificationToken),
-                                          } as CertificateData,
+                                          verificationUrl: buildVerificationUrl(
+                                            "sertifikat-tahfizh",
+                                            item.verificationToken,
+                                          ),
+                                        } as CertificateData;
+                                        const doc = await buildCertificatePDF(
+                                          certificateData,
+                                          item.layoutSnapshot || undefined,
                                           "a4-landscape",
                                         );
+                                        doc.save(`Sertifikat_${safeFileName(item.studentName)}.pdf`);
                                         toast({ title: "Berhasil", description: "Sertifikat berhasil diunduh" });
                                       } catch (err) {
                                         console.error(err);
@@ -835,23 +1081,46 @@ const RekapSertifikat = () => {
                                       <Download className="w-3 h-3" />
                                     )}
                                   </button>
-                                  <button
-                                    onClick={() =>
-                                      openEditModal(
-                                        item.id,
-                                        item.studentName,
-                                        item.nomorSertifikat
-                                      )
-                                    }
-                                    disabled={editNomorSertifikatMutation.isPending}
-                                    className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors disabled:opacity-50"
-                                    title="Edit Nomor Sertifikat"
-                                  >
-                                    <Edit2 className="w-3 h-3" />
-                                  </button>
+                                  {item.publishStatus === "belum_publish" ? (
+                                    <>
+                                      <button
+                                        onClick={() => handlePublish(item)}
+                                        disabled={publishCertificateMutation.isPending}
+                                        className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium bg-success text-success-foreground hover:bg-success/90 transition-colors disabled:opacity-50"
+                                        title="Publish Sertifikat"
+                                      >
+                                        {publishCertificateMutation.isPending ? (
+                                          <Loader2 className="w-3 h-3 animate-spin" />
+                                        ) : (
+                                          <Send className="w-3 h-3" />
+                                        )}
+                                        Publish
+                                      </button>
+                                      <button
+                                        onClick={() =>
+                                          openEditModal(
+                                            item.id,
+                                            item.studentName,
+                                            item.nomorSertifikat,
+                                            item.publishStatus,
+                                          )
+                                        }
+                                        disabled={editNomorSertifikatMutation.isPending}
+                                        className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors disabled:opacity-50"
+                                        title="Edit Nomor Sertifikat"
+                                      >
+                                        <Edit2 className="w-3 h-3" />
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <span className={`inline-flex items-center rounded-md border px-2 py-1.5 text-xs font-medium ${PUBLISH_STATUS_CLASSES[item.publishStatus]}`}>
+                                      {PUBLISH_STATUS_LABELS[item.publishStatus]}
+                                    </span>
+                                  )}
                                 </>
                               )}
-                              <button
+                              {!item.certificateId && (
+                                <button
                                 onClick={() => {
                                   const newStatus = item.status === "Lulus" ? "Tidak Lulus" : "Lulus";
                                   if (confirm(`Ubah status ${item.studentName} menjadi "${newStatus}"?`)) {
@@ -871,7 +1140,8 @@ const RekapSertifikat = () => {
                               >
                                 <Edit2 className="w-3 h-3" />
                                 {item.status === "Lulus" ? "Batalkan" : "Luluskan"}
-                              </button>
+                                </button>
+                              )}
                             </div>
                           </td>
                         )}
@@ -879,7 +1149,7 @@ const RekapSertifikat = () => {
                     ))}
                     {filtered.length === 0 && (
                       <tr>
-                        <td colSpan={isAdmin ? 10 : 9} className="px-4 py-12 text-center text-muted-foreground">
+                        <td colSpan={isAdmin ? 11 : 10} className="px-4 py-12 text-center text-muted-foreground">
                           {showAll ? "Belum ada hasil ujian Tahfizh" : "Belum ada siswa yang lulus sertifikasi Tahfizh"}
                         </td>
                       </tr>
@@ -895,6 +1165,8 @@ const RekapSertifikat = () => {
         open={!!previewItem}
         onOpenChange={(o) => { if (!o) setPreviewItem(null); }}
         coordinatorUserId={previewItem?.assessedBy}
+        layoutOverride={previewItem?.layoutSnapshot}
+        lockLayout={Boolean(previewItem?.certificateId)}
         data={
           previewItem
             ? {
@@ -905,14 +1177,18 @@ const RekapSertifikat = () => {
                 predikat: previewItem.predikat,
                 tanggal: previewItem.tanggal,
                 nomorSertifikat: previewItem.nomorSertifikat,
-                documentNumber: buildReportDocumentNumber(
-                  "Tahfizh",
-                  previewItem.id,
-                  null,
-                  previewItem.tanggal,
-                ),
+                documentNumber:
+                  previewItem.documentNumber
+                  || buildReportDocumentNumber(
+                    "Tahfizh",
+                    previewItem.id,
+                    previewItem.publishedAt,
+                    previewItem.tanggal,
+                  ),
                 verificationToken: previewItem.verificationToken,
                 verificationUrl: buildVerificationUrl("sertifikat-tahfizh", previewItem.verificationToken),
+                coordinatorName: previewItem.coordinatorNameSnapshot || undefined,
+                principalName: previewItem.principalNameSnapshot || undefined,
               }
             : null
         }

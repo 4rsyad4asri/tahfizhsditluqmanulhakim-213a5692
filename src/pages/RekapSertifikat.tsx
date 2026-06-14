@@ -40,6 +40,7 @@ import {
   type BulkCertificateItem,
 } from "@/utils/generateBulkCertificatePDF";
 import type { CertificatePdfFormat } from "@/utils/generateCertificatePDF";
+import { publishTahfizhDocument } from "@/utils/publishTahfizhDocument";
 
 type PublishStatus = "belum_publish" | "published" | "revised" | "cancelled";
 
@@ -68,7 +69,6 @@ interface RekapItem {
   hasLayoutOverride: boolean;
   coordinatorNameSnapshot?: string | null;
   principalNameSnapshot?: string | null;
-  hasStoredCertificateNumber: boolean;
 }
 
 interface EditModalState {
@@ -379,7 +379,6 @@ const RekapSertifikat = () => {
           hasLayoutOverride: Boolean(layoutOverride),
           coordinatorNameSnapshot: certificate?.coordinator_name_snapshot ?? null,
           principalNameSnapshot: certificate?.principal_name_snapshot ?? null,
-          hasStoredCertificateNumber: Boolean(nomorSertifikatFromDb),
         };
         return item;
       });
@@ -517,10 +516,14 @@ const RekapSertifikat = () => {
       }
       if (!user?.id) throw new Error("Sesi admin tidak tersedia");
 
+      const publishedDocument = await publishTahfizhDocument({
+        ujianId: item.id,
+        certificateNumber: item.nomorSertifikat,
+      });
       const documentNumber = buildReportDocumentNumber(
         "Tahfizh",
         item.id,
-        null,
+        publishedDocument.publishedAt,
         item.tanggal,
       );
       const [globalLayout, signatures] = await Promise.all([
@@ -529,14 +532,6 @@ const RekapSertifikat = () => {
       ]);
       const layout = item.layoutOverride || globalLayout;
       if (!layout) throw new Error("Layout sertifikat tidak tersedia");
-
-      if (!item.hasStoredCertificateNumber) {
-        const { error: updateError } = await supabase
-          .from("ujian")
-          .update({ nomor_sertifikat: item.nomorSertifikat })
-          .eq("id", item.id);
-        if (updateError) throw updateError;
-      }
 
       const { error: insertError } = await supabase
         .from("tahfizh_certificates")
@@ -550,7 +545,7 @@ const RekapSertifikat = () => {
           predicate_snapshot: item.predikat,
           certificate_number: item.nomorSertifikat,
           document_number: documentNumber,
-          verification_token: item.verificationToken || null,
+          verification_token: publishedDocument.verificationToken,
           coordinator_user_id: item.assessedBy || null,
           coordinator_name_snapshot: signatures.coordinatorName || "-",
           principal_name_snapshot: DEFAULT_PRINCIPAL_NAME,
@@ -561,11 +556,13 @@ const RekapSertifikat = () => {
         });
       if (insertError) throw insertError;
     },
-    onSuccess: () => {
+    onSuccess: (_, item) => {
       queryClient.invalidateQueries({ queryKey: ["rekap-sertifikat"] });
+      queryClient.invalidateQueries({ queryKey: ["student-detail", item.studentId] });
+      queryClient.invalidateQueries({ queryKey: ["rekap-ujian-global"] });
       toast({
-        title: "Sertifikat dipublish",
-        description: "Snapshot resmi berhasil disimpan dan data utama telah dikunci.",
+        title: "Dokumen dan sertifikat dipublish",
+        description: "Dokumen verifikasi dan snapshot resmi berhasil dipublish serta dikunci.",
       });
     },
     onError: (error) => {
@@ -692,7 +689,7 @@ const RekapSertifikat = () => {
     }
     if (
       confirm(
-        `Publish sertifikat untuk ${item.studentName}? Setelah publish, data utama sertifikat akan dikunci.`,
+        `Publish dokumen dan sertifikat untuk ${item.studentName}? Setelah publish, data utama akan dikunci.`,
       )
     ) {
       publishCertificateMutation.mutate(item);

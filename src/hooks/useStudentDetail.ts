@@ -16,6 +16,7 @@ import {
   getVerificationTypeForExam,
   inferTahfizhModeForExam,
 } from "@/utils/verificationUrl";
+import { publishTahfizhDocument } from "@/utils/publishTahfizhDocument";
 
 function createVerificationToken() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -400,33 +401,7 @@ export function usePublishUjian() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: { ujian_id: string; student_id: string }) => {
-      const { data: ujianRow, error: fetchError } = await supabase
-        .from("ujian")
-        .select("nilai_aspek, verification_token, assessed_by")
-        .eq("id", data.ujian_id)
-        .single();
-      if (fetchError) throw fetchError;
-
-      const verificationToken =
-        ujianRow?.verification_token ||
-        ((ujianRow?.nilai_aspek as Record<string, unknown> | null)?.verificationToken as string | undefined) ||
-        createVerificationToken();
-      const storedAssessorName = (ujianRow?.nilai_aspek as Record<string, unknown> | null)?.assessorName as string | undefined;
-      const assessorName = storedAssessorName || await getAssessorName(ujianRow?.assessed_by);
-      const aspek = ujianRow?.nilai_aspek && typeof ujianRow.nilai_aspek === "object"
-        ? { ...(ujianRow.nilai_aspek as Record<string, unknown>), documentStatus: "Published", verificationToken, assessorName }
-        : { documentStatus: "Published", verificationToken, assessorName };
-
-      const { error } = await supabase
-        .from("ujian")
-        .update({
-          document_status: "Published",
-          published_at: new Date().toISOString(),
-          verification_token: verificationToken,
-          nilai_aspek: aspek as any,
-        } as any)
-        .eq("id", data.ujian_id);
-      if (error) throw error;
+      await publishTahfizhDocument({ ujianId: data.ujian_id });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["student-detail", variables.student_id] });

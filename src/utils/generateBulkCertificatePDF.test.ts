@@ -94,6 +94,9 @@ describe("bulk certificate PDF", () => {
       expect.objectContaining({ studentName: "Siswa A" }),
       snapshot,
     );
+    const firstRenderedData = mocks.renderCertificateImage.mock.calls[0][0];
+    expect(firstRenderedData).not.toHaveProperty("leftLogoDataUrl");
+    expect(firstRenderedData).not.toHaveProperty("rightLogoDataUrl");
     expect(mocks.renderCertificateImage).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({ studentName: "Siswa B" }),

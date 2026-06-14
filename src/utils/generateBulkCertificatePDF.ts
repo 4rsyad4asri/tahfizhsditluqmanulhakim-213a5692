@@ -106,8 +106,6 @@ export const downloadBulkCertificatePDF = async (
       principalName: item.principalName || undefined,
       coordinatorSignatureDataUrl: signatures.coordinatorSignatureDataUrl,
       principalSignatureDataUrl: signatures.principalSignatureDataUrl,
-      leftLogoDataUrl: signatures.leftLogoDataUrl,
-      rightLogoDataUrl: signatures.rightLogoDataUrl,
     };
     const image = await renderCertificateImage(data, layout);
     addCertificatePage(doc, image, options.format, index > 0);

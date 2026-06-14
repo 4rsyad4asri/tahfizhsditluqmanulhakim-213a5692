@@ -50,6 +50,7 @@ interface RekapItem {
   studentName: string;
   className: string;
   classGrade: number;
+  certificateSequence: number | null;
   juz: string;
   nilaiAkhir: number;
   predikat: string;
@@ -260,7 +261,8 @@ const RekapSertifikat = () => {
         .from("ujian")
         .select("*")
         .eq("mode", "Tahfizh")
-        .order("tanggal", { ascending: true }); // Ascending untuk mendapatkan urutan input awal
+        .order("tanggal", { ascending: true })
+        .order("created_at", { ascending: true }); // Urutan asli tetap stabil pada tanggal yang sama
 
       const { data: ujianData, error: ujianError } = await query;
       if (ujianError) throw ujianError;
@@ -356,6 +358,7 @@ const RekapSertifikat = () => {
           ),
           className: certificate?.class_name_snapshot || (cls ? formatClassName(cls) : "Unknown"),
           classGrade,
+          certificateSequence: receivesCertificateNumber ? sequenceNumber + 1 : null,
           juz: certificate?.juz_snapshot || (juzList.length > 0 ? juzList.join(", ") : "-"),
           nilaiAkhir: certificate
             ? Number(certificate.final_score_snapshot)
@@ -748,8 +751,8 @@ const RekapSertifikat = () => {
 
   const handleExportExcel = () => {
     exportJsonToExcel(
-      filtered.map((item, i) => ({
-        No: i + 1,
+      filtered.map((item) => ({
+        No: item.certificateSequence ?? "-",
         "Nama Siswa": item.studentName,
         Kelas: item.className,
         "Juz Diujikan": item.juz,
@@ -1109,9 +1112,9 @@ const RekapSertifikat = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((item, i) => (
+                    {filtered.map((item) => (
                       <tr key={item.id} className={`border-b border-border hover:bg-muted/50 transition-colors ${item.status === "Tidak Lulus" ? "bg-destructive/5" : ""}`}>
-                        <td className="px-4 py-3 text-foreground">{i + 1}</td>
+                        <td className="px-4 py-3 text-foreground">{item.certificateSequence ?? "-"}</td>
                         <td className="px-4 py-3 font-medium text-foreground">{item.studentName}</td>
                         <td className="px-4 py-3 text-muted-foreground">{item.className}</td>
                         <td className="px-4 py-3 text-muted-foreground">Juz {item.juz}</td>

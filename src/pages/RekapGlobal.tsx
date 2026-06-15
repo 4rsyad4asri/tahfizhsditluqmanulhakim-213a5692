@@ -10,7 +10,7 @@ import {
   type TahfizhPenaltyConfig,
   type TahfizhSurahAssessment,
 } from "@/data/tahfizhSystem";
-import { Loader2, Download, BarChart3, Award, BookOpen, Users, Eye, FileArchive, RotateCcw, XCircle } from "lucide-react";
+import { Loader2, Download, BarChart3, Award, BookOpen, Users, Eye, FileArchive, FileText, RotateCcw, XCircle } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from "recharts";
 import { exportJsonToExcel } from "@/utils/excel";
 import RaportPreviewDialog from "@/components/RaportPreviewDialog";
@@ -23,6 +23,8 @@ import { inferTahfizhModeForExam, usesLegacyTahfizhScoring } from "@/utils/verif
 import { generateRaportPDF, downloadRaportPDF } from "@/utils/raportPdf";
 import { resolveRaportSignatureAssets } from "@/utils/officialSignatures";
 import JSZip from "jszip";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { toast } from "sonner";
 import { formatStudentName } from "@/utils/formatName";
 
@@ -138,6 +140,15 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "";
 }
 
+function sanitizeFileName(value: string) {
+  return value
+    .normalize("NFKD")
+    .replace(/[^\w\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "_")
+    .replace(/_+/g, "_");
+}
+
 export default function RekapGlobal() {
   const [filterMode, setFilterMode] = useState<string>("all");
   const [filterGrade, setFilterGrade] = useState<string>("all");
@@ -146,6 +157,7 @@ export default function RekapGlobal() {
   const [onlyLatest, setOnlyLatest] = useState<boolean>(true);
   const [previewRow, setPreviewRow] = useState<Row | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [isDownloadingCombinedPdf, setIsDownloadingCombinedPdf] = useState(false);
   const [bulkJob, setBulkJob] = useState<BulkJob | null>(null);
   const bulkCancelRef = useRef(false);
 
@@ -282,6 +294,88 @@ export default function RekapGlobal() {
     );
   };
 
+  const getCombinedPdfFileName = () => {
+    const activeFilters: string[] = [];
+
+    if (filterMode !== "all") activeFilters.push(filterMode);
+    if (filterGrade !== "all") activeFilters.push(`Kelas ${filterGrade}`);
+    if (filterClass !== "all") activeFilters.push(`Kelas ${filterClass}`);
+    if (filterStatus !== "all") activeFilters.push(filterStatus);
+
+    const suffix = activeFilters.length > 0
+      ? activeFilters.map(sanitizeFileName).filter(Boolean).join("_")
+      : "Semua_Data";
+
+    return `Rekap_Global_${suffix}.pdf`;
+  };
+
+  const handleDownloadCombinedPdf = () => {
+    if (filtered.length === 0) {
+      toast.error("Tidak ada data untuk didownload sesuai filter yang dipilih.");
+      return;
+    }
+
+    setIsDownloadingCombinedPdf(true);
+    try {
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+      const pageWidth = doc.internal.pageSize.getWidth();
+
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("REKAP GLOBAL UJIAN TAHSIN & TAHFIZH", pageWidth / 2, 14, { align: "center" });
+
+      autoTable(doc, {
+        startY: 20,
+        head: [["No", "Nama", "Kelas", "Mode Ujian", "Tanggal", "Nilai", "Predikat", "Status"]],
+        body: filtered.map((r, i) => [
+          i + 1,
+          r.studentName,
+          r.className,
+          r.mode,
+          r.tanggal,
+          r.nilai,
+          r.predikat,
+          r.status,
+        ]),
+        theme: "grid",
+        styles: {
+          fontSize: 8,
+          cellPadding: 2,
+          overflow: "linebreak",
+          valign: "middle",
+        },
+        headStyles: {
+          fillColor: [31, 111, 91],
+          textColor: 255,
+          fontStyle: "bold",
+          halign: "center",
+        },
+        columnStyles: {
+          0: { halign: "center", cellWidth: 8 },
+          1: { cellWidth: 42 },
+          2: { cellWidth: 20 },
+          3: { cellWidth: 28 },
+          4: { cellWidth: 24 },
+          5: { halign: "center", cellWidth: 14 },
+          6: { cellWidth: 24 },
+          7: { halign: "center", cellWidth: 24 },
+        },
+        margin: { left: 10, right: 10, bottom: 10 },
+      });
+
+      doc.save(getCombinedPdfFileName());
+      toast.success("PDF gabungan berhasil diunduh.");
+    } catch (error) {
+      toast.error(`Gagal membuat PDF gabungan: ${getErrorMessage(error) || "Terjadi kesalahan."}`);
+    } finally {
+      setIsDownloadingCombinedPdf(false);
+    }
+  };
+
   const handleDownloadOne = async (r: Row) => {
     setDownloadingId(r.ujianId);
     try {
@@ -305,8 +399,6 @@ export default function RekapGlobal() {
       setDownloadingId(null);
     }
   };
-
-  const sanitize = (s: string) => s.replace(/[^\w\s-]/g, "").replace(/\s+/g, "_");
 
   const downloadZipBlob = (zipBlob: Blob, retry = false) => {
     const url = URL.createObjectURL(zipBlob);
@@ -389,7 +481,7 @@ export default function RekapGlobal() {
             const resolvedAssets = await resolveRaportSignatureAssets(r.ujian?.assessed_by, assets);
             const doc = await generateRaportPDF(data, header, resolvedAssets, eff);
             const blob = doc.output("blob") as Blob;
-            const fname = `Raport_${sanitize(r.mode)}_${sanitize(r.className)}_${sanitize(r.studentName)}.pdf`;
+            const fname = `Raport_${sanitizeFileName(r.mode)}_${sanitizeFileName(r.className)}_${sanitizeFileName(r.studentName)}.pdf`;
             zip.file(fname, blob);
             successCount++;
           } catch (e) {
@@ -470,6 +562,15 @@ export default function RekapGlobal() {
             <p className="text-sm text-muted-foreground">Ringkasan seluruh ujian Tahfizh & Tahsin lintas kelas</p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <button onClick={handleDownloadCombinedPdf} disabled={isDownloadingCombinedPdf}
+              className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium border border-primary/30 text-primary hover:bg-primary/5 disabled:opacity-50">
+              {isDownloadingCombinedPdf ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <FileText className="w-4 h-4" />
+              )}
+              Download Gabungan PDF
+            </button>
             <button onClick={handleBulkDownload} disabled={bulkJob?.status === "running"}
               className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium border border-primary/30 text-primary hover:bg-primary/5 disabled:opacity-50">
               {bulkJob?.status === "running" ? (

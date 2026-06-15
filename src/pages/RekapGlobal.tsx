@@ -23,8 +23,6 @@ import { inferTahfizhModeForExam, usesLegacyTahfizhScoring } from "@/utils/verif
 import { generateRaportPDF, downloadRaportPDF } from "@/utils/raportPdf";
 import { resolveRaportSignatureAssets } from "@/utils/officialSignatures";
 import JSZip from "jszip";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import { toast } from "sonner";
 import { formatStudentName } from "@/utils/formatName";
 
@@ -309,7 +307,7 @@ export default function RekapGlobal() {
     return `Rekap_Global_${suffix}.pdf`;
   };
 
-  const handleDownloadCombinedPdf = () => {
+  const handleDownloadCombinedPdf = async () => {
     if (filtered.length === 0) {
       toast.error("Tidak ada data untuk didownload sesuai filter yang dipilih.");
       return;
@@ -317,57 +315,39 @@ export default function RekapGlobal() {
 
     setIsDownloadingCombinedPdf(true);
     try {
-      const doc = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      });
-      const pageWidth = doc.internal.pageSize.getWidth();
+      const { PDFDocument } = await import("pdf-lib");
+      const { header, assets, opts } = await loadRaportSettings();
+      const mergedPdf = await PDFDocument.create();
+      mergedPdf.setTitle("REKAP GLOBAL UJIAN TAHSIN & TAHFIZH");
 
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text("REKAP GLOBAL UJIAN TAHSIN & TAHFIZH", pageWidth / 2, 14, { align: "center" });
+      for (const row of filtered) {
+        const raportData = buildRaportData(
+          row.ujian,
+          row.studentName,
+          row.className,
+          row.assessorName,
+          undefined,
+          row.nis,
+          row.nisn
+        );
+        const effectiveOpts = await buildEffectiveOpts(opts, raportData, row.ujian);
+        const resolvedAssets = await resolveRaportSignatureAssets(row.ujian?.assessed_by, assets);
+        const raportPdf = await generateRaportPDF(raportData, header, resolvedAssets, effectiveOpts);
+        const sourcePdf = await PDFDocument.load(raportPdf.output("arraybuffer"));
+        const copiedPages = await mergedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
+        copiedPages.forEach((page) => mergedPdf.addPage(page));
+      }
 
-      autoTable(doc, {
-        startY: 20,
-        head: [["No", "Nama", "Kelas", "Mode Ujian", "Tanggal", "Nilai", "Predikat", "Status"]],
-        body: filtered.map((r, i) => [
-          i + 1,
-          r.studentName,
-          r.className,
-          r.mode,
-          r.tanggal,
-          r.nilai,
-          r.predikat,
-          r.status,
-        ]),
-        theme: "grid",
-        styles: {
-          fontSize: 8,
-          cellPadding: 2,
-          overflow: "linebreak",
-          valign: "middle",
-        },
-        headStyles: {
-          fillColor: [31, 111, 91],
-          textColor: 255,
-          fontStyle: "bold",
-          halign: "center",
-        },
-        columnStyles: {
-          0: { halign: "center", cellWidth: 8 },
-          1: { cellWidth: 42 },
-          2: { cellWidth: 20 },
-          3: { cellWidth: 28 },
-          4: { cellWidth: 24 },
-          5: { halign: "center", cellWidth: 14 },
-          6: { cellWidth: 24 },
-          7: { halign: "center", cellWidth: 24 },
-        },
-        margin: { left: 10, right: 10, bottom: 10 },
-      });
-
-      doc.save(getCombinedPdfFileName());
+      const mergedBytes = await mergedPdf.save();
+      const blob = new Blob([mergedBytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = getCombinedPdfFileName();
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
       toast.success("PDF gabungan berhasil diunduh.");
     } catch (error) {
       toast.error(`Gagal membuat PDF gabungan: ${getErrorMessage(error) || "Terjadi kesalahan."}`);

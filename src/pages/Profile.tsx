@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import Header from "@/components/Header";
 import { toast } from "sonner";
 import { ImageIcon, Loader2, Save, User, PenTool } from "lucide-react";
 import FileUploader from "@/components/profile/SignatureUploader";
@@ -68,7 +67,6 @@ export default function Profile() {
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
         <div className="p-10 text-center text-muted-foreground">Silakan login.</div>
       </div>
     );
@@ -125,7 +123,6 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
       <main className="container mx-auto px-4 py-8 max-w-3xl space-y-6">
         <div>
           <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">

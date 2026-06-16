@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import AppLayout from "@/components/AppLayout";
 import Index from "./pages/Index";
 import ClassStudents from "./pages/ClassStudents";
 import StudentDetail from "./pages/StudentDetail";
@@ -83,17 +84,19 @@ function AppRoutes() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/" element={<Index />} />
-        <Route path="/kelas/:classId" element={<ClassStudents />} />
-        <Route path="/siswa/:studentId" element={<StudentDetail />} />
-        <Route path="/kelola-siswa" element={<ProtectedRoute requiredRole="admin"><ManageStudents /></ProtectedRoute>} />
-        <Route path="/kelola-user" element={<ProtectedRoute requiredRole="admin"><ManageUsers /></ProtectedRoute>} />
-        <Route path="/rekap-sertifikat" element={<ProtectedRoute><RekapSertifikat /></ProtectedRoute>} />
-        <Route path="/rekap-global" element={<RekapGlobal />} />
-        <Route path="/cari-siswa" element={<SearchStudents />} />
-        <Route path="/ganti-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-        <Route path="/profil" element={<ProtectedRoute><ProfilPenguji /></ProtectedRoute>} />
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<Index />} />
+          <Route path="/kelas/:classId" element={<ClassStudents />} />
+          <Route path="/siswa/:studentId" element={<StudentDetail />} />
+          <Route path="/kelola-siswa" element={<ProtectedRoute requiredRole="admin"><ManageStudents /></ProtectedRoute>} />
+          <Route path="/kelola-user" element={<ProtectedRoute requiredRole="admin"><ManageUsers /></ProtectedRoute>} />
+          <Route path="/rekap-sertifikat" element={<ProtectedRoute><RekapSertifikat /></ProtectedRoute>} />
+          <Route path="/rekap-global" element={<RekapGlobal />} />
+          <Route path="/cari-siswa" element={<SearchStudents />} />
+          <Route path="/ganti-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/profil" element={<ProtectedRoute><ProfilPenguji /></ProtectedRoute>} />
+        </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AuthProvider>

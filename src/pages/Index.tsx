@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "@/components/Header";
 import ClassCard from "@/components/ClassCard";
 import { useClasses } from "@/hooks/useClasses";
 import { useMyAssignedClasses } from "@/hooks/useMyAssignedClasses";
@@ -304,7 +303,6 @@ const Dashboard = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#F8FAF5]">
-        <Header />
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-[#2F7D5F]" />
         </div>
@@ -315,7 +313,6 @@ const Dashboard = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-[#F8FAF5]">
-        <Header />
         <div className="flex items-center justify-center px-4 py-20 text-destructive">
           Gagal memuat data: {getSafeErrorMessage(error)}
         </div>
@@ -326,8 +323,6 @@ const Dashboard = () => {
   if (user) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
-
         <main className="container mx-auto px-4 py-8">
           {/* Stats */}
           <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -475,8 +470,6 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen w-screen max-w-[100vw] overflow-x-hidden bg-[#F8FAF5] text-[#18332A]">
-      <Header />
-
       <main className="mx-auto flex w-[100vw] max-w-[100vw] flex-col gap-8 overflow-x-hidden px-4 py-6 sm:px-6 lg:max-w-7xl lg:px-8">
         <section className="w-[calc(100vw-2rem)] max-w-full overflow-hidden rounded-3xl border border-[#DCE9DD] bg-[#FBF7EB] shadow-[0_20px_70px_rgba(31,95,73,0.12)] lg:w-full">
           <div className="grid min-w-0 gap-8 p-6 md:grid-cols-[1.3fr_0.7fr] md:p-10">

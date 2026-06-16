@@ -2,7 +2,6 @@ import { useState, type ReactNode } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useMyAssignedClasses } from "@/hooks/useMyAssignedClasses";
-import Header from "@/components/Header";
 import { calculateNilaiSetoran } from "@/data/mockData";
 import type { Koreksi, TahfizhSurahEntry } from "@/data/mockData";
 import { useStudentDetail, useAddSetoran, useAddTahfizhUjian, useAddTahsinUjian, useUpdateCatatan, useUpdateUjian, useDeleteUjian, usePublishUjian } from "@/hooks/useStudentDetail";
@@ -540,7 +539,6 @@ const StudentDetail = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
@@ -551,7 +549,6 @@ const StudentDetail = () => {
   if (error || !data) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
         <div className="flex items-center justify-center py-20 text-destructive">
           Siswa tidak ditemukan
         </div>
@@ -562,7 +559,6 @@ const StudentDetail = () => {
   if (!hasAccess) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <p className="text-muted-foreground">Anda tidak memiliki akses ke siswa ini</p>
           <button onClick={() => navigate("/")} className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm">
@@ -629,7 +625,6 @@ const StudentDetail = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <button
           onClick={() => navigate(-1)}

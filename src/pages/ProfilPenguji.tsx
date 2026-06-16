@@ -2,7 +2,6 @@ import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useMyAssignedClasses } from "@/hooks/useMyAssignedClasses";
 import { useClasses } from "@/hooks/useClasses";
-import Header from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -31,7 +30,6 @@ const ProfilPenguji = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
       <main className="container mx-auto py-8 px-4 max-w-3xl space-y-6">
         {/* Profile Card */}
         <Card>

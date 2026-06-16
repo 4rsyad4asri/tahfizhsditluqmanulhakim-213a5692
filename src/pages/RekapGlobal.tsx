@@ -1,5 +1,4 @@
 import { useMemo, useRef, useState } from "react";
-import Header from "@/components/Header";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -630,7 +629,6 @@ export default function RekapGlobal() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
       <div className="container mx-auto py-8 px-4 space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>

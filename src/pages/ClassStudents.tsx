@@ -1,5 +1,4 @@
 import { useParams, useNavigate } from "react-router-dom";
-import Header from "@/components/Header";
 import { useClassStudents } from "@/hooks/useClassStudents";
 import { useMyAssignedClasses } from "@/hooks/useMyAssignedClasses";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -31,7 +30,6 @@ const ClassStudents = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
@@ -42,7 +40,6 @@ const ClassStudents = () => {
   if (error || !data) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
         <div className="flex items-center justify-center py-20 text-destructive">
           Kelas tidak ditemukan
         </div>
@@ -53,7 +50,6 @@ const ClassStudents = () => {
   if (!hasAccess) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
         <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">
           <ShieldAlert className="w-12 h-12 text-destructive/60" />
           <h2 className="text-lg font-semibold text-foreground">Akses Ditolak</h2>
@@ -96,7 +92,6 @@ const ClassStudents = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
       <main className="container mx-auto px-4 py-8">
         <button
           onClick={() => navigate("/")}

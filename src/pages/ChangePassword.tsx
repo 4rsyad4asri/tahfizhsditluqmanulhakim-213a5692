@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import Header from "@/components/Header";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { KeyRound, Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
@@ -17,7 +16,6 @@ export default function ChangePassword() {
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
         <div className="flex items-center justify-center py-20">
           <p className="text-muted-foreground">Silakan login terlebih dahulu.</p>
         </div>
@@ -73,7 +71,6 @@ export default function ChangePassword() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
       <main className="container mx-auto px-4 py-8 max-w-md">
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">

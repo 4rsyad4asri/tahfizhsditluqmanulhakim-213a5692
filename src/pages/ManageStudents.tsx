@@ -16,7 +16,6 @@ import { useState } from "react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import Header from "@/components/Header";
 import { exportJsonToExcel } from "@/utils/excel";
 import ImportStudentsDialog from "@/components/ImportStudentsDialog";
 import { toast } from "sonner";
@@ -315,7 +314,6 @@ const filteredStudents: Student[] = (students || []).filter((s: Student) => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>

@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import Header from "@/components/Header";
 import { useAuthContext } from "@/contexts/AuthContext";
 import {
   UserPlus, Loader2, Shield, Search, CheckCircle2, XCircle, Power, KeyRound,
@@ -113,7 +112,6 @@ export default function ManageUsers() {
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
         <div className="flex items-center justify-center py-20">
           <p className="text-muted-foreground">Akses ditolak. Hanya Admin.</p>
         </div>
@@ -123,7 +121,6 @@ export default function ManageUsers() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
       <main className="container mx-auto px-4 py-8 space-y-5">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>

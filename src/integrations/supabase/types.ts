@@ -532,10 +532,13 @@ export type Database = {
       }
       ujian: {
         Row: {
+          academic_year_id: string | null
           assessed_by: string | null
+          class_name_at_exam: string | null
           created_at: string
           document_status: string
           grade: string
+          grade_at_exam: number | null
           id: string
           mode: Database["public"]["Enums"]["exam_mode"]
           nilai_akhir: number
@@ -548,10 +551,13 @@ export type Database = {
           verification_token: string
         }
         Insert: {
+          academic_year_id?: string | null
           assessed_by?: string | null
+          class_name_at_exam?: string | null
           created_at?: string
           document_status?: string
           grade?: string
+          grade_at_exam?: number | null
           id?: string
           mode: Database["public"]["Enums"]["exam_mode"]
           nilai_akhir?: number
@@ -564,10 +570,13 @@ export type Database = {
           verification_token?: string
         }
         Update: {
+          academic_year_id?: string | null
           assessed_by?: string | null
+          class_name_at_exam?: string | null
           created_at?: string
           document_status?: string
           grade?: string
+          grade_at_exam?: number | null
           id?: string
           mode?: Database["public"]["Enums"]["exam_mode"]
           nilai_akhir?: number
@@ -580,6 +589,13 @@ export type Database = {
           verification_token?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ujian_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ujian_student_id_fkey"
             columns: ["student_id"]

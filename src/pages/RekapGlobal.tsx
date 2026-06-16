@@ -25,6 +25,7 @@ import JSZip from "jszip";
 import { PDFDocument } from "pdf-lib";
 import { toast } from "sonner";
 import { formatStudentName } from "@/utils/formatName";
+import { resolveExamClassName, resolveExamGrade } from "@/utils/examSnapshot";
 
 interface Row {
   ujianId: string;
@@ -190,7 +191,7 @@ export default function RekapGlobal() {
     queryFn: async () => {
       const { data: ujianData, error: e1 } = await supabase
         .from("ujian")
-        .select("id, student_id, mode, tanggal, created_at, nilai_akhir, status, nilai_aspek, grade, verification_token, document_status, assessed_by")
+        .select("id, student_id, mode, tanggal, created_at, nilai_akhir, status, nilai_aspek, grade, verification_token, document_status, assessed_by, class_name_at_exam, grade_at_exam, academic_year_id")
         .order("tanggal", { ascending: false })
         .order("created_at", { ascending: false });
       if (e1) throw e1;
@@ -223,8 +224,8 @@ export default function RekapGlobal() {
           ujianId: syncedUjian.id,
           studentId: syncedUjian.student_id,
           studentName: formatStudentName(s?.name || "Unknown"),
-          className: c?.name || "Unknown",
-          grade: c?.grade || 0,
+          className: resolveExamClassName(syncedUjian, c) || "Unknown",
+          grade: resolveExamGrade(syncedUjian, c?.grade),
           mode: syncedUjian.mode,
           tanggal: syncedUjian.tanggal,
           createdAt: syncedUjian.created_at,

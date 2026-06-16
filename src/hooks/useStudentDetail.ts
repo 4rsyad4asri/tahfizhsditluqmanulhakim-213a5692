@@ -17,6 +17,7 @@ import {
   inferTahfizhModeForExam,
 } from "@/utils/verificationUrl";
 import { publishTahfizhDocument } from "@/utils/publishTahfizhDocument";
+import { buildExamClassSnapshot } from "@/utils/examSnapshot";
 
 function createVerificationToken() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -155,6 +156,7 @@ export function useAddUjian() {
       mode: "Tahsin" | "Tahfizh";
       nilai_aspek: Record<string, number>;
     }) => {
+      const examSnapshot = await buildExamClassSnapshot(data.student_id);
       const { nilaiAkhir, status, grade } = calculateNilaiUjian(data.nilai_aspek);
 
       const { error: ujianError } = await supabase.from("ujian").insert({
@@ -164,6 +166,7 @@ export function useAddUjian() {
         nilai_akhir: nilaiAkhir,
         status,
         grade,
+        ...examSnapshot,
       });
       if (ujianError) throw ujianError;
 
@@ -226,6 +229,7 @@ export function useAddTahfizhUjian() {
       }
       const verificationToken = createVerificationToken();
       const assessorName = await getAssessorName(data.assessed_by);
+      const examSnapshot = await buildExamClassSnapshot(data.student_id);
 
       const nilai_aspek = {
         ...normalized.nilaiAspek,
@@ -247,6 +251,7 @@ export function useAddTahfizhUjian() {
         document_status: data.document_status || "Draft",
         verification_token: verificationToken,
         published_at: data.document_status === "Published" ? new Date().toISOString() : null,
+        ...examSnapshot,
       } as any);
       if (ujianError) throw ujianError;
 
@@ -278,6 +283,7 @@ export function useAddTahsinUjian() {
       tanggal?: string;
       waktu?: string;
     }) => {
+      const examSnapshot = await buildExamClassSnapshot(data.student_id);
       const { error: ujianError } = await supabase.from("ujian").insert({
         student_id: data.student_id,
         mode: data.mode as any,
@@ -287,6 +293,7 @@ export function useAddTahsinUjian() {
         grade: data.grade,
         assessed_by: data.assessed_by || null,
         tanggal: data.tanggal || new Date().toISOString().split("T")[0],
+        ...examSnapshot,
       } as any);
       if (ujianError) throw ujianError;
     },

@@ -26,6 +26,7 @@ import {
 } from "@/utils/pdfAssetsLayout";
 import { DEFAULT_RAPORT_HEADER, loadGlobalRaportHeader } from "@/utils/raportSettings";
 import { loadGlobalRaportTableLayoutSettings } from "@/utils/raportTableLayout";
+import { resolveExamClassName } from "@/utils/examSnapshot";
 
 const STORAGE_KEY = "raport_settings_v3";
 export const DEFAULT_HEADER = DEFAULT_RAPORT_HEADER;
@@ -142,7 +143,7 @@ export function buildRaportData(
   return {
     mode: ujian?.mode,
     studentName,
-    className: formatClassName(className),
+    className: resolveExamClassName(ujian, className) || formatClassName(className),
     nis: nis || undefined,
     nisn: nisn || undefined,
     assessorName: assessorName || aspek?.assessorName,

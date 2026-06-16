@@ -26,7 +26,7 @@ import {
 import { getEffectiveCatatanGuru } from "@/utils/catatanOtomatis";
 import { buildReportDocumentNumber } from "@/utils/documentNumber";
 import { usesLegacyTahfizhScoring } from "@/utils/verificationUrl";
-import { formatClassName } from "@/utils/className";
+import { resolveExamClassName } from "@/utils/examSnapshot";
 
 function formatDate(date?: string | null) {
   if (!date) return "-";
@@ -218,7 +218,7 @@ export default function TahfizhVerification({
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <DataRow label="Nama Siswa" value={student?.name || "-"} />
-              <DataRow label="Kelas" value={formatClassName(classInfo) || "-"} />
+              <DataRow label="Kelas" value={resolveExamClassName(data, classInfo) || "-"} />
               <DataRow label="NIS/NISN" value={`${getFallback(student?.nis)} / ${getFallback(student?.nisn)}`} />
               <DataRow label="Tanggal Ujian" value={formatDate(data.tanggal)} />
               <DataRow label="Penguji" value={assessor} />

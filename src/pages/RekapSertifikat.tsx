@@ -25,7 +25,6 @@ import {
   usesLegacyTahfizhScoring,
 } from "@/utils/verificationUrl";
 import { buildReportDocumentNumber } from "@/utils/documentNumber";
-import { formatClassName } from "@/utils/className";
 import { resolveCertificateSignatures } from "@/utils/officialSignatures";
 import { formatStudentName } from "@/utils/formatName";
 import {
@@ -40,6 +39,7 @@ import {
 } from "@/utils/generateBulkCertificatePDF";
 import type { CertificatePdfFormat } from "@/utils/generateCertificatePDF";
 import { publishTahfizhDocument } from "@/utils/publishTahfizhDocument";
+import { resolveExamClassName, resolveExamGrade } from "@/utils/examSnapshot";
 
 type PublishStatus = "belum_publish" | "published" | "revised" | "cancelled";
 
@@ -325,7 +325,7 @@ const RekapSertifikat = () => {
       const itemsWithSequence: Array<any> = certificateUjianData.map((u) => {
         const student = studentMap.get(u.student_id);
         const cls = student ? classMap.get(student.class_id) : null;
-        const classGrade = cls?.grade || 0;
+        const classGrade = resolveExamGrade(u, cls?.grade);
         const syncedResult = getSyncedTahfizhCertificateResult(u);
         const entries = syncedResult.entries;
         const juzList = [
@@ -355,7 +355,7 @@ const RekapSertifikat = () => {
           studentName: formatStudentName(
             certificate?.student_name_snapshot || student?.name || "Unknown",
           ),
-          className: certificate?.class_name_snapshot || (cls ? formatClassName(cls) : "Unknown"),
+          className: certificate?.class_name_snapshot || resolveExamClassName(u, cls) || "Unknown",
           classGrade,
           certificateSequence: receivesCertificateNumber ? sequenceNumber + 1 : null,
           juz: certificate?.juz_snapshot || (juzList.length > 0 ? juzList.join(", ") : "-"),

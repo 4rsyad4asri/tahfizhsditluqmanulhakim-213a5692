@@ -35,7 +35,6 @@ import {
   toSafeNumber,
 } from "@/data/tahfizhSystem";
 import { getStandardExamGrading } from "@/data/grading";
-import { formatClassName } from "@/utils/className";
 import { buildVerificationUrlForExam, inferTahfizhModeForExam, usesLegacyTahfizhScoring } from "@/utils/verificationUrl";
 import {
   generateRaportPDF,
@@ -69,6 +68,7 @@ import {
   type RaportTableLayoutSettings,
 } from "@/utils/raportTableLayout";
 import { formatStudentName } from "@/utils/formatName";
+import { resolveExamClassName } from "@/utils/examSnapshot";
 import type {
   TahsinDasarEntry,
   TahsinLanjutanEntry,
@@ -426,7 +426,7 @@ export default function RaportPreviewDialog({
     return {
       mode: activeUjian?.mode,
       studentName: formatStudentName(studentName),
-      className: formatClassName(className),
+      className: resolveExamClassName(activeUjian, className) || className,
       nis: nis || undefined,
       nisn: nisn || undefined,
       assessorName,

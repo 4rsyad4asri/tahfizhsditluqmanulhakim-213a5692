@@ -32,6 +32,7 @@ import type { Database } from "@/integrations/supabase/types";
 
 type StudentLevel = Database["public"]["Enums"]["student_level"];
 type CertStatus = Database["public"]["Enums"]["certification_status"];
+type StudentStatus = "aktif" | "alumni" | "pindah" | "nonaktif";
 
 interface StudentForm {
   name: string;
@@ -63,6 +64,7 @@ interface Student {
   target_juz: number;
   level: StudentLevel;
   progress_hafalan: number;
+  status_siswa: StudentStatus;
   status_sertifikasi: CertStatus;
 
   classes?: {
@@ -77,6 +79,9 @@ const ManageStudents = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [selectedClass, setSelectedClass] = useState<string>("all");
+  const [selectedStudentStatus, setSelectedStudentStatus] = useState<"all" | StudentStatus>("aktif");
+  const [selectedLevel, setSelectedLevel] = useState<"all" | StudentLevel>("all");
+  const [selectedCertificationStatus, setSelectedCertificationStatus] = useState<"all" | CertStatus>("all");
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<StudentForm>(emptyForm);
@@ -282,10 +287,22 @@ const deleteAllMutation = useMutation({
   };
 
 const filteredStudents: Student[] = (students || []).filter((s: Student) => {
-  const query = search.toLowerCase();
-  return (s.name || "").toLowerCase().includes(query)
+  const query = search.trim().toLowerCase();
+  const studentStatus = (s.status_siswa || "aktif") as StudentStatus;
+  const matchesSearch =
+    !query
+    || (s.name || "").toLowerCase().includes(query)
     || (s.nis || "").includes(query)
     || (s.nisn || "").includes(query);
+  const matchesStudentStatus =
+    selectedStudentStatus === "all" || studentStatus === selectedStudentStatus;
+  const matchesLevel =
+    selectedLevel === "all" || s.level === selectedLevel;
+  const matchesCertificationStatus =
+    selectedCertificationStatus === "all"
+    || s.status_sertifikasi === selectedCertificationStatus;
+
+  return matchesSearch && matchesStudentStatus && matchesLevel && matchesCertificationStatus;
 });
 
   const handleExport = () => {
@@ -294,6 +311,7 @@ const filteredStudents: Student[] = (students || []).filter((s: Student) => {
       "NIS": s.nis || "",
       "NISN": s.nisn || "",
       "Kelas": s.classes?.name || "",
+      "Status Siswa": s.status_siswa || "aktif",
       "Target Juz": s.target_juz,
       "Level": s.level,
       "Progress (%)": s.progress_hafalan,
@@ -519,12 +537,12 @@ const filteredStudents: Student[] = (students || []).filter((s: Student) => {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
-          <div className="relative flex-1">
+        <div className="mb-6 grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_repeat(4,minmax(0,180px))]">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Cari nama siswa..."
+              placeholder="Cari nama, NIS, atau NISN..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-lg border border-input bg-card text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
@@ -540,6 +558,43 @@ const filteredStudents: Student[] = (students || []).filter((s: Student) => {
               {(classes || []).map((c) =>
               <option key={c.id} value={c.id}>{c.name}</option>
               )}
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          </div>
+          <div className="relative">
+            <select
+              value={selectedStudentStatus}
+              onChange={(e) => setSelectedStudentStatus(e.target.value as "all" | StudentStatus)}
+              className="appearance-none w-full pl-3 pr-8 py-2 rounded-lg border border-input bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+              <option value="all">Semua Status Siswa</option>
+              <option value="aktif">Aktif</option>
+              <option value="alumni">Alumni</option>
+              <option value="pindah">Pindah</option>
+              <option value="nonaktif">Nonaktif</option>
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          </div>
+          <div className="relative">
+            <select
+              value={selectedLevel}
+              onChange={(e) => setSelectedLevel(e.target.value as "all" | StudentLevel)}
+              className="appearance-none w-full pl-3 pr-8 py-2 rounded-lg border border-input bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+              <option value="all">Semua Level</option>
+              <option value="Tahsin Dasar">Tahsin Dasar</option>
+              <option value="Tahsin Lanjutan">Tahsin Lanjutan</option>
+              <option value="Tahfizh">Tahfizh</option>
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          </div>
+          <div className="relative">
+            <select
+              value={selectedCertificationStatus}
+              onChange={(e) => setSelectedCertificationStatus(e.target.value as "all" | CertStatus)}
+              className="appearance-none w-full pl-3 pr-8 py-2 rounded-lg border border-input bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+              <option value="all">Semua Sertifikasi</option>
+              <option value="Belum Ujian">Belum Ujian</option>
+              <option value="Lulus">Lulus</option>
+              <option value="Tidak Lulus">Tidak Lulus</option>
             </select>
             <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
           </div>
@@ -583,10 +638,11 @@ const filteredStudents: Student[] = (students || []).filter((s: Student) => {
                   <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
                     <span>NIS: <span className="text-foreground">{student.nis || "-"}</span></span>
                     <span>NISN: <span className="text-foreground">{student.nisn || "-"}</span></span>
+                    <span>Status Siswa: <span className="text-foreground">{student.status_siswa || "aktif"}</span></span>
                     <span>Level: <span className="text-foreground">{student.level}</span></span>
                     <span>Juz: <span className="text-foreground">{student.target_juz}</span></span>
                     <span>Progress: <span className="text-foreground">{student.progress_hafalan}%</span></span>
-                    <span>Status: <span className="text-foreground">{student.status_sertifikasi}</span></span>
+                    <span>Sertifikasi: <span className="text-foreground">{student.status_sertifikasi}</span></span>
                   </div>
                 </div>
             )}
@@ -602,6 +658,7 @@ const filteredStudents: Student[] = (students || []).filter((s: Student) => {
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">NIS</th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">NISN</th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Kelas</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Status Siswa</th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Target</th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Level</th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Progress</th>
@@ -616,6 +673,19 @@ const filteredStudents: Student[] = (students || []).filter((s: Student) => {
                         <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{student.nis || "-"}</td>
                         <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{student.nisn || "-"}</td>
                         <td className="px-4 py-3 text-muted-foreground">{student.classes?.name}</td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                            (student.status_siswa || "aktif") === "aktif"
+                              ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                              : (student.status_siswa || "aktif") === "alumni"
+                                ? "bg-blue-100 text-blue-700 border border-blue-200"
+                                : (student.status_siswa || "aktif") === "pindah"
+                                  ? "bg-amber-100 text-amber-700 border border-amber-200"
+                                  : "bg-slate-200 text-slate-700 border border-slate-300"
+                          }`}>
+                            {student.status_siswa || "aktif"}
+                          </span>
+                        </td>
                         <td className="px-4 py-3 text-muted-foreground">Juz {student.target_juz}</td>
                       <td className="px-4 py-3">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -669,7 +739,7 @@ const filteredStudents: Student[] = (students || []).filter((s: Student) => {
             {filteredStudents.length === 0 && !isLoading &&
           <div className="text-center py-12 text-muted-foreground">
                 <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p>Belum ada siswa {selectedClass !== "all" ? "di kelas ini" : ""}</p>
+                <p>Tidak ada siswa yang cocok dengan filter saat ini</p>
                 <p className="text-xs mt-1">Klik "Tambah Siswa Baru" untuk memulai</p>
               </div>
           }

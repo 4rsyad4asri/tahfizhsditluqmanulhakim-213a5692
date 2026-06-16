@@ -488,6 +488,7 @@ export type Database = {
           nis: string | null
           nisn: string | null
           progress_hafalan: number
+          status_siswa: string
           status_sertifikasi: Database["public"]["Enums"]["certification_status"]
           target_juz: number
           updated_at: string
@@ -502,6 +503,7 @@ export type Database = {
           nis?: string | null
           nisn?: string | null
           progress_hafalan?: number
+          status_siswa?: string
           status_sertifikasi?: Database["public"]["Enums"]["certification_status"]
           target_juz?: number
           updated_at?: string
@@ -516,6 +518,7 @@ export type Database = {
           nis?: string | null
           nisn?: string | null
           progress_hafalan?: number
+          status_siswa?: string
           status_sertifikasi?: Database["public"]["Enums"]["certification_status"]
           target_juz?: number
           updated_at?: string

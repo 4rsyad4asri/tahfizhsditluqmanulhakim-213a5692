@@ -37,7 +37,7 @@ function SidebarMenuItem({
       title={collapsed ? item.label : undefined}
       onClick={onClick}
       className={cn(
-        "group relative flex w-full items-center gap-3 overflow-hidden rounded-[22px] border px-3 py-3 text-left transition-all duration-300",
+        "group relative flex w-full items-center gap-3 overflow-hidden rounded-[22px] border px-3 py-3 text-left transition-all duration-150",
         collapsed ? "justify-center px-2.5 py-3.5" : "",
         item.disabled
           ? "cursor-not-allowed border-transparent bg-transparent text-slate-400 opacity-70"
@@ -47,13 +47,13 @@ function SidebarMenuItem({
     >
       <div
         className={cn(
-          "absolute inset-y-3 left-0 w-1 rounded-r-full bg-[#c9a44c] transition-all duration-300",
+          "absolute inset-y-3 left-0 w-1 rounded-r-full bg-[#c9a44c] transition-all duration-150",
           active ? "opacity-100" : "opacity-0",
         )}
       />
       <div
         className={cn(
-          "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-all duration-300",
+          "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-all duration-150",
           item.disabled
             ? "bg-slate-100 text-slate-400"
             : active
@@ -64,7 +64,7 @@ function SidebarMenuItem({
         <Icon className="h-4 w-4" />
       </div>
       {!collapsed && (
-        <div className="min-w-0 flex-1 transition-all duration-300">
+        <div className="min-w-0 flex-1 transition-all duration-150">
           <div className="flex items-center gap-2">
             <span className="truncate text-sm font-semibold">{item.label}</span>
             {item.disabled && (
@@ -98,14 +98,14 @@ export default function Sidebar({ collapsed, isDesktop, mobileOpen, onCloseMobil
   const desktopAside = (
     <aside
       className={cn(
-        "hidden border-r border-emerald-100/80 bg-[radial-gradient(circle_at_top,_rgba(201,164,76,0.10),_transparent_22%),linear-gradient(180deg,#ffffff_0%,#f7fbf8_100%)] shadow-[8px_0_30px_rgba(15,23,42,0.04)] transition-[width] duration-300 ease-out lg:flex lg:flex-col",
+        "hidden border-r border-emerald-100/80 bg-[radial-gradient(circle_at_top,_rgba(201,164,76,0.10),_transparent_22%),linear-gradient(180deg,#ffffff_0%,#f7fbf8_100%)] shadow-[8px_0_30px_rgba(15,23,42,0.04)] transition-[width] duration-150 ease-out lg:flex lg:flex-col",
         getSidebarDesktopWidthClass(collapsed),
       )}
     >
       <div className="border-b border-emerald-100/80 px-4 py-4">
         <div
           className={cn(
-            "rounded-[24px] border border-emerald-100 bg-[linear-gradient(135deg,#f8fafc_0%,#eefbf4_100%)] transition-all duration-300",
+            "rounded-[24px] border border-emerald-100 bg-[linear-gradient(135deg,#f8fafc_0%,#eefbf4_100%)] transition-all duration-150",
             collapsed ? "px-2 py-3" : "px-3.5 py-4",
           )}
         >
@@ -170,14 +170,14 @@ export default function Sidebar({ collapsed, isDesktop, mobileOpen, onCloseMobil
     <>
       <div
         className={cn(
-          "fixed inset-0 z-40 bg-slate-950/50 backdrop-blur-[3px] transition-opacity duration-300 lg:hidden",
+          "fixed inset-0 z-40 bg-slate-950/50 backdrop-blur-[3px] transition-opacity duration-150 lg:hidden",
           mobileOpen ? "opacity-100" : "pointer-events-none opacity-0",
         )}
         onClick={onCloseMobile}
       />
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-[312px] max-w-[86vw] border-r border-emerald-100 bg-[radial-gradient(circle_at_top,_rgba(201,164,76,0.10),_transparent_22%),linear-gradient(180deg,#ffffff_0%,#f7fbf8_100%)] shadow-[20px_0_60px_rgba(15,23,42,0.18)] transition-transform duration-300 lg:hidden",
+          "fixed inset-y-0 left-0 z-50 w-[312px] max-w-[86vw] border-r border-emerald-100 bg-[radial-gradient(circle_at_top,_rgba(201,164,76,0.10),_transparent_22%),linear-gradient(180deg,#ffffff_0%,#f7fbf8_100%)] shadow-[20px_0_60px_rgba(15,23,42,0.18)] transition-transform duration-150 lg:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >

@@ -18,7 +18,7 @@ type HeaderProps = {
 
 export default function Header({ onMenuClick }: HeaderProps) {
   const navigate = useNavigate();
-  const { user, profile, signOut } = useAuthContext();
+  const { user, signOut } = useAuthContext();
 
   const handleLogout = async () => {
     await signOut();
@@ -32,7 +32,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           <button
             type="button"
             onClick={onMenuClick}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition-all duration-300 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 hover:shadow-md"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition-all duration-150 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 hover:shadow-md"
             aria-label="Buka atau tutup sidebar"
           >
             <Menu className="h-5 w-5" />
@@ -40,7 +40,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
           <button type="button" onClick={() => navigate("/")} className="min-w-0 text-left">
             <div className="truncate text-base font-bold text-slate-900 sm:text-lg">Tahfizh SDIT Luqmanul Hakim</div>
-            <div className="hidden text-xs text-slate-500 sm:block">Dashboard admin dan guru yang lebih rapi</div>
+            <div className="hidden text-xs text-slate-500 sm:block">by Web Developer: Miftahul Arsyad Asri, S.H</div>
           </button>
         </div>
 
@@ -48,7 +48,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           <button
             type="button"
             onClick={() => navigate("/cari-siswa")}
-            className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-all duration-300 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 md:inline-flex"
+            className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-all duration-150 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 md:inline-flex"
           >
             <Search className="h-4 w-4" />
             Cari Siswa
@@ -58,7 +58,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             onClick={() => {
               window.location.href = TAHSIN_URL;
             }}
-            className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-all duration-300 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 md:inline-flex"
+            className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-all duration-150 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 md:inline-flex"
           >
             <ExternalLink className="h-4 w-4" />
             Sistem Tahsin
@@ -66,13 +66,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
           {user ? (
             <>
-              <span className="hidden max-w-[170px] truncate rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 lg:inline">
-                {profile?.full_name || user.email}
-              </span>
               <button
                 type="button"
                 onClick={() => navigate("/profil")}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition-all duration-300 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition-all duration-150 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800"
                 title="Profil Saya"
               >
                 <UserCircle className="h-4 w-4" />
@@ -80,7 +77,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
               <button
                 type="button"
                 onClick={() => navigate("/profile")}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition-all duration-300 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition-all duration-150 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800"
                 title="Tanda Tangan & Profil"
               >
                 <Settings className="h-4 w-4" />
@@ -88,7 +85,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
               <button
                 type="button"
                 onClick={() => navigate("/ganti-password")}
-                className="hidden h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition-all duration-300 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 sm:inline-flex"
+                className="hidden h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition-all duration-150 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 sm:inline-flex"
                 title="Ganti Password"
               >
                 <KeyRound className="h-4 w-4" />
@@ -96,7 +93,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-rose-500 transition-all duration-300 hover:border-rose-200 hover:bg-rose-50"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-rose-500 transition-all duration-150 hover:border-rose-200 hover:bg-rose-50"
                 title="Logout"
               >
                 <LogOut className="h-4 w-4" />

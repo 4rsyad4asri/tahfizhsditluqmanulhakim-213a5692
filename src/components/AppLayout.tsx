@@ -53,7 +53,7 @@ export default function AppLayout() {
           onCloseMobile={() => setMobileOpen(false)}
           isAdmin={isAdmin}
         />
-        <div className={cn("min-w-0 flex-1 transition-all duration-300", !isDesktop && "w-full")}>
+        <div className={cn("min-w-0 flex-1 transition-all duration-150", !isDesktop && "w-full")}>
           <Outlet />
         </div>
       </div>

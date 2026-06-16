@@ -16,6 +16,7 @@ import ManageUsers from "./pages/ManageUsers";
 import RekapSertifikat from "./pages/RekapSertifikat";
 import RekapGlobal from "./pages/RekapGlobal";
 import SearchStudents from "./pages/SearchStudents";
+import AcademicYears from "./pages/AcademicYears";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -88,6 +89,7 @@ function AppRoutes() {
           <Route path="/" element={<Index />} />
           <Route path="/kelas/:classId" element={<ClassStudents />} />
           <Route path="/siswa/:studentId" element={<StudentDetail />} />
+          <Route path="/tahun-ajaran" element={<ProtectedRoute requiredRole="admin"><AcademicYears /></ProtectedRoute>} />
           <Route path="/kelola-siswa" element={<ProtectedRoute requiredRole="admin"><ManageStudents /></ProtectedRoute>} />
           <Route path="/kelola-user" element={<ProtectedRoute requiredRole="admin"><ManageUsers /></ProtectedRoute>} />
           <Route path="/rekap-sertifikat" element={<ProtectedRoute><RekapSertifikat /></ProtectedRoute>} />

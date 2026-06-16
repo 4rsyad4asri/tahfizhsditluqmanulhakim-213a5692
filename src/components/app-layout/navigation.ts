@@ -59,9 +59,10 @@ export const navSections: NavSection[] = [
       },
       {
         label: "Tahun Ajaran",
-        description: "Disiapkan untuk halaman khusus berikutnya.",
+        description: "Kelola tahun ajaran aktif dan arsip.",
         icon: CalendarDays,
-        disabled: true,
+        path: "/tahun-ajaran",
+        adminOnly: true,
       },
       {
         label: "Naik Kelas Massal",

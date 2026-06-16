@@ -23,6 +23,7 @@ import { inferTahfizhModeForExam, usesLegacyTahfizhScoring } from "@/utils/verif
 import { generateRaportPDF, downloadRaportPDF } from "@/utils/raportPdf";
 import { resolveRaportSignatureAssets } from "@/utils/officialSignatures";
 import JSZip from "jszip";
+import { PDFDocument } from "pdf-lib";
 import { toast } from "sonner";
 import { formatStudentName } from "@/utils/formatName";
 
@@ -56,6 +57,13 @@ interface BulkJob {
   batch: number;
   totalBatches: number;
   failed: BulkFailedItem[];
+  message?: string;
+}
+
+interface CombinedPdfProgress {
+  current: number;
+  total: number;
+  failed: number;
   message?: string;
 }
 
@@ -147,6 +155,23 @@ function sanitizeFileName(value: string) {
     .replace(/_+/g, "_");
 }
 
+const rowDisplayCollator = new Intl.Collator("id-ID", {
+  numeric: true,
+  sensitivity: "base",
+});
+
+function sortRowsForDisplay(rows: Row[]) {
+  return [...rows].sort((a, b) => {
+    return (
+      a.grade - b.grade ||
+      rowDisplayCollator.compare(a.className, b.className) ||
+      rowDisplayCollator.compare(a.studentName, b.studentName) ||
+      rowDisplayCollator.compare(a.mode, b.mode) ||
+      rowDisplayCollator.compare(a.tanggal, b.tanggal)
+    );
+  });
+}
+
 export default function RekapGlobal() {
   const [filterMode, setFilterMode] = useState<string>("all");
   const [filterGrade, setFilterGrade] = useState<string>("all");
@@ -156,6 +181,7 @@ export default function RekapGlobal() {
   const [previewRow, setPreviewRow] = useState<Row | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [isDownloadingCombinedPdf, setIsDownloadingCombinedPdf] = useState(false);
+  const [combinedPdfProgress, setCombinedPdfProgress] = useState<CombinedPdfProgress | null>(null);
   const [bulkJob, setBulkJob] = useState<BulkJob | null>(null);
   const bulkCancelRef = useRef(false);
 
@@ -232,7 +258,7 @@ export default function RekapGlobal() {
       }
       r = out;
     }
-    return r;
+    return sortRowsForDisplay(r);
   }, [data, filterMode, filterGrade, filterClass, filterStatus, onlyLatest]);
 
   const stats = useMemo(() => {
@@ -314,29 +340,65 @@ export default function RekapGlobal() {
     }
 
     setIsDownloadingCombinedPdf(true);
+    setCombinedPdfProgress({ current: 0, total: filtered.length, failed: 0, message: "Menyiapkan pengaturan raport..." });
     try {
-      const { PDFDocument } = await import("pdf-lib");
       const { header, assets, opts } = await loadRaportSettings();
       const mergedPdf = await PDFDocument.create();
-      mergedPdf.setTitle("REKAP GLOBAL UJIAN TAHSIN & TAHFIZH");
+      const failed: BulkFailedItem[] = [];
+      let successCount = 0;
 
-      for (const row of filtered) {
-        const raportData = buildRaportData(
-          row.ujian,
-          row.studentName,
-          row.className,
-          row.assessorName,
-          undefined,
-          row.nis,
-          row.nisn
-        );
-        const effectiveOpts = await buildEffectiveOpts(opts, raportData, row.ujian);
-        const resolvedAssets = await resolveRaportSignatureAssets(row.ujian?.assessed_by, assets);
-        const raportPdf = await generateRaportPDF(raportData, header, resolvedAssets, effectiveOpts);
-        const sourcePdf = await PDFDocument.load(raportPdf.output("arraybuffer"));
-        const copiedPages = await mergedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
-        copiedPages.forEach((page) => mergedPdf.addPage(page));
+      for (let index = 0; index < filtered.length; index++) {
+        const row = filtered[index];
+        const current = index + 1;
+        setCombinedPdfProgress({
+          current: index,
+          total: filtered.length,
+          failed: failed.length,
+          message: `Membuat raport ${current}/${filtered.length}: ${row.studentName}`,
+        });
+
+        try {
+          const raportData = buildRaportData(
+            row.ujian,
+            row.studentName,
+            row.className,
+            row.assessorName,
+            undefined,
+            row.nis,
+            row.nisn
+          );
+          const effectiveOpts = await buildEffectiveOpts(opts, raportData, row.ujian);
+          const resolvedAssets = await resolveRaportSignatureAssets(row.ujian?.assessed_by, assets);
+          const raportPdf = await generateRaportPDF(raportData, header, resolvedAssets, effectiveOpts);
+          const sourcePdf = await PDFDocument.load(raportPdf.output("arraybuffer"));
+          const copiedPages = await mergedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
+          copiedPages.forEach((page) => mergedPdf.addPage(page));
+          successCount++;
+        } catch (error) {
+          const message = getErrorMessage(error) || "Gagal membuat PDF";
+          failed.push({ row, message });
+          console.error("Gagal generate raport gabungan untuk", row.studentName, error);
+        }
+
+        setCombinedPdfProgress({
+          current,
+          total: filtered.length,
+          failed: failed.length,
+          message: `Diproses ${current}/${filtered.length}`,
+        });
       }
+
+      if (successCount === 0) {
+        toast.error(`Tidak ada PDF yang berhasil dibuat. ${failed.length} gagal.`);
+        return;
+      }
+
+      setCombinedPdfProgress({
+        current: filtered.length,
+        total: filtered.length,
+        failed: failed.length,
+        message: "Menggabungkan file PDF...",
+      });
 
       const mergedBytes = await mergedPdf.save();
       const blob = new Blob([mergedBytes], { type: "application/pdf" });
@@ -348,11 +410,16 @@ export default function RekapGlobal() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      toast.success("PDF gabungan berhasil diunduh.");
+      if (failed.length > 0) {
+        toast.error(`${failed.length} raport gagal dibuat. ${successCount} berhasil digabung.`);
+      } else {
+        toast.success(`PDF gabungan berhasil diunduh: ${successCount} raport.`);
+      }
     } catch (error) {
       toast.error(`Gagal membuat PDF gabungan: ${getErrorMessage(error) || "Terjadi kesalahan."}`);
     } finally {
       setIsDownloadingCombinedPdf(false);
+      setCombinedPdfProgress(null);
     }
   };
 
@@ -545,11 +612,16 @@ export default function RekapGlobal() {
             <button onClick={handleDownloadCombinedPdf} disabled={isDownloadingCombinedPdf}
               className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium border border-primary/30 text-primary hover:bg-primary/5 disabled:opacity-50">
               {isDownloadingCombinedPdf ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {combinedPdfProgress ? `${combinedPdfProgress.current}/${combinedPdfProgress.total}` : "Memproses"}
+                </>
               ) : (
-                <FileText className="w-4 h-4" />
+                <>
+                  <FileText className="w-4 h-4" />
+                  Download Gabungan PDF
+                </>
               )}
-              Download Gabungan PDF
             </button>
             <button onClick={handleBulkDownload} disabled={bulkJob?.status === "running"}
               className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium border border-primary/30 text-primary hover:bg-primary/5 disabled:opacity-50">
@@ -581,6 +653,28 @@ export default function RekapGlobal() {
             </button>
           </div>
         </div>
+
+        {combinedPdfProgress && (
+          <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Status Download Gabungan PDF</p>
+                <p className="text-xs text-muted-foreground">
+                  {combinedPdfProgress.current}/{combinedPdfProgress.total} raport diproses
+                  {combinedPdfProgress.failed > 0 ? ` - ${combinedPdfProgress.failed} gagal` : ""}
+                </p>
+              </div>
+              <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">Berjalan</span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{ width: `${combinedPdfProgress.total ? Math.round((combinedPdfProgress.current / combinedPdfProgress.total) * 100) : 0}%` }}
+              />
+            </div>
+            {combinedPdfProgress.message && <p className="text-xs text-muted-foreground">{combinedPdfProgress.message}</p>}
+          </div>
+        )}
 
         {/* Filters */}
         <div className="flex flex-wrap gap-3 p-4 rounded-lg border border-border bg-card">

@@ -18,6 +18,7 @@ import {
 } from "@/utils/verificationUrl";
 import { publishTahfizhDocument } from "@/utils/publishTahfizhDocument";
 import { buildExamClassSnapshot } from "@/utils/examSnapshot";
+import { syncSingleStudentStatus } from "@/utils/syncStudentStatus";
 
 function createVerificationToken() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -35,6 +36,14 @@ async function getAssessorName(assessorId?: string | null) {
     .maybeSingle();
 
   return data?.full_name || undefined;
+}
+
+function invalidateStudentStatusQueries(queryClient: ReturnType<typeof useQueryClient>, studentId: string) {
+  queryClient.invalidateQueries({ queryKey: ["student-detail", studentId] });
+  queryClient.invalidateQueries({ queryKey: ["classes"] });
+  queryClient.invalidateQueries({ queryKey: ["all-students"] });
+  queryClient.invalidateQueries({ queryKey: ["rekap-sertifikat"] });
+  queryClient.invalidateQueries({ queryKey: ["rekap-ujian-global"] });
 }
 
 export function useStudentDetail(studentId: string | undefined) {
@@ -169,16 +178,10 @@ export function useAddUjian() {
         ...examSnapshot,
       });
       if (ujianError) throw ujianError;
-
-      const { error: studentError } = await supabase
-        .from("students")
-        .update({ status_sertifikasi: status })
-        .eq("id", data.student_id);
-      if (studentError) throw studentError;
+      await syncSingleStudentStatus(data.student_id);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["student-detail", variables.student_id] });
-      queryClient.invalidateQueries({ queryKey: ["classes"] });
+      invalidateStudentStatusQueries(queryClient, variables.student_id);
     },
   });
 }
@@ -254,17 +257,10 @@ export function useAddTahfizhUjian() {
         ...examSnapshot,
       } as any);
       if (ujianError) throw ujianError;
-
-      const { error: studentError } = await supabase
-        .from("students")
-        .update({ status_sertifikasi: normalized.status })
-        .eq("id", data.student_id);
-      if (studentError) throw studentError;
+      await syncSingleStudentStatus(data.student_id);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["student-detail", variables.student_id] });
-      queryClient.invalidateQueries({ queryKey: ["classes"] });
-      queryClient.invalidateQueries({ queryKey: ["rekap-sertifikat"] });
+      invalidateStudentStatusQueries(queryClient, variables.student_id);
     },
   });
 }
@@ -296,10 +292,10 @@ export function useAddTahsinUjian() {
         ...examSnapshot,
       } as any);
       if (ujianError) throw ujianError;
+      await syncSingleStudentStatus(data.student_id);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["student-detail", variables.student_id] });
-      queryClient.invalidateQueries({ queryKey: ["classes"] });
+      invalidateStudentStatusQueries(queryClient, variables.student_id);
     },
   });
 }
@@ -390,16 +386,10 @@ export function useUpdateUjian() {
       const { error } = await supabase.from("ujian").update(payload).eq("id", data.ujian_id);
       if (error) throw error;
 
-      // Sync student status_sertifikasi if Tahfizh
-      if (existingUjian.mode === 'Tahfizh') {
-        await supabase.from("students").update({ status_sertifikasi: nextStatus }).eq("id", data.student_id);
-      }
+      await syncSingleStudentStatus(data.student_id);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["student-detail", variables.student_id] });
-      queryClient.invalidateQueries({ queryKey: ["classes"] });
-      queryClient.invalidateQueries({ queryKey: ["rekap-sertifikat"] });
-      queryClient.invalidateQueries({ queryKey: ["rekap-ujian-global"] });
+      invalidateStudentStatusQueries(queryClient, variables.student_id);
     },
   });
 }
@@ -490,12 +480,10 @@ export function useDeleteUjian() {
     mutationFn: async (data: { ujian_id: string; student_id: string }) => {
       const { error } = await supabase.from("ujian").delete().eq("id", data.ujian_id);
       if (error) throw error;
+      await syncSingleStudentStatus(data.student_id);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["student-detail", variables.student_id] });
-      queryClient.invalidateQueries({ queryKey: ["classes"] });
-      queryClient.invalidateQueries({ queryKey: ["rekap-sertifikat"] });
-      queryClient.invalidateQueries({ queryKey: ["rekap-ujian-global"] });
+      invalidateStudentStatusQueries(queryClient, variables.student_id);
     },
   });
 }

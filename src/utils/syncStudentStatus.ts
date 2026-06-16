@@ -1,10 +1,31 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export async function syncStudentStatus() {
+export async function syncSingleStudentStatus(studentId: string) {
+  const { data: latestExam, error: latestExamError } = await supabase
+    .from("ujian")
+    .select("status")
+    .eq("student_id", studentId)
+    .order("tanggal", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
+  if (latestExamError) throw latestExamError;
+
+  const nextStatus = latestExam?.status || "Belum Ujian";
+  const { error: updateError } = await supabase
+    .from("students")
+    .update({ status_sertifikasi: nextStatus })
+    .eq("id", studentId);
+
+  if (updateError) throw updateError;
+}
+
+export async function syncStudentStatus() {
   const { data: ujianData, error } = await supabase
     .from("ujian")
-    .select("student_id, status, created_at")
+    .select("student_id, status, created_at, tanggal")
+    .order("tanggal", { ascending: false })
     .order("created_at", { ascending: false });
 
   if (error) throw error;
@@ -22,12 +43,13 @@ export async function syncStudentStatus() {
   }
 
   for (const [studentId, status] of latestMap.entries()) {
-    await supabase
+    const { error: updateError } = await supabase
       .from("students")
       .update({
         status_sertifikasi: status
       })
       .eq("id", studentId);
+    if (updateError) throw updateError;
   }
 
   return latestMap.size;

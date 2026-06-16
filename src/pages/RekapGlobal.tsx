@@ -183,6 +183,7 @@ export default function RekapGlobal() {
   const [isDownloadingCombinedPdf, setIsDownloadingCombinedPdf] = useState(false);
   const [combinedPdfProgress, setCombinedPdfProgress] = useState<CombinedPdfProgress | null>(null);
   const [bulkJob, setBulkJob] = useState<BulkJob | null>(null);
+  const combinedPdfCancelRef = useRef(false);
   const bulkCancelRef = useRef(false);
 
   const { data, isLoading, isFetching, refetch } = useQuery({
@@ -340,6 +341,7 @@ export default function RekapGlobal() {
     }
 
     setIsDownloadingCombinedPdf(true);
+    combinedPdfCancelRef.current = false;
     setCombinedPdfProgress({ current: 0, total: filtered.length, failed: 0, message: "Menyiapkan pengaturan raport..." });
     try {
       const { header, assets, opts } = await loadRaportSettings();
@@ -348,6 +350,11 @@ export default function RekapGlobal() {
       let successCount = 0;
 
       for (let index = 0; index < filtered.length; index++) {
+        if (combinedPdfCancelRef.current) {
+          toast.info("Download gabungan PDF dibatalkan.");
+          return;
+        }
+
         const row = filtered[index];
         const current = index + 1;
         setCombinedPdfProgress({
@@ -380,6 +387,17 @@ export default function RekapGlobal() {
           console.error("Gagal generate raport gabungan untuk", row.studentName, error);
         }
 
+        if (combinedPdfCancelRef.current) {
+          setCombinedPdfProgress({
+            current,
+            total: filtered.length,
+            failed: failed.length,
+            message: "Download gabungan PDF dibatalkan",
+          });
+          toast.info("Download gabungan PDF dibatalkan.");
+          return;
+        }
+
         setCombinedPdfProgress({
           current,
           total: filtered.length,
@@ -390,6 +408,11 @@ export default function RekapGlobal() {
 
       if (successCount === 0) {
         toast.error(`Tidak ada PDF yang berhasil dibuat. ${failed.length} gagal.`);
+        return;
+      }
+
+      if (combinedPdfCancelRef.current) {
+        toast.info("Download gabungan PDF dibatalkan.");
         return;
       }
 
@@ -420,6 +443,7 @@ export default function RekapGlobal() {
     } finally {
       setIsDownloadingCombinedPdf(false);
       setCombinedPdfProgress(null);
+      combinedPdfCancelRef.current = false;
     }
   };
 
@@ -597,6 +621,13 @@ export default function RekapGlobal() {
     setBulkJob((job) => job ? { ...job, message: "Membatalkan setelah proses saat ini selesai..." } : job);
   };
 
+  const handleCancelCombinedPdf = () => {
+    combinedPdfCancelRef.current = true;
+    setCombinedPdfProgress((progress) =>
+      progress ? { ...progress, message: "Membatalkan setelah raport saat ini selesai..." } : progress
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -623,6 +654,12 @@ export default function RekapGlobal() {
                 </>
               )}
             </button>
+            {isDownloadingCombinedPdf && (
+              <button onClick={handleCancelCombinedPdf}
+                className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium border border-destructive/30 text-destructive hover:bg-destructive/5">
+                <XCircle className="w-4 h-4" /> Batal Gabungan
+              </button>
+            )}
             <button onClick={handleBulkDownload} disabled={bulkJob?.status === "running"}
               className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium border border-primary/30 text-primary hover:bg-primary/5 disabled:opacity-50">
               {bulkJob?.status === "running" ? (

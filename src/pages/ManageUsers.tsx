@@ -38,7 +38,7 @@ const statusBadge: Record<Status, string> = {
 };
 const roleBadge: Record<AppRole, string> = {
   admin: "bg-primary/10 text-primary",
-  penguji: "bg-accent/10 text-accent",
+  penguji: "bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-200 dark:border-emerald-700",
   guru: "bg-blue-100 text-blue-800",
   parent: "bg-purple-100 text-purple-800",
 };

@@ -477,6 +477,88 @@ export type Database = {
           },
         ]
       }
+      student_class_history: {
+        Row: {
+          academic_year_from: string
+          academic_year_to: string
+          from_class_id: string | null
+          id: string
+          note: string | null
+          promoted_at: string
+          promoted_by: string | null
+          status_after: string
+          student_id: string
+          to_class_id: string | null
+        }
+        Insert: {
+          academic_year_from: string
+          academic_year_to: string
+          from_class_id?: string | null
+          id?: string
+          note?: string | null
+          promoted_at?: string
+          promoted_by?: string | null
+          status_after: string
+          student_id: string
+          to_class_id?: string | null
+        }
+        Update: {
+          academic_year_from?: string
+          academic_year_to?: string
+          from_class_id?: string | null
+          id?: string
+          note?: string | null
+          promoted_at?: string
+          promoted_by?: string | null
+          status_after?: string
+          student_id?: string
+          to_class_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_class_history_academic_year_from_fkey"
+            columns: ["academic_year_from"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_class_history_academic_year_to_fkey"
+            columns: ["academic_year_to"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_class_history_from_class_id_fkey"
+            columns: ["from_class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_class_history_promoted_by_fkey"
+            columns: ["promoted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_class_history_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_class_history_to_class_id_fkey"
+            columns: ["to_class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       students: {
         Row: {
           catatan_penguji: string | null
@@ -488,6 +570,7 @@ export type Database = {
           nis: string | null
           nisn: string | null
           progress_hafalan: number
+          student_status: string
           status_siswa: string
           status_sertifikasi: Database["public"]["Enums"]["certification_status"]
           target_juz: number
@@ -503,6 +586,7 @@ export type Database = {
           nis?: string | null
           nisn?: string | null
           progress_hafalan?: number
+          student_status?: string
           status_siswa?: string
           status_sertifikasi?: Database["public"]["Enums"]["certification_status"]
           target_juz?: number
@@ -518,6 +602,7 @@ export type Database = {
           nis?: string | null
           nisn?: string | null
           progress_hafalan?: number
+          student_status?: string
           status_siswa?: string
           status_sertifikasi?: Database["public"]["Enums"]["certification_status"]
           target_juz?: number
@@ -643,6 +728,22 @@ export type Database = {
         Returns: boolean
       }
       is_account_approved: { Args: { _uid: string }; Returns: boolean }
+      process_mass_class_promotion: {
+        Args: {
+          _academic_year_from: string
+          _academic_year_to: string
+          _note?: string
+          _student_ids: string[]
+        }
+        Returns: {
+          from_class_id: string | null
+          message: string | null
+          result_status: string | null
+          status_after: string | null
+          student_id: string | null
+          to_class_id: string | null
+        }[]
+      }
     }
     Enums: {
       account_status: "pending" | "approved" | "rejected" | "inactive"

@@ -66,9 +66,10 @@ export const navSections: NavSection[] = [
       },
       {
         label: "Naik Kelas Massal",
-        description: "Disiapkan untuk alur administrasi massal.",
+        description: "Preview dan proses kenaikan kelas siswa aktif.",
         icon: ArrowUpWideNarrow,
-        disabled: true,
+        path: "/naik-kelas-massal",
+        adminOnly: true,
       },
     ],
   },

@@ -102,42 +102,21 @@ export default function Sidebar({ collapsed, isDesktop, mobileOpen, onCloseMobil
         getSidebarDesktopWidthClass(collapsed),
       )}
     >
-      <div className="border-b border-emerald-100/80 px-4 py-4">
-        <div
-          className={cn(
-            "rounded-[24px] border border-emerald-100 bg-[linear-gradient(135deg,#f8fafc_0%,#eefbf4_100%)] transition-all duration-150",
-            collapsed ? "px-2 py-3" : "px-3.5 py-4",
-          )}
-        >
-          <div className={cn("flex items-center", collapsed ? "justify-center" : "gap-3")}>
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-700 text-white shadow-[0_12px_28px_rgba(4,120,87,0.22)]">
-              <div className="h-2.5 w-2.5 rounded-full bg-[#f3ddb0]" />
-            </div>
-            {!collapsed && (
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#b88a2f]">Panel Menu</p>
-                <p className="truncate text-sm font-semibold text-slate-900">Navigasi Sekolah</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
       <div className="flex-1 overflow-y-auto px-3 py-4">
-        <div className="space-y-5">
-          <div>
-            {!collapsed && (
-              <p className="mb-3 px-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
-                Utama
-              </p>
-            )}
-            <SidebarMenuItem
-              item={dashboardItem}
-              active={isActive(dashboardItem)}
-              collapsed={collapsed}
-              onClick={() => navigate("/")}
-            />
-          </div>
+  <div className="space-y-5">
+    <div>
+      {!collapsed && (
+        <p className="mb-3 px-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
+          Utama
+        </p>
+      )}
+      <SidebarMenuItem
+        item={dashboardItem}
+        active={isActive(dashboardItem)}
+        collapsed={collapsed}
+        onClick={() => navigate("/")}
+      />
+    </div>
 
           {filteredSections.map((section) => (
             <div key={section.label}>

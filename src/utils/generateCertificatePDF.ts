@@ -17,9 +17,11 @@ const PDF_HEIGHT_MM = 210;
 const PDF_WIDTH_MM = PDF_HEIGHT_MM * (CERTIFICATE_WIDTH / CERTIFICATE_HEIGHT);
 const A4_LANDSCAPE_WIDTH_MM = 297;
 const A4_LANDSCAPE_HEIGHT_MM = 210;
+const LEGAL_LANDSCAPE_WIDTH_MM = 355.6;
+const LEGAL_LANDSCAPE_HEIGHT_MM = 215.9;
 const A4_PRINT_MARGIN_MM = 5;
 
-export type CertificatePdfFormat = "original" | "a4-landscape";
+export type CertificatePdfFormat = "original" | "a4-landscape" | "legal-landscape";
 
 export interface CertificatePdfPlacement {
   pageWidth: number;
@@ -33,18 +35,24 @@ export interface CertificatePdfPlacement {
 export const getCertificatePdfPlacement = (
   format: CertificatePdfFormat,
 ): CertificatePdfPlacement => {
-  if (format === "a4-landscape") {
-    const availableWidth = A4_LANDSCAPE_WIDTH_MM - A4_PRINT_MARGIN_MM * 2;
-    const availableHeight = A4_LANDSCAPE_HEIGHT_MM - A4_PRINT_MARGIN_MM * 2;
+  if (format === "a4-landscape" || format === "legal-landscape") {
+    const pageWidth = format === "legal-landscape"
+      ? LEGAL_LANDSCAPE_WIDTH_MM
+      : A4_LANDSCAPE_WIDTH_MM;
+    const pageHeight = format === "legal-landscape"
+      ? LEGAL_LANDSCAPE_HEIGHT_MM
+      : A4_LANDSCAPE_HEIGHT_MM;
+    const availableWidth = pageWidth - A4_PRINT_MARGIN_MM * 2;
+    const availableHeight = pageHeight - A4_PRINT_MARGIN_MM * 2;
     const certificateRatio = CERTIFICATE_WIDTH / CERTIFICATE_HEIGHT;
     const imageWidth = Math.min(availableWidth, availableHeight * certificateRatio);
     const imageHeight = imageWidth / certificateRatio;
 
     return {
-      pageWidth: A4_LANDSCAPE_WIDTH_MM,
-      pageHeight: A4_LANDSCAPE_HEIGHT_MM,
-      imageX: (A4_LANDSCAPE_WIDTH_MM - imageWidth) / 2,
-      imageY: (A4_LANDSCAPE_HEIGHT_MM - imageHeight) / 2,
+      pageWidth,
+      pageHeight,
+      imageX: (pageWidth - imageWidth) / 2,
+      imageY: (pageHeight - imageHeight) / 2,
       imageWidth,
       imageHeight,
     };

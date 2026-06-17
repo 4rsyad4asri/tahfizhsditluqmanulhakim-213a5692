@@ -303,6 +303,7 @@ const CertificatePreviewDialog = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="a4-landscape">A4 Landscape (Cetak)</SelectItem>
+                <SelectItem value="legal-landscape">F4 / Legal 8.5 x 14 in</SelectItem>
                 <SelectItem value="original">Rasio Asli 4:3</SelectItem>
               </SelectContent>
             </Select>

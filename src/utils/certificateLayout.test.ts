@@ -61,6 +61,16 @@ describe("certificate layout", () => {
     expect(placement.imageWidth / placement.imageHeight).toBeCloseTo(4 / 3, 5);
   });
 
+  it("places the certificate on legal landscape without stretching it", () => {
+    const placement = getCertificatePdfPlacement("legal-landscape");
+
+    expect(placement.pageWidth).toBeCloseTo(355.6, 5);
+    expect(placement.pageHeight).toBeCloseTo(215.9, 5);
+    expect(placement.imageX).toBeGreaterThan(35);
+    expect(placement.imageY).toBeGreaterThanOrEqual(5);
+    expect(placement.imageWidth / placement.imageHeight).toBeCloseTo(4 / 3, 5);
+  });
+
   it("exports and imports a portable admin layout file", () => {
     const exported = exportCertificateLayout(DEFAULT_CERTIFICATE_LAYOUT);
     const imported = importCertificateLayout(JSON.parse(exported));

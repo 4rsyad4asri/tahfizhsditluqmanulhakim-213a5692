@@ -886,6 +886,7 @@ const RekapSertifikat = () => {
               aria-label="Format PDF massal"
             >
               <option value="a4-landscape">A4 Landscape</option>
+              <option value="legal-landscape">F4 / Legal 8.5 x 14 in</option>
               <option value="original">Rasio Asli 4:3</option>
             </select>
             <button
@@ -1207,7 +1208,7 @@ const RekapSertifikat = () => {
                                         const doc = await buildCertificatePDF(
                                           certificateData,
                                           item.layoutSnapshot || item.layoutOverride || undefined,
-                                          "a4-landscape",
+                                          bulkPdfFormat,
                                         );
                                         doc.save(`Sertifikat_${safeFileName(item.studentName)}.pdf`);
                                         toast({ title: "Berhasil", description: "Sertifikat berhasil diunduh" });

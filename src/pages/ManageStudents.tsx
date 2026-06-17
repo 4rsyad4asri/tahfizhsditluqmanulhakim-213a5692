@@ -42,6 +42,7 @@ interface StudentForm {
   target_juz: number;
   level: StudentLevel;
   progress_hafalan: number;
+  status_siswa: StudentStatus;
   status_sertifikasi: CertStatus;
 }
 
@@ -53,6 +54,7 @@ const emptyForm: StudentForm = {
   target_juz: 30,
   level: "Tahsin Dasar",
   progress_hafalan: 0,
+  status_siswa: "aktif",
   status_sertifikasi: "Belum Ujian"
 };
 interface Student {
@@ -158,6 +160,7 @@ const { data: classes } = useQuery({
         target_juz: data.target_juz,
         level: data.level,
         progress_hafalan: data.progress_hafalan,
+        status_siswa: data.status_siswa,
         status_sertifikasi: data.status_sertifikasi
       });
       if (error) throw error;
@@ -184,6 +187,7 @@ const { data: classes } = useQuery({
         target_juz: data.target_juz,
         level: data.level,
         progress_hafalan: data.progress_hafalan,
+        status_siswa: data.status_siswa,
         status_sertifikasi: data.status_sertifikasi
       }).
       eq("id", id);
@@ -252,6 +256,7 @@ const deleteAllMutation = useMutation({
       target_juz: student.target_juz,
       level: student.level,
       progress_hafalan: student.progress_hafalan,
+      status_siswa: student.status_siswa || "aktif",
       status_sertifikasi: student.status_sertifikasi
     });
     setEditingId(student.id);
@@ -498,6 +503,22 @@ const filteredStudents: Student[] = (students || []).filter((s: Student) => {
                         className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
 
                   </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">Status Siswa</label>
+                    <select
+                        value={form.status_siswa}
+                        onChange={(e) => setForm({ ...form, status_siswa: e.target.value as StudentStatus })}
+                        className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+
+                      <option value="aktif">Aktif</option>
+                      <option value="alumni">Alumni</option>
+                      <option value="pindah">Pindah</option>
+                      <option value="nonaktif">Nonaktif</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
                   <div>
                     <label className="block text-xs font-medium text-muted-foreground mb-1">Status</label>
                     <select

@@ -74,6 +74,8 @@ interface RekapItem {
 interface EditModalState {
   isOpen: boolean;
   ujianId: string | null;
+  certificateId: string | null;
+  publishStatus: PublishStatus;
   studentName: string;
   currentNomorSertifikat: string;
   newNomorSertifikat: string;
@@ -244,6 +246,8 @@ const RekapSertifikat = () => {
   const [editModal, setEditModal] = useState<EditModalState>({
     isOpen: false,
     ujianId: null,
+    certificateId: null,
+    publishStatus: "belum_publish",
     studentName: "",
     currentNomorSertifikat: "",
     newNomorSertifikat: "",
@@ -578,22 +582,59 @@ const RekapSertifikat = () => {
   });
 
   const editNomorSertifikatMutation = useMutation({
-    mutationFn: async ({ ujianId, nomorSertifikat }: { ujianId: string; nomorSertifikat: string }) => {
-      const { error } = await supabase
-        .from("ujian")
-        .update({ nomor_sertifikat: nomorSertifikat })
-        .eq("id", ujianId);
-      if (error) throw error;
+    mutationFn: async ({
+      ujianId,
+      nomorSertifikat,
+      certificateId,
+      publishStatus,
+    }: {
+      ujianId: string;
+      nomorSertifikat: string;
+      certificateId: string | null;
+      publishStatus: PublishStatus;
+    }) => {
+      const shouldRevisePublishedCertificate =
+        Boolean(certificateId) &&
+        (publishStatus === "published" || publishStatus === "revised");
+
+      const operations: PromiseLike<{ error: Error | null }>[] = [
+        supabase
+          .from("ujian")
+          .update({ nomor_sertifikat: nomorSertifikat })
+          .eq("id", ujianId),
+      ];
+
+      if (shouldRevisePublishedCertificate && certificateId) {
+        operations.push(
+          supabase
+            .from("tahfizh_certificates")
+            .update({
+              certificate_number: nomorSertifikat,
+              status: "revised",
+            })
+            .eq("id", certificateId),
+        );
+      }
+
+      const results = await Promise.all(operations);
+      const failedOperation = results.find((result) => result.error);
+      if (failedOperation?.error) {
+        throw failedOperation.error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rekap-sertifikat"] });
+      queryClient.invalidateQueries({ queryKey: ["student-detail"] });
+      queryClient.invalidateQueries({ queryKey: ["rekap-ujian-global"] });
       toast({
         title: "Berhasil",
-        description: "Nomor sertifikat berhasil diperbarui",
+        description: "Nomor sertifikat berhasil direvisi",
       });
       setEditModal({
         isOpen: false,
         ujianId: null,
+        certificateId: null,
+        publishStatus: "belum_publish",
         studentName: "",
         currentNomorSertifikat: "",
         newNomorSertifikat: "",
@@ -608,28 +649,27 @@ const RekapSertifikat = () => {
     },
   });
 
-  const showPublishedLockMessage = () => {
-    toast({
-      title: "Sertifikat sudah dipublish",
-      description:
-        "Sertifikat sudah dipublish. Data utama terkunci. Gunakan fitur revisi pada tahap berikutnya.",
-      variant: "destructive",
-    });
-  };
-
   const openEditModal = (
     ujianId: string,
+    certificateId: string | null,
     studentName: string,
     currentNomorSertifikat: string,
     publishStatus: PublishStatus,
   ) => {
-    if (publishStatus === "published") {
-      showPublishedLockMessage();
+    if (!isAdmin) {
       return;
+    }
+    if (publishStatus === "published" || publishStatus === "revised") {
+      const confirmed = confirm(
+        `Sertifikat ${studentName} sudah ${publishStatus}. Revisi ini hanya akan mengubah nomor sertifikat dokumen published. Lanjutkan?`,
+      );
+      if (!confirmed) return;
     }
     setEditModal({
       isOpen: true,
       ujianId,
+      certificateId,
+      publishStatus,
       studentName,
       currentNomorSertifikat,
       newNomorSertifikat: currentNomorSertifikat,
@@ -640,6 +680,8 @@ const RekapSertifikat = () => {
     setEditModal({
       isOpen: false,
       ujianId: null,
+      certificateId: null,
+      publishStatus: "belum_publish",
       studentName: "",
       currentNomorSertifikat: "",
       newNomorSertifikat: "",
@@ -675,6 +717,8 @@ const RekapSertifikat = () => {
       editNomorSertifikatMutation.mutate({
         ujianId: editModal.ujianId,
         nomorSertifikat: editModal.newNomorSertifikat,
+        certificateId: editModal.certificateId,
+        publishStatus: editModal.publishStatus,
       });
     }
   };
@@ -1251,6 +1295,7 @@ const RekapSertifikat = () => {
                                         onClick={() =>
                                           openEditModal(
                                             item.id,
+                                            item.certificateId || null,
                                             item.studentName,
                                             item.nomorSertifikat,
                                             item.publishStatus,
@@ -1264,9 +1309,29 @@ const RekapSertifikat = () => {
                                       </button>
                                     </>
                                   ) : (
-                                    <span className={`inline-flex items-center rounded-md border px-2 py-1.5 text-xs font-medium ${PUBLISH_STATUS_CLASSES[item.publishStatus]}`}>
-                                      {PUBLISH_STATUS_LABELS[item.publishStatus]}
-                                    </span>
+                                    <>
+                                      <span className={`inline-flex items-center rounded-md border px-2 py-1.5 text-xs font-medium ${PUBLISH_STATUS_CLASSES[item.publishStatus]}`}>
+                                        {PUBLISH_STATUS_LABELS[item.publishStatus]}
+                                      </span>
+                                      {(item.publishStatus === "published" || item.publishStatus === "revised") && (
+                                        <button
+                                          onClick={() =>
+                                            openEditModal(
+                                              item.id,
+                                              item.certificateId || null,
+                                              item.studentName,
+                                              item.nomorSertifikat,
+                                              item.publishStatus,
+                                            )
+                                          }
+                                          disabled={editNomorSertifikatMutation.isPending}
+                                          className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors disabled:opacity-50"
+                                          title="Revisi Nomor Sertifikat"
+                                        >
+                                          <Edit2 className="w-3 h-3" />
+                                        </button>
+                                      )}
+                                    </>
                                   )}
                                 </>
                               )}
@@ -1414,6 +1479,12 @@ const RekapSertifikat = () => {
                   className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
+
+              {(editModal.publishStatus === "published" || editModal.publishStatus === "revised") && (
+                <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
+                  Revisi ini khusus untuk dokumen yang sudah published. Data utama sertifikat lainnya tetap terkunci.
+                </div>
+              )}
 
               <div className="flex gap-2 pt-4">
                 <button

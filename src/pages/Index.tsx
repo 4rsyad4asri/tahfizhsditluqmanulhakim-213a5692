@@ -586,7 +586,7 @@ const Dashboard = () => {
                 <p className="text-sm font-semibold text-[#2F7D5F]">Sistem Terkait</p>
                 <h2 className="mt-1 text-xl font-bold text-[#18332A]">Buka Sistem Tahsin</h2>
                 <p className="mt-2 text-sm leading-6 text-[#667A70]">
-                  Untuk ujian tahsin dasar, tahsin lanjutan, rapor tahsin, dan rekap tahsin.
+                  Untuk melihat Laporan bulanan, Halaqqah Tahsin, Talaqqi, dan Nilai Diniyyah bulanan.
                 </p>
                 <button
                   type="button"

@@ -350,7 +350,7 @@ const Dashboard = () => {
                 <div className="min-w-0 flex-1">
                   <h2 className="text-lg font-bold text-[#18332A]">Buka Sistem Tahsin</h2>
                   <p className="mt-1 text-sm leading-6 text-[#667A70]">
-                    Untuk ujian tahsin dasar, tahsin lanjutan, rapor tahsin, dan rekap tahsin.
+                    Untuk melihat laporan bulanan, Halaqqah tahsin, Talaqqi, dan rekap tahsin.
                   </p>
                   <button
                     type="button"

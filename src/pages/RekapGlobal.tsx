@@ -197,6 +197,7 @@ export default function RekapGlobal() {
   const [filterGrade, setFilterGrade] = useState<string>("all");
   const [filterClass, setFilterClass] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterPredikat, setFilterPredikat] = useState<string>("all");
   const [onlyLatest, setOnlyLatest] = useState<boolean>(true);
   const [previewRow, setPreviewRow] = useState<Row | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -269,6 +270,7 @@ export default function RekapGlobal() {
     if (filterGrade !== "all") r = r.filter((x) => x.grade === parseInt(filterGrade));
     if (filterClass !== "all") r = r.filter((x) => x.className === filterClass);
     if (filterStatus !== "all") r = r.filter((x) => x.status === filterStatus);
+    if (filterPredikat !== "all") r = r.filter((x) => x.predikat === filterPredikat);
     r = sortRowsNewestFirst(r);
     if (onlyLatest) {
       const seen = new Set<string>();
@@ -281,7 +283,7 @@ export default function RekapGlobal() {
       r = out;
     }
     return sortRowsForDisplay(r);
-  }, [data, filterMode, filterGrade, filterClass, filterStatus, onlyLatest]);
+  }, [data, filterMode, filterGrade, filterClass, filterStatus, filterPredikat, onlyLatest]);
 
   const stats = useMemo(() => {
     const total = filtered.length;
@@ -315,6 +317,10 @@ export default function RekapGlobal() {
 
   const grades = useMemo(() => [...new Set((data || []).map((r) => r.grade))].sort(), [data]);
   const classNames = useMemo(() => [...new Set((data || []).map((r) => r.className))].sort((a, b) => a.localeCompare(b)), [data]);
+  const predikatOptions = useMemo(
+    () => [...new Set((data || []).map((r) => r.predikat).filter((predikat) => predikat && predikat !== "-"))].sort((a, b) => a.localeCompare(b)),
+    [data]
+  );
 
   const handleOnlyLatestChange = async (checked: boolean) => {
     setOnlyLatest(checked);
@@ -347,6 +353,7 @@ export default function RekapGlobal() {
     if (filterGrade !== "all") activeFilters.push(`Kelas ${filterGrade}`);
     if (filterClass !== "all") activeFilters.push(`Kelas ${filterClass}`);
     if (filterStatus !== "all") activeFilters.push(filterStatus);
+    if (filterPredikat !== "all") activeFilters.push(`Predikat ${filterPredikat}`);
 
     const suffix = activeFilters.length > 0
       ? activeFilters.map(sanitizeFileName).filter(Boolean).join("_")
@@ -769,6 +776,14 @@ export default function RekapGlobal() {
               <option value="all">Semua Status</option>
               <option value="Lulus">Lulus</option>
               <option value="Tidak Lulus">Tidak Lulus</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Predikat</label>
+            <select value={filterPredikat} onChange={(e) => setFilterPredikat(e.target.value)}
+              className="px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm">
+              <option value="all">Semua Predikat</option>
+              {predikatOptions.map((predikat) => <option key={predikat} value={predikat}>{predikat}</option>)}
             </select>
           </div>
           <div className="flex items-end">

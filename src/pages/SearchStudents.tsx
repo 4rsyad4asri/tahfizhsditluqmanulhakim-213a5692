@@ -12,7 +12,6 @@ interface StudentWithClass {
   id: string;
   name: string;
   level: string;
-  progress_hafalan: number;
   status_sertifikasi: string;
   target_juz: number;
   class_name: string;
@@ -31,7 +30,7 @@ const SearchStudents = () => {
     queryFn: async (): Promise<StudentWithClass[]> => {
       const { data, error } = await supabase
         .from("students")
-        .select("id, name, level, progress_hafalan, status_sertifikasi, target_juz, class_id")
+        .select("id, name, level, status_sertifikasi, target_juz, class_id")
         .order("name");
       if (error) throw error;
 
@@ -48,7 +47,6 @@ const SearchStudents = () => {
           id: s.id,
           name: formatStudentName(s.name),
           level: s.level,
-          progress_hafalan: s.progress_hafalan,
           status_sertifikasi: s.status_sertifikasi,
           target_juz: s.target_juz,
           class_name: cls?.name || "-",
@@ -169,19 +167,6 @@ const SearchStudents = () => {
                     <Award className="w-3 h-3 mr-1" />
                     Target Juz {s.target_juz}
                   </Badge>
-                </div>
-                {/* Progress bar */}
-                <div className="mt-3">
-                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                    <span>Hafalan</span>
-                    <span>{s.progress_hafalan}%</span>
-                  </div>
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary rounded-full transition-all"
-                      style={{ width: `${s.progress_hafalan}%` }}
-                    />
-                  </div>
                 </div>
               </div>
             ))}

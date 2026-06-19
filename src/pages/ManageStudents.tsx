@@ -1,4 +1,5 @@
 import { syncStudentStatus } from "@/utils/syncStudentStatus";
+import { getStudentLevelFromExam, getStudentTargetLabelFromExam, type StudentExamSyncRow } from "@/utils/studentExamSync";
 import {
   RefreshCcw,
   Loader2,
@@ -12,7 +13,7 @@ import {
   AlertTriangle,
   Download
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -75,6 +76,11 @@ interface Student {
     section: string;
   } | null;
 }
+
+type StudentListRow = Student & {
+  effectiveLevel: StudentLevel;
+  latestTargetLabel: string;
+};
 const ManageStudents = () => {
   const [syncing, setSyncing] = useState(false);
   const { isAdmin } = useAuthContext();
@@ -101,8 +107,11 @@ const ManageStudents = () => {
     await queryClient.invalidateQueries({
       queryKey: ["all-students"]
     });
+    await queryClient.invalidateQueries({
+      queryKey: ["all-student-latest-exams"]
+    });
     
-    toast.success(`${total} status siswa berhasil disinkronkan`);
+    toast.success(`${total} data siswa berhasil disinkronkan dari ujian terakhir`);
 
   } catch (e) {
 
@@ -149,6 +158,20 @@ const { data: classes } = useQuery({
     }
   });
 
+  const { data: latestExams } = useQuery({
+    queryKey: ["all-student-latest-exams"],
+    queryFn: async (): Promise<StudentExamSyncRow[]> => {
+      const { data, error } = await supabase
+        .from("ujian")
+        .select("student_id, mode, nilai_aspek, status, created_at, tanggal")
+        .order("tanggal", { ascending: false })
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as StudentExamSyncRow[];
+    }
+  });
+
   // Add student
   const addMutation = useMutation({
     mutationFn: async (data: StudentForm) => {
@@ -167,6 +190,7 @@ const { data: classes } = useQuery({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["all-students"] });
+      queryClient.invalidateQueries({ queryKey: ["all-student-latest-exams"] });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
       toast.success("Siswa berhasil ditambahkan!");
       resetForm();
@@ -195,6 +219,7 @@ const { data: classes } = useQuery({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["all-students"] });
+      queryClient.invalidateQueries({ queryKey: ["all-student-latest-exams"] });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
       toast.success("Data siswa berhasil diperbarui!");
       resetForm();
@@ -210,6 +235,7 @@ const { data: classes } = useQuery({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["all-students"] });
+      queryClient.invalidateQueries({ queryKey: ["all-student-latest-exams"] });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
       toast.success("Siswa berhasil dihapus!");
       setDeleteConfirm(null);
@@ -234,6 +260,7 @@ const deleteAllMutation = useMutation({
     
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["all-students"] });
+      queryClient.invalidateQueries({ queryKey: ["all-student-latest-exams"] });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
       toast.success(selectedClass !== "all" ? "Semua siswa di kelas ini berhasil dihapus!" : "Semua data siswa berhasil dihapus!");
       setDeleteAllConfirm(false);
@@ -291,35 +318,55 @@ const deleteAllMutation = useMutation({
     }
   };
 
-const filteredStudents: Student[] = (students || []).filter((s: Student) => {
-  const query = search.trim().toLowerCase();
-  const studentStatus = (s.status_siswa || "aktif") as StudentStatus;
-  const matchesSearch =
-    !query
-    || (s.name || "").toLowerCase().includes(query)
-    || (s.nis || "").includes(query)
-    || (s.nisn || "").includes(query);
-  const matchesStudentStatus =
-    selectedStudentStatus === "all" || studentStatus === selectedStudentStatus;
-  const matchesLevel =
-    selectedLevel === "all" || s.level === selectedLevel;
-  const matchesCertificationStatus =
-    selectedCertificationStatus === "all"
-    || s.status_sertifikasi === selectedCertificationStatus;
+  const latestExamByStudent = useMemo(() => {
+    const map = new Map<string, StudentExamSyncRow>();
+    for (const exam of latestExams || []) {
+      if (!map.has(exam.student_id)) {
+        map.set(exam.student_id, exam);
+      }
+    }
+    return map;
+  }, [latestExams]);
 
-  return matchesSearch && matchesStudentStatus && matchesLevel && matchesCertificationStatus;
-});
+const filteredStudents: StudentListRow[] = useMemo(() => {
+  return ((students || []) as Student[])
+    .map((s) => {
+      const latestExam = latestExamByStudent.get(s.id);
+      return {
+        ...s,
+        effectiveLevel: getStudentLevelFromExam(latestExam?.mode) || s.level,
+        latestTargetLabel: getStudentTargetLabelFromExam(latestExam) || `Juz ${s.target_juz}`,
+      };
+    })
+    .filter((s) => {
+      const query = search.trim().toLowerCase();
+      const studentStatus = (s.status_siswa || "aktif") as StudentStatus;
+      const matchesSearch =
+        !query ||
+        (s.name || "").toLowerCase().includes(query) ||
+        (s.nis || "").includes(query) ||
+        (s.nisn || "").includes(query);
+      const matchesStudentStatus =
+        selectedStudentStatus === "all" || studentStatus === selectedStudentStatus;
+      const matchesLevel =
+        selectedLevel === "all" || s.effectiveLevel === selectedLevel;
+      const matchesCertificationStatus =
+        selectedCertificationStatus === "all" ||
+        s.status_sertifikasi === selectedCertificationStatus;
+
+      return matchesSearch && matchesStudentStatus && matchesLevel && matchesCertificationStatus;
+    });
+}, [latestExamByStudent, search, selectedCertificationStatus, selectedLevel, selectedStudentStatus, students]);
 
   const handleExport = () => {
-    const dataToExport = filteredStudents.map((s: Student) => ({
+    const dataToExport = filteredStudents.map((s: StudentListRow) => ({
       "Nama": formatStudentName(s.name),
       "NIS": s.nis || "",
       "NISN": s.nisn || "",
       "Kelas": s.classes?.name || "",
       "Status Siswa": s.status_siswa || "aktif",
-      "Target Juz": s.target_juz,
-      "Level": s.level,
-      "Progress (%)": s.progress_hafalan,
+      "Target Terakhir": s.latestTargetLabel,
+      "Level": s.effectiveLevel,
       "Status Sertifikasi": s.status_sertifikasi,
     }));
 
@@ -378,7 +425,7 @@ const filteredStudents: Student[] = (students || []).filter((s: Student) => {
   ) : (
     <>
       <RefreshCcw className="w-4 h-4" />
-      Sinkronkan Status
+      Sinkronkan Data Ujian
     </>
   )}
 </button>
@@ -491,18 +538,7 @@ const filteredStudents: Student[] = (students || []).filter((s: Student) => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1">Progress (%)</label>
-                    <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={form.progress_hafalan}
-                        onChange={(e) => setForm({ ...form, progress_hafalan: Math.min(100, Math.max(0, Number(e.target.value) || 0)) })}
-                        className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
-
-                  </div>
+                <div>
                   <div>
                     <label className="block text-xs font-medium text-muted-foreground mb-1">Status Siswa</label>
                     <select
@@ -634,7 +670,7 @@ const filteredStudents: Student[] = (students || []).filter((s: Student) => {
         <>
             {/* Mobile Cards */}
             <div className="md:hidden space-y-3">
-              {filteredStudents.map((student: Student) =>
+              {filteredStudents.map((student: StudentListRow) =>
             <div key={student.id} className="bg-card rounded-lg border border-border p-4 shadow-card">
                   <div className="flex items-start justify-between mb-2">
                     <div>
@@ -660,9 +696,8 @@ const filteredStudents: Student[] = (students || []).filter((s: Student) => {
                     <span>NIS: <span className="text-foreground">{student.nis || "-"}</span></span>
                     <span>NISN: <span className="text-foreground">{student.nisn || "-"}</span></span>
                     <span>Status Siswa: <span className="text-foreground">{student.status_siswa || "aktif"}</span></span>
-                    <span>Level: <span className="text-foreground">{student.level}</span></span>
-                    <span>Juz: <span className="text-foreground">{student.target_juz}</span></span>
-                    <span>Progress: <span className="text-foreground">{student.progress_hafalan}%</span></span>
+                    <span>Level: <span className="text-foreground">{student.effectiveLevel}</span></span>
+                    <span>Target: <span className="text-foreground">{student.latestTargetLabel}</span></span>
                     <span>Sertifikasi: <span className="text-foreground">{student.status_sertifikasi}</span></span>
                   </div>
                 </div>
@@ -680,15 +715,14 @@ const filteredStudents: Student[] = (students || []).filter((s: Student) => {
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">NISN</th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Kelas</th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Status Siswa</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Target</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Target Terakhir</th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Level</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Progress</th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Status</th>
                       <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase">Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredStudents.map((student: Student, idx: number) =>
+                    {filteredStudents.map((student: StudentListRow, idx: number) =>
                   <tr key={student.id} className={`border-b border-border/50 hover:bg-muted/30 transition-colors ${idx % 2 ? 'bg-muted/10' : ''}`}>
                         <td className="px-4 py-3 font-medium text-foreground">{formatStudentName(student.name)}</td>
                         <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{student.nis || "-"}</td>
@@ -707,21 +741,13 @@ const filteredStudents: Student[] = (students || []).filter((s: Student) => {
                             {student.status_siswa || "aktif"}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground">Juz {student.target_juz}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{student.latestTargetLabel}</td>
                       <td className="px-4 py-3">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      student.level === 'Tahfizh' ? 'bg-primary/10 text-primary' :
-                      student.level === 'Tahsin Lanjutan' ? 'bg-orange-100 text-orange-800 border border-orange-200' :
+                      student.effectiveLevel === 'Tahfizh' ? 'bg-primary/10 text-primary' :
+                      student.effectiveLevel === 'Tahsin Lanjutan' ? 'bg-orange-100 text-orange-800 border border-orange-200' :
                       'bg-muted text-muted-foreground'
-                    }`}>{student.level}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
-                              <div className="h-full rounded-full gradient-islamic" style={{ width: `${student.progress_hafalan}%` }} />
-                            </div>
-                            <span className="text-xs text-foreground">{student.progress_hafalan}%</span>
-                          </div>
+                    }`}>{student.effectiveLevel}</span>
                         </td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${

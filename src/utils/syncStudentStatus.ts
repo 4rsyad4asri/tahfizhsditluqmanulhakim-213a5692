@@ -1,9 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getStudentSyncUpdateFromExam } from "@/utils/studentExamSync";
 
 export async function syncSingleStudentStatus(studentId: string) {
   const { data: latestExam, error: latestExamError } = await supabase
     .from("ujian")
-    .select("status")
+    .select("student_id, mode, nilai_aspek, status, created_at, tanggal")
     .eq("student_id", studentId)
     .order("tanggal", { ascending: false })
     .order("created_at", { ascending: false })
@@ -12,10 +13,9 @@ export async function syncSingleStudentStatus(studentId: string) {
 
   if (latestExamError) throw latestExamError;
 
-  const nextStatus = latestExam?.status || "Belum Ujian";
   const { error: updateError } = await supabase
     .from("students")
-    .update({ status_sertifikasi: nextStatus })
+    .update(getStudentSyncUpdateFromExam(latestExam))
     .eq("id", studentId);
 
   if (updateError) throw updateError;
@@ -24,7 +24,7 @@ export async function syncSingleStudentStatus(studentId: string) {
 export async function syncStudentStatus() {
   const { data: ujianData, error } = await supabase
     .from("ujian")
-    .select("student_id, status, created_at, tanggal")
+    .select("student_id, mode, nilai_aspek, status, created_at, tanggal")
     .order("tanggal", { ascending: false })
     .order("created_at", { ascending: false });
 
@@ -34,20 +34,18 @@ export async function syncStudentStatus() {
     return 0;
   }
 
-  const latestMap = new Map();
+  const latestMap = new Map<string, (typeof ujianData)[number]>();
 
   for (const ujian of ujianData) {
     if (!latestMap.has(ujian.student_id)) {
-      latestMap.set(ujian.student_id, ujian.status);
+      latestMap.set(ujian.student_id, ujian);
     }
   }
 
-  for (const [studentId, status] of latestMap.entries()) {
+  for (const [studentId, latestExam] of latestMap.entries()) {
     const { error: updateError } = await supabase
       .from("students")
-      .update({
-        status_sertifikasi: status
-      })
+      .update(getStudentSyncUpdateFromExam(latestExam))
       .eq("id", studentId);
     if (updateError) throw updateError;
   }

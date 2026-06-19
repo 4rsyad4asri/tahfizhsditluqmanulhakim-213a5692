@@ -148,15 +148,6 @@ const ClassStudents = () => {
                   <span>Target Juz</span>
                   <span className="font-medium text-foreground">Juz {student.target_juz}</span>
                 </div>
-                <div className="flex justify-between items-center text-muted-foreground">
-                  <span>Progress</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-20 h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div className="h-full rounded-full gradient-islamic" style={{ width: `${student.progress_hafalan}%` }} />
-                    </div>
-                    <span className="font-medium text-foreground">{student.progress_hafalan}%</span>
-                  </div>
-                </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Status</span>
                   {statusBadge(student.status_sertifikasi)}
@@ -181,7 +172,6 @@ const ClassStudents = () => {
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nama Siswa</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Target Juz</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Level</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Progress</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Aksi</th>
                 </tr>
@@ -195,14 +185,6 @@ const ClassStudents = () => {
                     <td className="px-4 py-3 font-medium text-foreground">{formatStudentName(student.name)}</td>
                     <td className="px-4 py-3 text-muted-foreground">Juz {student.target_juz}</td>
                     <td className="px-4 py-3">{levelBadge(student.level)}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-24 h-1.5 rounded-full bg-muted overflow-hidden">
-                          <div className="h-full rounded-full gradient-islamic" style={{ width: `${student.progress_hafalan}%` }} />
-                        </div>
-                        <span className="text-sm font-medium text-foreground">{student.progress_hafalan}%</span>
-                      </div>
-                    </td>
                     <td className="px-4 py-3">{statusBadge(student.status_sertifikasi)}</td>
                     <td className="px-4 py-3 text-right">
                       <button

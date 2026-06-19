@@ -68,6 +68,11 @@ interface CombinedPdfProgress {
   message?: string;
 }
 
+interface RekapGlobalQueryResult {
+  rows: Row[];
+  classOptions: string[];
+}
+
 const MODE_COLORS: Record<string, string> = {
   "Tahfizh Reguler": "hsl(var(--primary))",
   "Tahfizh Sertifikat": "hsl(var(--accent))",
@@ -260,12 +265,13 @@ export default function RekapGlobal() {
           assessorName: p?.full_name || aspek?.assessorName,
         };
       });
-      return rows;
+      const classOptions = [...new Set((classes || []).map((c: any) => c?.name).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+      return { rows, classOptions } satisfies RekapGlobalQueryResult;
     },
   });
 
   const filtered = useMemo(() => {
-    let r = data || [];
+    let r = data?.rows || [];
     if (filterMode !== "all") r = r.filter((x) => x.displayMode === filterMode);
     if (filterGrade !== "all") r = r.filter((x) => x.grade === parseInt(filterGrade));
     if (filterClass !== "all") r = r.filter((x) => x.className === filterClass);
@@ -315,12 +321,42 @@ export default function RekapGlobal() {
     return Object.entries(m).map(([name, value]) => ({ name, value }));
   }, [filtered]);
 
-  const grades = useMemo(() => [...new Set((data || []).map((r) => r.grade))].sort(), [data]);
-  const classNames = useMemo(() => [...new Set((data || []).map((r) => r.className))].sort((a, b) => a.localeCompare(b)), [data]);
+  const grades = useMemo(() => [...new Set((data?.rows || []).map((r) => r.grade))].sort(), [data]);
+  const classNames = useMemo(() => data?.classOptions || [], [data]);
   const predikatOptions = useMemo(
-    () => [...new Set((data || []).map((r) => r.predikat).filter((predikat) => predikat && predikat !== "-"))].sort((a, b) => a.localeCompare(b)),
+    () => [...new Set((data?.rows || []).map((r) => r.predikat).filter((predikat) => predikat && predikat !== "-"))].sort((a, b) => a.localeCompare(b)),
     [data]
   );
+  const totalByMode = useMemo(() => byMode.reduce((sum, item) => sum + item.value, 0), [byMode]);
+
+  const renderModeLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, value }: {
+    cx?: number;
+    cy?: number;
+    midAngle?: number;
+    innerRadius?: number;
+    outerRadius?: number;
+    value?: number;
+  }) => {
+    if (!value || !cx || !cy || midAngle === undefined || innerRadius === undefined || outerRadius === undefined) {
+      return null;
+    }
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.58;
+    const x = cx + radius * Math.cos((-midAngle * Math.PI) / 180);
+    const y = cy + radius * Math.sin((-midAngle * Math.PI) / 180);
+
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="#ffffff"
+        textAnchor="middle"
+        dominantBaseline="central"
+        className="text-[11px] font-semibold"
+      >
+        {value}
+      </text>
+    );
+  };
 
   const handleOnlyLatestChange = async (checked: boolean) => {
     setOnlyLatest(checked);
@@ -881,17 +917,55 @@ export default function RekapGlobal() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="p-4 rounded-lg border border-border bg-card">
                 <h3 className="text-sm font-semibold text-foreground mb-3">Distribusi Mode Ujian</h3>
-                <ResponsiveContainer width="100%" height={240}>
-                  <PieChart>
-                    <Pie data={byMode} dataKey="value" nameKey="name" outerRadius={80} label>
-                      {byMode.map((d) => (
-                        <Cell key={d.name} fill={MODE_COLORS[d.name] || "hsl(var(--muted))"} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+                <div className="relative h-[280px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={byMode}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={58}
+                        outerRadius={92}
+                        paddingAngle={3}
+                        cornerRadius={10}
+                        stroke="none"
+                        labelLine={false}
+                        label={renderModeLabel}
+                      >
+                        {byMode.map((d) => (
+                          <Cell key={d.name} fill={MODE_COLORS[d.name] || "hsl(var(--muted))"} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value: number, name: string) => [`${value} ujian`, name]} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <div className="rounded-full bg-background/88 px-5 py-4 text-center shadow-sm backdrop-blur-sm">
+                      <p className="text-3xl font-bold text-foreground">{totalByMode}</p>
+                      <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Total Ujian</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {byMode.map((item) => {
+                    const pct = totalByMode > 0 ? Math.round((item.value / totalByMode) * 100) : 0;
+                    return (
+                      <div key={item.name} className="rounded-2xl border border-border/70 bg-muted/20 px-3 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="h-2.5 w-2.5 rounded-full"
+                            style={{ backgroundColor: MODE_COLORS[item.name] || "hsl(var(--muted))" }}
+                          />
+                          <p className="text-sm font-medium text-foreground">{item.name}</p>
+                        </div>
+                        <div className="mt-1 flex items-end justify-between gap-3">
+                          <p className="text-lg font-bold text-foreground">{item.value}</p>
+                          <p className="text-xs font-medium text-muted-foreground">{pct}%</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="p-4 rounded-lg border border-border bg-card">

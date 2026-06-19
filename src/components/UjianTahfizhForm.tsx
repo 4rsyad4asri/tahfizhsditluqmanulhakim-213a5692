@@ -87,6 +87,19 @@ function createRegularRows(juz = 30, count = DEFAULT_REGULAR_ROWS) {
   });
 }
 
+function createCertificateRow(juz = 30) {
+  const firstSurah = getSurahsForJuz(juz)[0];
+
+  return {
+    ...createEmptyTahfizhAssessment(juz),
+    surah: firstSurah?.name || "",
+    ayatAwal: undefined,
+    ayatAkhir: undefined,
+    ayatRange: undefined,
+    sequenceLabel: "",
+  };
+}
+
 function initialRows(mode: TahfizhExamMode, initialAssessments?: TahfizhSurahAssessment[]) {
   if (initialAssessments?.length) return aggregateTahfizhAssessmentsForDisplay(initialAssessments);
   if (mode === "Sertifikat") return getCertificateSequenceForJuz(30);
@@ -303,7 +316,7 @@ export default function UjianTahfizhForm({
 
   const addAssessment = () => {
     if (isCertificate) {
-      addCertificateJuz();
+      setAssessments((current) => [...current, createCertificateRow(activeJuz || current[0]?.juz || 30)]);
       return;
     }
 
@@ -311,7 +324,7 @@ export default function UjianTahfizhForm({
   };
 
   const removeAssessment = (index: number) => {
-    if (assessments.length <= 1 || isCertificate) return;
+    if (assessments.length <= 1) return;
     setAssessments((current) => current.filter((_, itemIndex) => itemIndex !== index));
   };
 
@@ -627,7 +640,7 @@ export default function UjianTahfizhForm({
           <div>
             <h5 className="text-sm font-semibold text-foreground">Penilaian</h5>
             <p className="text-xs text-muted-foreground">
-              {isCertificate ? "Field Juz dan Surat/Grup dikunci untuk menjaga sequence sertifikat." : "Juz, surat, dan ayat bisa diedit per baris."}
+              {isCertificate ? "Soal sertifikat bisa diedit, ditambah, dan dihapus per juz sesuai kebutuhan." : "Juz, surat, dan ayat bisa diedit per baris."}
             </p>
           </div>
           {!isCertificate && (
@@ -653,21 +666,19 @@ export default function UjianTahfizhForm({
             disabled={isStopped}
             onUpdate={updateAssessment}
             onRemove={removeAssessment}
-            showRemove={!isCertificate && visibleAssessments.length > 1}
+            showRemove={assessments.length > 1}
           />
         ))}
 
-        {!isCertificate && (
-          <button
-            type="button"
-            onClick={addAssessment}
-            disabled={isStopped}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border py-3 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Plus className="h-4 w-4" />
-            Tambah Soal
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={addAssessment}
+          disabled={isStopped}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border py-3 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Plus className="h-4 w-4" />
+          Tambah Soal
+        </button>
       </div>
 
       {isCertificate && examResult.summaries.length > 0 && (
@@ -925,7 +936,7 @@ function TahfizhAssessmentInput({
       <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-foreground">No {index + 1}</p>
-          <p className="break-words text-xs text-muted-foreground">{assessment.sequenceLabel || assessment.surah || "Belum ada surat"}</p>
+          <p className="break-words text-xs text-muted-foreground">{assessment.surah || assessment.sequenceLabel || "Belum ada surat"}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
@@ -1026,8 +1037,10 @@ function TahfizhAssessmentInput({
             </div>
           ) : (
             <input
-              value={assessment.sequenceLabel || assessment.surah}
-              disabled
+              value={assessment.surah}
+              disabled={disabled}
+              onChange={(event) => onUpdate(index, "surah", event.target.value)}
+              placeholder="Ketik nama surat"
               className="field-input min-w-0"
             />
           )}

@@ -1,4 +1,4 @@
-import { render as rtlRender, screen } from "@testing-library/react";
+import { fireEvent, render as rtlRender, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import UjianTahfizhForm from "@/components/UjianTahfizhForm";
 
@@ -69,5 +69,25 @@ describe("UjianTahfizhForm", () => {
 
     expect(ayatAwalInputs[0]).not.toBeDisabled();
     expect(ayatAkhirInputs[0]).not.toBeDisabled();
+  });
+
+  it("allows adding and removing certificate questions", () => {
+    rtlRender(
+      <UjianTahfizhForm
+        mode="Sertifikat"
+        initialAssessments={[
+          { surah: "Al-Baqarah", juz: 1, ayatAwal: 1, ayatAkhir: 16, kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
+          { surah: "Al-Baqarah", juz: 1, ayatAwal: 17, ayatAkhir: 29, kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
+        ]}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByText("Tambah Soal"));
+    expect(screen.getAllByTitle("Hapus baris")).toHaveLength(3);
+
+    fireEvent.click(screen.getAllByTitle("Hapus baris")[0]);
+    expect(screen.getAllByTitle("Hapus baris")).toHaveLength(2);
   });
 });

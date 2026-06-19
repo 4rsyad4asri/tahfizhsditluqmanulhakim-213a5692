@@ -116,10 +116,29 @@ describe("Tahfizh scoring", () => {
     expect(sequence.every((item) => item.ayatRange === undefined)).toBe(true);
   });
 
-  it("leaves verse fields empty for other certificate juz rows so they stay editable", () => {
+  it("uses the requested 10 question defaults for Juz 2 certificate exams", () => {
+    const sequence = getCertificateSequenceForJuz(2);
+
+    expect(sequence).toHaveLength(10);
+    expect(sequence.every((item) => item.surah === "Al-Baqarah")).toBe(true);
+    expect(sequence[0]).toMatchObject({ ayatAwal: 142, ayatAkhir: 153 });
+    expect(sequence[9]).toMatchObject({ ayatAwal: 246, ayatAkhir: 252 });
+  });
+
+  it("uses the requested mixed-surah defaults for Juz 3 certificate exams", () => {
     const sequence = getCertificateSequenceForJuz(3);
 
-    expect(sequence.map((item) => item.surah)).toEqual(["Al-Baqarah", "Ali 'Imran"]);
+    expect(sequence).toHaveLength(10);
+    expect(sequence[0]).toMatchObject({ surah: "Al-Baqarah", ayatAwal: 253, ayatAkhir: 259 });
+    expect(sequence[3]).toMatchObject({ surah: "Al-Baqarah", ayatAwal: 282, ayatAkhir: 286 });
+    expect(sequence[4]).toMatchObject({ surah: "Ali 'Imran", ayatAwal: 1, ayatAkhir: 15 });
+    expect(sequence[9]).toMatchObject({ surah: "Ali 'Imran", ayatAwal: 78, ayatAkhir: 91 });
+  });
+
+  it("creates 10 editable default questions for certificate juz without a custom template", () => {
+    const sequence = getCertificateSequenceForJuz(9);
+
+    expect(sequence).toHaveLength(10);
     expect(sequence.every((item) => item.ayatAwal === undefined)).toBe(true);
     expect(sequence.every((item) => item.ayatAkhir === undefined)).toBe(true);
     expect(sequence.every((item) => item.ayatRange === undefined)).toBe(true);

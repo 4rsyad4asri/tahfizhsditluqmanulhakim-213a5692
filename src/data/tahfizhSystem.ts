@@ -125,18 +125,110 @@ export const JUZ_30_CERTIFICATE_SEQUENCE: TahfizhSurahAssessment[] = [
   { surah: "Al-Kafirun - An-Nas", juz: 30, kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
 ];
 
-export const JUZ_1_CERTIFICATE_SEQUENCE: TahfizhSurahAssessment[] = [
-  { surah: "Al-Baqarah", juz: 1, ayatAwal: 1, ayatAkhir: 16, kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
-  { surah: "Al-Baqarah", juz: 1, ayatAwal: 17, ayatAkhir: 29, kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
-  { surah: "Al-Baqarah", juz: 1, ayatAwal: 30, ayatAkhir: 48, kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
-  { surah: "Al-Baqarah", juz: 1, ayatAwal: 49, ayatAkhir: 61, kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
-  { surah: "Al-Baqarah", juz: 1, ayatAwal: 62, ayatAkhir: 76, kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
-  { surah: "Al-Baqarah", juz: 1, ayatAwal: 77, ayatAkhir: 88, kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
-  { surah: "Al-Baqarah", juz: 1, ayatAwal: 89, ayatAkhir: 101, kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
-  { surah: "Al-Baqarah", juz: 1, ayatAwal: 102, ayatAkhir: 112, kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
-  { surah: "Al-Baqarah", juz: 1, ayatAwal: 113, ayatAkhir: 126, kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
-  { surah: "Al-Baqarah", juz: 1, ayatAwal: 127, ayatAkhir: 141, kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
-];
+type CertificateTemplateEntry = {
+  surah: string;
+  ayatAwal?: number | string;
+  ayatAkhir?: number | string;
+};
+
+const CERTIFICATE_TEMPLATE_BY_JUZ: Record<number, CertificateTemplateEntry[]> = {
+  1: [
+    { surah: "Al-Baqarah", ayatAwal: 1, ayatAkhir: 16 },
+    { surah: "Al-Baqarah", ayatAwal: 17, ayatAkhir: 29 },
+    { surah: "Al-Baqarah", ayatAwal: 30, ayatAkhir: 48 },
+    { surah: "Al-Baqarah", ayatAwal: 49, ayatAkhir: 61 },
+    { surah: "Al-Baqarah", ayatAwal: 62, ayatAkhir: 76 },
+    { surah: "Al-Baqarah", ayatAwal: 77, ayatAkhir: 88 },
+    { surah: "Al-Baqarah", ayatAwal: 89, ayatAkhir: 101 },
+    { surah: "Al-Baqarah", ayatAwal: 102, ayatAkhir: 112 },
+    { surah: "Al-Baqarah", ayatAwal: 113, ayatAkhir: 126 },
+    { surah: "Al-Baqarah", ayatAwal: 127, ayatAkhir: 141 },
+  ],
+  2: [
+    { surah: "Al-Baqarah", ayatAwal: 142, ayatAkhir: 153 },
+    { surah: "Al-Baqarah", ayatAwal: 154, ayatAkhir: 169 },
+    { surah: "Al-Baqarah", ayatAwal: 170, ayatAkhir: 181 },
+    { surah: "Al-Baqarah", ayatAwal: 182, ayatAkhir: 190 },
+    { surah: "Al-Baqarah", ayatAwal: 191, ayatAkhir: 202 },
+    { surah: "Al-Baqarah", ayatAwal: 203, ayatAkhir: 215 },
+    { surah: "Al-Baqarah", ayatAwal: 216, ayatAkhir: 224 },
+    { surah: "Al-Baqarah", ayatAwal: 225, ayatAkhir: 233 },
+    { surah: "Al-Baqarah", ayatAwal: 234, ayatAkhir: 245 },
+    { surah: "Al-Baqarah", ayatAwal: 246, ayatAkhir: 252 },
+  ],
+  3: [
+    { surah: "Al-Baqarah", ayatAwal: 253, ayatAkhir: 259 },
+    { surah: "Al-Baqarah", ayatAwal: 260, ayatAkhir: 269 },
+    { surah: "Al-Baqarah", ayatAwal: 270, ayatAkhir: 281 },
+    { surah: "Al-Baqarah", ayatAwal: 282, ayatAkhir: 286 },
+    { surah: "Ali 'Imran", ayatAwal: 1, ayatAkhir: 15 },
+    { surah: "Ali 'Imran", ayatAwal: 16, ayatAkhir: 29 },
+    { surah: "Ali 'Imran", ayatAwal: 30, ayatAkhir: 45 },
+    { surah: "Ali 'Imran", ayatAwal: 46, ayatAkhir: 61 },
+    { surah: "Ali 'Imran", ayatAwal: 62, ayatAkhir: 77 },
+    { surah: "Ali 'Imran", ayatAwal: 78, ayatAkhir: 91 },
+  ],
+  4: [
+    { surah: "Ali 'Imran", ayatAwal: 92, ayatAkhir: 108 },
+    { surah: "Ali 'Imran", ayatAwal: 109, ayatAkhir: 121 },
+    { surah: "Ali 'Imran", ayatAwal: 122, ayatAkhir: 140 },
+    { surah: "Ali 'Imran", ayatAwal: 141, ayatAkhir: 153 },
+    { surah: "Ali 'Imran", ayatAwal: 154, ayatAkhir: 165 },
+    { surah: "Ali 'Imran", ayatAwal: 166, ayatAkhir: 180 },
+    { surah: "Ali 'Imran", ayatAwal: 181, ayatAkhir: 194 },
+    { surah: "Ali 'Imran - An-Nisa", ayatAwal: 195, ayatAkhir: "An-Nisa 06" },
+    { surah: "An-Nisa", ayatAwal: 7, ayatAkhir: 14 },
+    { surah: "An-Nisa", ayatAwal: 15, ayatAkhir: 23 },
+  ],
+  5: [
+    { surah: "An-Nisa", ayatAwal: 24, ayatAkhir: 33 },
+    { surah: "An-Nisa", ayatAwal: 34, ayatAkhir: 44 },
+    { surah: "An-Nisa", ayatAwal: 45, ayatAkhir: 59 },
+    { surah: "An-Nisa", ayatAwal: 60, ayatAkhir: 74 },
+    { surah: "An-Nisa", ayatAwal: 75, ayatAkhir: 86 },
+    { surah: "An-Nisa", ayatAwal: 87, ayatAkhir: 94 },
+    { surah: "An-Nisa", ayatAwal: 95, ayatAkhir: 105 },
+    { surah: "An-Nisa", ayatAwal: 106, ayatAkhir: 121 },
+    { surah: "An-Nisa", ayatAwal: 122, ayatAkhir: 134 },
+    { surah: "An-Nisa", ayatAwal: 135, ayatAkhir: 147 },
+  ],
+  6: [
+    { surah: "An-Nisa", ayatAwal: 148, ayatAkhir: 162 },
+    { surah: "An-Nisa", ayatAwal: 163, ayatAkhir: 175 },
+    { surah: "An-Nisa - Al-Ma'idah", ayatAwal: 176, ayatAkhir: "Al-Ma'idah 05" },
+    { surah: "Al-Ma'idah", ayatAwal: 6, ayatAkhir: 13 },
+    { surah: "Al-Ma'idah", ayatAwal: 14, ayatAkhir: 23 },
+    { surah: "Al-Ma'idah", ayatAwal: 24, ayatAkhir: 36 },
+    { surah: "Al-Ma'idah", ayatAwal: 37, ayatAkhir: 45 },
+    { surah: "Al-Ma'idah", ayatAwal: 46, ayatAkhir: 57 },
+    { surah: "Al-Ma'idah", ayatAwal: 58, ayatAkhir: 70 },
+    { surah: "Al-Ma'idah", ayatAwal: 71, ayatAkhir: 82 },
+  ],
+  7: [
+    { surah: "Al-Ma'idah", ayatAwal: 83, ayatAkhir: 95 },
+    { surah: "Al-Ma'idah", ayatAwal: 96, ayatAkhir: 108 },
+    { surah: "Al-Ma'idah", ayatAwal: 109, ayatAkhir: 120 },
+    { surah: "Al-An'am", ayatAwal: 1, ayatAkhir: 18 },
+    { surah: "Al-An'am", ayatAwal: 19, ayatAkhir: 35 },
+    { surah: "Al-An'am", ayatAwal: 36, ayatAkhir: 52 },
+    { surah: "Al-An'am", ayatAwal: 53, ayatAkhir: 68 },
+    { surah: "Al-An'am", ayatAwal: 69, ayatAkhir: 81 },
+    { surah: "Al-An'am", ayatAwal: 82, ayatAkhir: 94 },
+    { surah: "Al-An'am", ayatAwal: 95, ayatAkhir: 110 },
+  ],
+  8: [
+    { surah: "Al-An'am", ayatAwal: 111, ayatAkhir: 124 },
+    { surah: "Al-An'am", ayatAwal: 125, ayatAkhir: 137 },
+    { surah: "Al-An'am", ayatAwal: 138, ayatAkhir: 146 },
+    { surah: "Al-An'am", ayatAwal: 147, ayatAkhir: 157 },
+    { surah: "Al-An'am - Al-A'raf", ayatAwal: 158, ayatAkhir: "Al-A'raf 11" },
+    { surah: "Al-A'raf", ayatAwal: 12, ayatAkhir: 30 },
+    { surah: "Al-A'raf", ayatAwal: 31, ayatAkhir: 43 },
+    { surah: "Al-A'raf", ayatAwal: 44, ayatAkhir: 57 },
+    { surah: "Al-A'raf", ayatAwal: 58, ayatAkhir: 73 },
+    { surah: "Al-A'raf", ayatAwal: 74, ayatAkhir: 87 },
+  ],
+};
 
 type Juz30Group = {
   label: string;
@@ -179,13 +271,54 @@ export function createCertificateAssessment(index = 0): TahfizhSurahAssessment {
   return { ...JUZ_30_CERTIFICATE_SEQUENCE[index] };
 }
 
+function buildCertificateTemplateSequence(juz: number, template: CertificateTemplateEntry[]) {
+  return template.map((item, index) => ({
+    surah: item.surah,
+    juz,
+    ayatAwal: item.ayatAwal,
+    ayatAkhir: item.ayatAkhir,
+    ayatRange: undefined,
+    kelancaran: 100,
+    lahnJali: 0,
+    lahnKhofi: 0,
+    waqaf: 0,
+    salahSambung: 0,
+    catatan: "",
+    sequenceLabel: `Soal ${index + 1}`,
+  }));
+}
+
+function buildFallbackCertificateSequence(juz: number, count = 10) {
+  const surahs = getSurahsForJuz(juz);
+
+  return Array.from({ length: count }, (_, index) => ({
+    surah: surahs[index % Math.max(surahs.length, 1)]?.name || "",
+    juz,
+    ayatAwal: undefined,
+    ayatAkhir: undefined,
+    ayatRange: undefined,
+    kelancaran: 100,
+    lahnJali: 0,
+    lahnKhofi: 0,
+    waqaf: 0,
+    salahSambung: 0,
+    catatan: "",
+    sequenceLabel: `Soal ${index + 1}`,
+  }));
+}
+
 export function getCertificateSequenceForJuz(juz = 30): TahfizhSurahAssessment[] {
-  if (juz === 1) {
-    return JUZ_1_CERTIFICATE_SEQUENCE.map((item) => ({ ...item, sequenceLabel: item.surah }));
+  const template = CERTIFICATE_TEMPLATE_BY_JUZ[juz];
+  if (template) {
+    return buildCertificateTemplateSequence(juz, template);
   }
 
   if (juz === 30) {
     return JUZ_30_CERTIFICATE_SEQUENCE.map((item) => ({ ...item }));
+  }
+
+  if (juz >= 1 && juz <= 26) {
+    return buildFallbackCertificateSequence(juz);
   }
 
   return getSurahsForJuz(juz).map((item) => ({

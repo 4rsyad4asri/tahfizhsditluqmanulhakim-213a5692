@@ -125,6 +125,19 @@ export const JUZ_30_CERTIFICATE_SEQUENCE: TahfizhSurahAssessment[] = [
   { surah: "Al-Kafirun - An-Nas", juz: 30, kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
 ];
 
+export const JUZ_1_CERTIFICATE_SEQUENCE: TahfizhSurahAssessment[] = [
+  { surah: "Al-Baqarah", juz: 1, ayatRange: "1-16", kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
+  { surah: "Al-Baqarah", juz: 1, ayatRange: "17-29", kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
+  { surah: "Al-Baqarah", juz: 1, ayatRange: "30-48", kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
+  { surah: "Al-Baqarah", juz: 1, ayatRange: "49-61", kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
+  { surah: "Al-Baqarah", juz: 1, ayatRange: "62-76", kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
+  { surah: "Al-Baqarah", juz: 1, ayatRange: "77-88", kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
+  { surah: "Al-Baqarah", juz: 1, ayatRange: "89-101", kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
+  { surah: "Al-Baqarah", juz: 1, ayatRange: "102-112", kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
+  { surah: "Al-Baqarah", juz: 1, ayatRange: "113-126", kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
+  { surah: "Al-Baqarah", juz: 1, ayatRange: "127-141", kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
+];
+
 type Juz30Group = {
   label: string;
   members: string[];
@@ -167,6 +180,10 @@ export function createCertificateAssessment(index = 0): TahfizhSurahAssessment {
 }
 
 export function getCertificateSequenceForJuz(juz = 30): TahfizhSurahAssessment[] {
+  if (juz === 1) {
+    return JUZ_1_CERTIFICATE_SEQUENCE.map((item) => ({ ...item, sequenceLabel: getSurahLabelForCertificate(item.surah, item.ayatRange) }));
+  }
+
   if (juz === 30) {
     return JUZ_30_CERTIFICATE_SEQUENCE.map((item) => ({ ...item }));
   }

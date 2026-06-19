@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   calculateTahfizhExamResult,
   calculateTahfizhSurahScore,
+  getCertificateSequenceForJuz,
   normalizeTahfizhAssessment,
   normalizeTahfizhPayload,
   toLegacyTahfizhEntry,
@@ -81,6 +82,25 @@ describe("Tahfizh scoring", () => {
     });
 
     expect(assessment.ayatRange).toBe("142-252");
+  });
+
+  it("uses 10 Al-Baqarah question ranges for Juz 1 certificate exams", () => {
+    const sequence = getCertificateSequenceForJuz(1);
+
+    expect(sequence).toHaveLength(10);
+    expect(sequence.map((item) => item.surah)).toEqual(Array(10).fill("Al-Baqarah"));
+    expect(sequence.map((item) => item.ayatRange)).toEqual([
+      "1-16",
+      "17-29",
+      "30-48",
+      "49-61",
+      "62-76",
+      "77-88",
+      "89-101",
+      "102-112",
+      "113-126",
+      "127-141",
+    ]);
   });
 
   it("uses the current penalty formula with waqaf weight one", () => {

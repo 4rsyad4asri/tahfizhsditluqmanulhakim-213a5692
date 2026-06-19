@@ -231,6 +231,8 @@ const RekapSertifikat = () => {
   const [filterPublish, setFilterPublish] = useState<PublishStatus | "all">("all");
   const [showAll, setShowAll] = useState(false);
   const [selectedBulkIds, setSelectedBulkIds] = useState<string[]>([]);
+  const [bulkRangeStart, setBulkRangeStart] = useState("");
+  const [bulkRangeEnd, setBulkRangeEnd] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [isBulkDownloading, setIsBulkDownloading] = useState(false);
   const [bulkPdfFormat, setBulkPdfFormat] = useState<CertificatePdfFormat>("a4-landscape");
@@ -730,6 +732,41 @@ const RekapSertifikat = () => {
     setSelectedBulkIds(checked ? bulkItems.map((item) => item.id) : []);
   };
 
+  const handleSelectBulkRange = () => {
+    const start = Number.parseInt(bulkRangeStart, 10);
+    const end = Number.parseInt(bulkRangeEnd, 10);
+
+    if (!Number.isFinite(start) || !Number.isFinite(end)) {
+      toast({
+        title: "Rentang belum valid",
+        description: "Isi nomor awal dan akhir terlebih dahulu, misalnya 10 sampai 20.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const min = Math.min(start, end);
+    const max = Math.max(start, end);
+    const matchedIds = bulkItems
+      .filter((item) => item.certificateSequence !== null && item.certificateSequence >= min && item.certificateSequence <= max)
+      .map((item) => item.id);
+
+    if (matchedIds.length === 0) {
+      toast({
+        title: "Nomor tidak ditemukan",
+        description: `Tidak ada sertifikat publish pada nomor ${min}-${max} dalam filter saat ini.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedBulkIds(matchedIds);
+    toast({
+      title: "Rentang dipilih",
+      description: `${matchedIds.length} sertifikat pada nomor ${min}-${max} berhasil dipilih.`,
+    });
+  };
+
   const chartData = useMemo(() => {
     const classCount: Record<string, number> = {};
     lulusItems.forEach((item) => {
@@ -978,6 +1015,38 @@ const RekapSertifikat = () => {
                   Kosongkan Pilihan
                 </button>
               </div>
+            </div>
+            <div className="mt-3 flex flex-col gap-2 md:flex-row md:items-end">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Nomor Awal</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={bulkRangeStart}
+                  onChange={(event) => setBulkRangeStart(event.target.value)}
+                  placeholder="10"
+                  className="w-28 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Nomor Akhir</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={bulkRangeEnd}
+                  onChange={(event) => setBulkRangeEnd(event.target.value)}
+                  placeholder="20"
+                  className="w-28 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleSelectBulkRange}
+                disabled={bulkItems.length === 0 || isBulkDownloading}
+                className="rounded-md border border-input bg-background px-3 py-2 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
+              >
+                Pilih Rentang Nomor
+              </button>
             </div>
             <p className="mt-3 text-xs text-muted-foreground">
               Terpilih {selectedBulkItems.length} dari {bulkItems.length} sertifikat yang siap diunduh.

@@ -68,8 +68,16 @@ export default function Header({ onMenuClick }: HeaderProps) {
             <>
               <button
                 type="button"
+                onClick={() => navigate("/cari-siswa")}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition-all duration-150 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 md:hidden"
+                title="Cari Siswa"
+              >
+                <Search className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
                 onClick={() => navigate("/profil")}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition-all duration-150 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800"
+                className="hidden h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition-all duration-150 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 md:inline-flex"
                 title="Profil Saya"
               >
                 <UserCircle className="h-4 w-4" />

@@ -11,8 +11,6 @@ import {
   BarChart3,
   BookOpen,
   ClipboardCheck,
-  ExternalLink,
-  FileText,
   GraduationCap,
   Info,
   Layers,
@@ -25,7 +23,6 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getSafeErrorMessage } from "@/utils/errorMessages";
-import { TAHSIN_URL } from "@/utils/systemLink";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 
 const LEVEL_COLORS = [
@@ -194,42 +191,31 @@ const Dashboard = () => {
   }, [monitoringMode, publicActiveClasses, publicFilteredClasses, selectedClassId, selectedGrade]);
 
   const totalStudents = accessibleClasses.reduce((sum, classInfo) => sum + classInfo.studentCount, 0);
-  const totalClasses = accessibleClasses.length;
-  const avgProgress = totalStudents > 0
-    ? Math.round(accessibleClasses.reduce((sum, classInfo) => sum + classInfo.avgProgress * classInfo.studentCount, 0) / totalStudents)
-    : 0;
-  const totalLulus = accessibleClasses.reduce((sum, classInfo) => sum + classInfo.lulusCount, 0);
   const publicTotalStudents = publicActiveClasses.reduce((sum, classInfo) => sum + classInfo.studentCount, 0);
   const publicTotalClasses = publicActiveClasses.length;
   const publicAvgProgress = publicTotalStudents > 0
     ? Math.round(publicActiveClasses.reduce((sum, classInfo) => sum + classInfo.avgProgress * classInfo.studentCount, 0) / publicTotalStudents)
     : 0;
+  const publicStudentsWithoutExam = Math.max(publicTotalStudents - (publicSummary?.completedExamStudents ?? 0), 0);
 
   const monitoringStudentCount = monitoringClasses.reduce((sum, classInfo) => sum + classInfo.studentCount, 0);
-  const monitoringAvgProgress = monitoringStudentCount > 0
-    ? Math.round(monitoringClasses.reduce((sum, classInfo) => sum + classInfo.avgProgress * classInfo.studentCount, 0) / monitoringStudentCount)
-    : 0;
   const publicMonitoringStudentCount = publicMonitoringClasses.reduce((sum, classInfo) => sum + classInfo.studentCount, 0);
-  const publicMonitoringAvgProgress = publicMonitoringStudentCount > 0
-    ? Math.round(publicMonitoringClasses.reduce((sum, classInfo) => sum + classInfo.avgProgress * classInfo.studentCount, 0) / publicMonitoringStudentCount)
-    : 0;
 
   const summaryStats = [
     { icon: Users, label: "Total Siswa", value: publicTotalStudents, tone: "bg-[#E3F2E9] text-[#1F5F49]" },
     { icon: Layers, label: "Kelas Aktif", value: publicTotalClasses, hint: "Berdasarkan kelas yang terhubung ke guru", tone: "bg-[#FBF7EB] text-[#8A6F26]" },
-    { icon: BookOpen, label: "Rata-rata Hafalan", value: `${publicAvgProgress}%`, tone: "bg-[#DCE9DD] text-[#1F5F49]" },
+    { icon: ClipboardCheck, label: "Sudah Ujian", value: publicSummary?.completedExamStudents ?? 0, hint: "Sudah punya nilai tersimpan", tone: "bg-[#DCE9DD] text-[#1F5F49]" },
     { icon: Award, label: "Lulus Ujian Tahfizh Sertifikat", value: publicSummary?.certifiedStudents ?? 0, hint: "Masuk Rekap Sertifikat", tone: "bg-[#F6EBC6] text-[#7A6120]" },
     { icon: ClipboardCheck, label: "Lulus Ujian Tahfizh Reguler", value: publicSummary?.passedExamStudents ?? 0, hint: "Di luar ujian sertifikat", tone: "bg-white text-[#2F7D5F]" },
-    { icon: Search, label: "Sudah Ujian", value: publicSummary?.completedExamStudents ?? 0, tone: "bg-white text-[#667A70]" },
-    { icon: Search, label: "Belum Ujian", value: "0", hint: "Akan muncul setelah data tersedia", tone: "bg-white text-[#667A70]" },
+    { icon: Search, label: "Belum Ujian", value: publicStudentsWithoutExam, hint: "Belum ada nilai ujian tersimpan", tone: "bg-white text-[#667A70]" },
     { icon: BarChart3, label: "Rata-rata Nilai Ujian", value: publicSummary?.averageExamScore ?? "-", tone: "bg-white text-[#1F5F49]" },
   ];
 
   const loggedInStats = [
-    { icon: Users, label: "Total Siswa", value: totalStudents, color: "text-primary" },
-    { icon: BookOpen, label: "Rata-rata Hafalan", value: `${avgProgress}%`, color: "text-secondary" },
-    { icon: Award, label: "Lulus Sertifikasi", value: publicSummary?.certifiedStudents ?? 0, color: "text-accent" },
-    { icon: TrendingUp, label: "Total Kelas", value: accessibleClasses.length, color: "text-info" },
+    { icon: Users, label: "Total Siswa", value: totalStudents, color: "text-primary", path: "/kelola-siswa" },
+    { icon: ClipboardCheck, label: "Sudah Ujian", value: publicSummary?.completedExamStudents ?? 0, color: "text-secondary", path: "/rekap-global" },
+    { icon: Award, label: "Lulus Sertifikasi", value: publicSummary?.certifiedStudents ?? 0, color: "text-accent", path: "/rekap-sertifikat" },
+    { icon: TrendingUp, label: "Total Kelas", value: accessibleClasses.length, color: "text-info", path: "#kelas-diampu" },
   ];
 
   const heroActions = [
@@ -270,9 +256,9 @@ const Dashboard = () => {
 
     const items = [`Terdapat ${publicTotalStudents} siswa dalam ${publicTotalClasses} kelas aktif yang terhubung ke data guru.`];
     items.push(
-      publicAvgProgress >= 80
-        ? `Rata-rata hafalan berada di ${publicAvgProgress}%, menunjukkan capaian umum yang baik.`
-        : `Rata-rata hafalan berada di ${publicAvgProgress}%, sehingga beberapa kelas perlu pendampingan lebih dekat.`
+      (publicSummary?.completedExamStudents ?? 0) > 0
+        ? `${publicSummary?.completedExamStudents} siswa sudah memiliki hasil ujian tersimpan dan siap dipantau lebih lanjut.`
+        : "Belum ada hasil ujian yang tersimpan. Input nilai pertama akan langsung mengisi ringkasan ini."
     );
     items.push(
       (publicSummary?.certifiedStudents ?? 0) > 0
@@ -280,18 +266,14 @@ const Dashboard = () => {
         : "Data kelulusan sertifikasi akan bertambah setelah penilaian tersimpan."
     );
     return items;
-  }, [publicAvgProgress, publicSummary?.certifiedStudents, publicTotalClasses, publicTotalStudents]);
+  }, [publicSummary?.certifiedStudents, publicSummary?.completedExamStudents, publicTotalClasses, publicTotalStudents]);
 
   const handleAction = (path: string) => {
-    if (path === "#monitoring") {
-      document.getElementById("monitoring")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (path.startsWith("#")) {
+      document.getElementById(path.slice(1))?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
     navigate(path);
-  };
-
-  const goToTahsinSystem = () => {
-    window.location.href = TAHSIN_URL;
   };
 
   const getProgressTone = (progress: number) => {
@@ -327,7 +309,12 @@ const Dashboard = () => {
           {/* Stats */}
           <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
             {loggedInStats.map((stat) => (
-              <div key={stat.label} className="animate-fade-in rounded-lg border border-border bg-card p-4 shadow-card">
+              <button
+                key={stat.label}
+                type="button"
+                onClick={() => handleAction(stat.path)}
+                className="animate-fade-in rounded-lg border border-border bg-card p-4 text-left shadow-card transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg"
+              >
                 <div className="flex items-center gap-3">
                   <div className={`rounded-lg bg-muted p-2 ${stat.color}`}>
                     <stat.icon className="h-5 w-5" />
@@ -337,33 +324,9 @@ const Dashboard = () => {
                     <p className="text-xs text-muted-foreground">{stat.label}</p>
                   </div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
-
-          <section className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div className="rounded-2xl border border-[#DCE9DD] bg-white p-5 shadow-sm">
-              <div className="flex items-start gap-4">
-                <div className="rounded-2xl bg-[#E3F2E9] p-3 text-[#2F7D5F]">
-                  <FileText className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-lg font-bold text-[#18332A]">Buka Sistem Tahsin</h2>
-                  <p className="mt-1 text-sm leading-6 text-[#667A70]">
-                    Untuk melihat Laporan bulanan, Halaqqah Tahsin, Talaqqi, dan Nilai Diniyyah bulanan.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={goToTahsinSystem}
-                    className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#2F7D5F] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-[#1F5F49]"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    Masuk ke Sistem Tahsin
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
 
           {/* Onboarding banner for penguji with no classes */}
           {isPenguji && filteredClasses.length === 0 && !isLoading && (
@@ -458,7 +421,7 @@ const Dashboard = () => {
           </div>
 
           {/* Class Cards Grid */}
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div id="kelas-diampu" className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filteredClasses.map((classInfo) => (
               <ClassCard key={classInfo.id} classInfo={classInfo} />
             ))}
@@ -516,22 +479,17 @@ const Dashboard = () => {
                 </div>
               </div>
               <div className="mt-5 space-y-4">
-                <div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-[#667A70]">Capaian hafalan</span>
-                    <span className="font-bold text-[#1F5F49]">{publicAvgProgress}%</span>
-                  </div>
-                  <div className="mt-2 h-3 overflow-hidden rounded-full bg-[#DCE9DD]">
-                    <div className="h-full rounded-full bg-[#2F7D5F]" style={{ width: `${publicAvgProgress}%` }} />
-                  </div>
-                </div>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="rounded-2xl bg-[#E3F2E9] p-4">
-                    <p className="text-2xl font-bold text-[#1F5F49]">{publicTotalStudents}</p>
-                    <p className="text-xs text-[#667A70]">Siswa aktif</p>
+                    <p className="text-2xl font-bold text-[#1F5F49]">{publicSummary?.completedExamStudents ?? 0}</p>
+                    <p className="text-xs text-[#667A70]">Sudah ujian</p>
                   </div>
                   <div className="rounded-2xl bg-[#FBF7EB] p-4">
-                    <p className="text-2xl font-bold text-[#8A6F26]">{publicSummary?.certifiedStudents ?? 0}</p>
+                    <p className="text-2xl font-bold text-[#8A6F26]">{publicStudentsWithoutExam}</p>
+                    <p className="text-xs text-[#667A70]">Belum ujian</p>
+                  </div>
+                  <div className="rounded-2xl bg-white p-4 sm:col-span-2">
+                    <p className="text-2xl font-bold text-[#18332A]">{publicSummary?.certifiedStudents ?? 0}</p>
                     <p className="text-xs text-[#667A70]">Lulus ujian sertifikat</p>
                   </div>
                 </div>
@@ -573,31 +531,6 @@ const Dashboard = () => {
                 {stat.hint && <p className="mt-2 text-xs leading-5 text-[#667A70]">{stat.hint}</p>}
               </div>
             ))}
-          </div>
-        </section>
-
-        <section className="grid w-[calc(100vw-2rem)] max-w-full gap-4 lg:w-full lg:grid-cols-2">
-          <div className="rounded-2xl border border-[#DCE9DD] bg-white p-5 shadow-sm">
-            <div className="flex items-start gap-4">
-              <div className="rounded-2xl bg-[#E3F2E9] p-3 text-[#2F7D5F]">
-                <FileText className="h-5 w-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-[#2F7D5F]">Sistem Terkait</p>
-                <h2 className="mt-1 text-xl font-bold text-[#18332A]">Buka Sistem Tahsin</h2>
-                <p className="mt-2 text-sm leading-6 text-[#667A70]">
-                  Untuk melihat Laporan bulanan, Halaqqah Tahsin, Talaqqi, dan Nilai Diniyyah bulanan.
-                </p>
-                <button
-                  type="button"
-                  onClick={goToTahsinSystem}
-                  className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#2F7D5F] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-[#1F5F49]"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Masuk ke Sistem Tahsin
-                </button>
-              </div>
-            </div>
           </div>
         </section>
 
@@ -714,7 +647,7 @@ const Dashboard = () => {
 
           <div className="mt-5 rounded-2xl border border-[#DCE9DD] bg-[#E3F2E9] p-4">
             <p className="text-sm font-semibold text-[#1F5F49]">
-              Ringkasan filter: {publicMonitoringStudentCount} siswa, rata-rata hafalan {publicMonitoringAvgProgress}%.
+              Ringkasan filter: {publicMonitoringStudentCount} siswa dalam cakupan monitoring saat ini.
             </p>
           </div>
         </section>

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -230,6 +230,7 @@ const RekapSertifikat = () => {
   const [filterJuz, setFilterJuz] = useState<string>("all");
   const [filterPublish, setFilterPublish] = useState<PublishStatus | "all">("all");
   const [showAll, setShowAll] = useState(false);
+  const [selectedBulkIds, setSelectedBulkIds] = useState<string[]>([]);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [isBulkDownloading, setIsBulkDownloading] = useState(false);
   const [bulkPdfFormat, setBulkPdfFormat] = useState<CertificatePdfFormat>("a4-landscape");
@@ -691,6 +692,44 @@ const RekapSertifikat = () => {
     [filtered],
   );
 
+  useEffect(() => {
+    setSelectedBulkIds((current) => {
+      const nextIds = bulkItems.map((item) => item.id);
+      if (
+        current.length === nextIds.length
+        && current.every((id) => nextIds.includes(id))
+      ) {
+        return current;
+      }
+      return nextIds;
+    });
+  }, [bulkItems]);
+
+  const selectedBulkItems = useMemo(
+    () => bulkItems.filter((item) => selectedBulkIds.includes(item.id)),
+    [bulkItems, selectedBulkIds],
+  );
+
+  const downloadableItemIds = useMemo(
+    () => new Set(bulkItems.map((item) => item.id)),
+    [bulkItems],
+  );
+
+  const allBulkItemsSelected = bulkItems.length > 0 && selectedBulkItems.length === bulkItems.length;
+
+  const toggleBulkSelection = (itemId: string, checked: boolean) => {
+    setSelectedBulkIds((current) => {
+      if (checked) {
+        return current.includes(itemId) ? current : [...current, itemId];
+      }
+      return current.filter((id) => id !== itemId);
+    });
+  };
+
+  const toggleSelectAllBulkItems = (checked: boolean) => {
+    setSelectedBulkIds(checked ? bulkItems.map((item) => item.id) : []);
+  };
+
   const chartData = useMemo(() => {
     const classCount: Record<string, number> = {};
     lulusItems.forEach((item) => {
@@ -740,9 +779,18 @@ const RekapSertifikat = () => {
       return;
     }
 
+    if (selectedBulkItems.length === 0) {
+      toast({
+        title: "Belum ada siswa dipilih",
+        description: "Centang minimal satu siswa yang ingin diunduh PDF sertifikatnya.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsBulkDownloading(true);
     try {
-      const itemsForPdf: BulkCertificateItem[] = bulkItems.map((item) => ({
+      const itemsForPdf: BulkCertificateItem[] = selectedBulkItems.map((item) => ({
         studentName: item.studentName,
         className: item.className,
         juz: item.juz,
@@ -770,7 +818,7 @@ const RekapSertifikat = () => {
       });
       toast({
         title: "Download selesai",
-        description: `${bulkItems.length} sertifikat berhasil digabungkan.`,
+        description: `${selectedBulkItems.length} sertifikat berhasil digabungkan.`,
       });
     } catch (error) {
       console.error(error);
@@ -809,32 +857,36 @@ const RekapSertifikat = () => {
             >
               <Download className="w-4 h-4" /> Export Excel
             </button>
-            <select
-              value={bulkPdfFormat}
-              onChange={(event) => setBulkPdfFormat(event.target.value as CertificatePdfFormat)}
-              disabled={isBulkDownloading}
-              className="rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground disabled:opacity-50"
-              aria-label="Format PDF massal"
-            >
-              <option value="a4-landscape">A4 Landscape</option>
-              <option value="legal-landscape">F4 / Legal 8.5 x 14 in</option>
-              <option value="original">Rasio Asli 4:3</option>
-            </select>
-            <button
-              type="button"
-              onClick={handleBulkDownload}
-              disabled={isBulkDownloading}
-              className="flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-            >
-              {isBulkDownloading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
-              {isBulkDownloading
-                ? "Menyiapkan PDF..."
-                : `Download Massal PDF (${bulkItems.length})`}
-            </button>
+            {isAdmin && (
+              <>
+                <select
+                  value={bulkPdfFormat}
+                  onChange={(event) => setBulkPdfFormat(event.target.value as CertificatePdfFormat)}
+                  disabled={isBulkDownloading}
+                  className="rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground disabled:opacity-50"
+                  aria-label="Format PDF massal"
+                >
+                  <option value="a4-landscape">A4 Landscape</option>
+                  <option value="legal-landscape">F4 / Legal 8.5 x 14 in</option>
+                  <option value="original">Rasio Asli 4:3</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={handleBulkDownload}
+                  disabled={isBulkDownloading}
+                  className="flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {isBulkDownloading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  {isBulkDownloading
+                    ? "Menyiapkan PDF..."
+                    : `Download Massal PDF (${selectedBulkItems.length})`}
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -896,6 +948,40 @@ const RekapSertifikat = () => {
           <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200">
             Data sertifikat lama tetap ditampilkan. Sistem publish resmi belum aktif karena migration
             database belum diterapkan.
+          </div>
+        )}
+
+        {isAdmin && (
+          <div className="mb-6 rounded-lg border border-border bg-card p-4 shadow-card">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Pilihan Download Massal PDF</p>
+                <p className="text-xs text-muted-foreground">
+                  Centang siswa yang ingin digabungkan ke PDF. Hanya sertifikat yang sudah publish atau revisi yang bisa dipilih.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => toggleSelectAllBulkItems(true)}
+                  disabled={bulkItems.length === 0 || isBulkDownloading}
+                  className="rounded-md border border-input bg-background px-3 py-2 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
+                >
+                  Pilih Semua ({bulkItems.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleSelectAllBulkItems(false)}
+                  disabled={selectedBulkItems.length === 0 || isBulkDownloading}
+                  className="rounded-md border border-input bg-background px-3 py-2 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
+                >
+                  Kosongkan Pilihan
+                </button>
+              </div>
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Terpilih {selectedBulkItems.length} dari {bulkItems.length} sertifikat yang siap diunduh.
+            </p>
           </div>
         )}
 
@@ -998,6 +1084,20 @@ const RekapSertifikat = () => {
                   <thead>
                     <tr className="border-b border-border bg-muted">
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">No</th>
+                      {isAdmin && (
+                        <th className="px-4 py-3 text-center font-medium text-muted-foreground">
+                          <label className="inline-flex cursor-pointer items-center justify-center">
+                            <input
+                              type="checkbox"
+                              checked={allBulkItemsSelected}
+                              onChange={(event) => toggleSelectAllBulkItems(event.target.checked)}
+                              disabled={bulkItems.length === 0}
+                              className="h-4 w-4 rounded border-input text-primary focus:ring-ring disabled:opacity-50"
+                              aria-label="Pilih semua siswa untuk download massal PDF"
+                            />
+                          </label>
+                        </th>
+                      )}
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">Nama Siswa</th>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">Kelas</th>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">Juz</th>
@@ -1007,13 +1107,25 @@ const RekapSertifikat = () => {
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">Tanggal</th>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">No. Sertifikat</th>
                       <th className="px-4 py-3 text-center font-medium text-muted-foreground">Status Publish</th>
-                      {isAdmin && <th className="px-4 py-3 text-center font-medium text-muted-foreground">Aksi</th>}
+                      <th className="px-4 py-3 text-center font-medium text-muted-foreground">Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filtered.map((item) => (
                       <tr key={item.id} className={`border-b border-border hover:bg-muted/50 transition-colors ${item.status === "Tidak Lulus" ? "bg-destructive/5" : ""}`}>
                         <td className="px-4 py-3 text-foreground">{item.certificateSequence ?? "-"}</td>
+                        {isAdmin && (
+                          <td className="px-4 py-3 text-center">
+                            <input
+                              type="checkbox"
+                              checked={selectedBulkIds.includes(item.id)}
+                              onChange={(event) => toggleBulkSelection(item.id, event.target.checked)}
+                              disabled={!downloadableItemIds.has(item.id)}
+                              className="h-4 w-4 rounded border-input text-primary focus:ring-ring disabled:cursor-not-allowed disabled:opacity-40"
+                              aria-label={`Pilih ${item.studentName} untuk download massal PDF`}
+                            />
+                          </td>
+                        )}
                         <td className="px-4 py-3 font-medium text-foreground">{item.studentName}</td>
                         <td className="px-4 py-3 text-muted-foreground">{item.className}</td>
                         <td className="px-4 py-3 text-muted-foreground">Juz {item.juz}</td>
@@ -1063,90 +1175,114 @@ const RekapSertifikat = () => {
                                 : "Global"}
                           </span>
                         </td>
-                        {isAdmin && (
-                          <td className="px-4 py-3 text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              {item.status === "Lulus" && (
-                                <>
-                                  <button
-                                    onClick={() => setPreviewItem(item)}
-                                    className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                                    title="Preview Sertifikat"
-                                  >
-                                    <Eye className="w-3 h-3" />
-                                  </button>
-                                  <button
-                                    onClick={async () => {
-                                      try {
-                                        setDownloadingId(item.id);
-                                        const {
-                                          coordinatorSignatureDataUrl,
-                                          principalSignatureDataUrl,
-                                          coordinatorName,
-                                        } = await resolveCertificateSignatures(item.assessedBy);
-                                        const certificateData = {
-                                          ...item,
-                                          coordinatorSignatureDataUrl,
-                                          principalSignatureDataUrl,
-                                          coordinatorName:
-                                            item.coordinatorNameSnapshot || coordinatorName,
-                                          principalName:
-                                            item.principalNameSnapshot || DEFAULT_PRINCIPAL_NAME,
-                                          documentNumber:
-                                            item.documentNumber
-                                            || buildReportDocumentNumber(
-                                              "Tahfizh",
-                                              item.id,
-                                              item.publishedAt,
-                                              item.tanggal,
-                                            ),
-                                          verificationUrl: buildVerificationUrl(
-                                            "sertifikat-tahfizh",
-                                            item.verificationToken,
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            {item.status === "Lulus" && (
+                              <button
+                                onClick={() => setPreviewItem(item)}
+                                className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+                                title="Preview Sertifikat"
+                              >
+                                <Eye className="w-3 h-3" />
+                              </button>
+                            )}
+                            {isAdmin && item.status === "Lulus" && (
+                              <>
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      setDownloadingId(item.id);
+                                      const {
+                                        coordinatorSignatureDataUrl,
+                                        principalSignatureDataUrl,
+                                        coordinatorName,
+                                      } = await resolveCertificateSignatures(item.assessedBy);
+                                      const certificateData = {
+                                        ...item,
+                                        coordinatorSignatureDataUrl,
+                                        principalSignatureDataUrl,
+                                        coordinatorName:
+                                          item.coordinatorNameSnapshot || coordinatorName,
+                                        principalName:
+                                          item.principalNameSnapshot || DEFAULT_PRINCIPAL_NAME,
+                                        documentNumber:
+                                          item.documentNumber
+                                          || buildReportDocumentNumber(
+                                            "Tahfizh",
+                                            item.id,
+                                            item.publishedAt,
+                                            item.tanggal,
                                           ),
-                                        } as CertificateData;
-                                        const doc = await buildCertificatePDF(
-                                          certificateData,
-                                          item.layoutSnapshot || item.layoutOverride || undefined,
-                                          bulkPdfFormat,
-                                        );
-                                        doc.save(`Sertifikat_${safeFileName(item.studentName)}.pdf`);
-                                        toast({ title: "Berhasil", description: "Sertifikat berhasil diunduh" });
-                                      } catch (err) {
-                                        console.error(err);
-                                        toast({ title: "Gagal", description: "Gagal membuat PDF", variant: "destructive" });
-                                      } finally {
-                                        setDownloadingId(null);
+                                        verificationUrl: buildVerificationUrl(
+                                          "sertifikat-tahfizh",
+                                          item.verificationToken,
+                                        ),
+                                      } as CertificateData;
+                                      const doc = await buildCertificatePDF(
+                                        certificateData,
+                                        item.layoutSnapshot || item.layoutOverride || undefined,
+                                        bulkPdfFormat,
+                                      );
+                                      doc.save(`Sertifikat_${safeFileName(item.studentName)}.pdf`);
+                                      toast({ title: "Berhasil", description: "Sertifikat berhasil diunduh" });
+                                    } catch (err) {
+                                      console.error(err);
+                                      toast({ title: "Gagal", description: "Gagal membuat PDF", variant: "destructive" });
+                                    } finally {
+                                      setDownloadingId(null);
+                                    }
+                                  }}
+                                  disabled={downloadingId === item.id}
+                                  className="inline-flex items-center gap-1 rounded-md bg-success/10 px-2 py-1.5 text-xs font-medium text-success transition-colors hover:bg-success/20 disabled:opacity-50"
+                                  title="Download Sertifikat PDF"
+                                >
+                                  {downloadingId === item.id ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <Download className="w-3 h-3" />
+                                  )}
+                                </button>
+                                {item.publishStatus === "belum_publish" ? (
+                                  <>
+                                    <button
+                                      onClick={() => handlePublish(item)}
+                                      disabled={
+                                        publishCertificateMutation.isPending
+                                        || data?.certificatesAvailable === false
                                       }
-                                    }}
-                                    disabled={downloadingId === item.id}
-                                    className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium bg-success/10 text-success hover:bg-success/20 transition-colors disabled:opacity-50"
-                                    title="Download Sertifikat PDF"
-                                  >
-                                    {downloadingId === item.id ? (
-                                      <Loader2 className="w-3 h-3 animate-spin" />
-                                    ) : (
-                                      <Download className="w-3 h-3" />
-                                    )}
-                                  </button>
-                                  {item.publishStatus === "belum_publish" ? (
-                                    <>
-                                      <button
-                                        onClick={() => handlePublish(item)}
-                                        disabled={
-                                          publishCertificateMutation.isPending
-                                          || data?.certificatesAvailable === false
-                                        }
-                                        className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium bg-success text-success-foreground hover:bg-success/90 transition-colors disabled:opacity-50"
-                                        title="Publish Sertifikat"
-                                      >
-                                        {publishCertificateMutation.isPending ? (
-                                          <Loader2 className="w-3 h-3 animate-spin" />
-                                        ) : (
-                                          <Send className="w-3 h-3" />
-                                        )}
-                                        Publish
-                                      </button>
+                                      className="inline-flex items-center gap-1 rounded-md bg-success px-2 py-1.5 text-xs font-medium text-success-foreground transition-colors hover:bg-success/90 disabled:opacity-50"
+                                      title="Publish Sertifikat"
+                                    >
+                                      {publishCertificateMutation.isPending ? (
+                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                      ) : (
+                                        <Send className="w-3 h-3" />
+                                      )}
+                                      Publish
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        openEditModal(
+                                          item.id,
+                                          item.certificateId || null,
+                                          item.studentName,
+                                          item.nomorSertifikat,
+                                          item.publishStatus,
+                                        )
+                                      }
+                                      disabled={editNomorSertifikatMutation.isPending}
+                                      className="inline-flex items-center gap-1 rounded-md bg-blue-100 px-2 py-1.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-200 disabled:opacity-50"
+                                      title="Edit Nomor Sertifikat"
+                                    >
+                                      <Edit2 className="w-3 h-3" />
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className={`inline-flex items-center rounded-md border px-2 py-1.5 text-xs font-medium ${PUBLISH_STATUS_CLASSES[item.publishStatus]}`}>
+                                      {PUBLISH_STATUS_LABELS[item.publishStatus]}
+                                    </span>
+                                    {(item.publishStatus === "published" || item.publishStatus === "revised") && (
                                       <button
                                         onClick={() =>
                                           openEditModal(
@@ -1158,41 +1294,18 @@ const RekapSertifikat = () => {
                                           )
                                         }
                                         disabled={editNomorSertifikatMutation.isPending}
-                                        className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors disabled:opacity-50"
-                                        title="Edit Nomor Sertifikat"
+                                        className="inline-flex items-center gap-1 rounded-md bg-blue-100 px-2 py-1.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-200 disabled:opacity-50"
+                                        title="Revisi Nomor Sertifikat"
                                       >
                                         <Edit2 className="w-3 h-3" />
                                       </button>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <span className={`inline-flex items-center rounded-md border px-2 py-1.5 text-xs font-medium ${PUBLISH_STATUS_CLASSES[item.publishStatus]}`}>
-                                        {PUBLISH_STATUS_LABELS[item.publishStatus]}
-                                      </span>
-                                      {(item.publishStatus === "published" || item.publishStatus === "revised") && (
-                                        <button
-                                          onClick={() =>
-                                            openEditModal(
-                                              item.id,
-                                              item.certificateId || null,
-                                              item.studentName,
-                                              item.nomorSertifikat,
-                                              item.publishStatus,
-                                            )
-                                          }
-                                          disabled={editNomorSertifikatMutation.isPending}
-                                          className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors disabled:opacity-50"
-                                          title="Revisi Nomor Sertifikat"
-                                        >
-                                          <Edit2 className="w-3 h-3" />
-                                        </button>
-                                      )}
-                                    </>
-                                  )}
-                                </>
-                              )}
-                              {!item.certificateId && (
-                                <button
+                                    )}
+                                  </>
+                                )}
+                              </>
+                            )}
+                            {isAdmin && !item.certificateId && (
+                              <button
                                 onClick={() => {
                                   const newStatus = item.status === "Lulus" ? "Tidak Lulus" : "Lulus";
                                   if (confirm(`Ubah status ${item.studentName} menjadi "${newStatus}"?`)) {
@@ -1204,7 +1317,7 @@ const RekapSertifikat = () => {
                                   }
                                 }}
                                 disabled={toggleStatusMutation.isPending}
-                                className={`inline-flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-50 ${
+                                className={`inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
                                   item.status === "Lulus"
                                     ? "bg-destructive/10 text-destructive hover:bg-destructive/20"
                                     : "bg-success/10 text-success hover:bg-success/20"
@@ -1212,16 +1325,15 @@ const RekapSertifikat = () => {
                               >
                                 <Edit2 className="w-3 h-3" />
                                 {item.status === "Lulus" ? "Batalkan" : "Luluskan"}
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        )}
+                              </button>
+                            )}
+                          </div>
+                        </td>
                       </tr>
                     ))}
                     {filtered.length === 0 && (
                       <tr>
-                        <td colSpan={isAdmin ? 11 : 10} className="px-4 py-12 text-center text-muted-foreground">
+                        <td colSpan={isAdmin ? 12 : 10} className="px-4 py-12 text-center text-muted-foreground">
                           {showAll ? "Belum ada hasil sertifikasi Tahfizh" : "Belum ada siswa yang lulus sertifikasi Tahfizh"}
                         </td>
                       </tr>

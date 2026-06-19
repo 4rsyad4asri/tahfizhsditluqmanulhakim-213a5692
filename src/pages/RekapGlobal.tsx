@@ -75,7 +75,7 @@ interface RekapGlobalQueryResult {
 
 const MODE_COLORS: Record<string, string> = {
   "Tahfizh Reguler": "hsl(var(--primary))",
-  "Tahfizh Sertifikat": "hsl(var(--accent))",
+  "Tahfizh Sertifikat": "#7C3AED",
   "Tahsin Dasar": "hsl(var(--success))",
   "Tahsin Lanjutan": "hsl(var(--warning))",
 };
@@ -270,12 +270,27 @@ export default function RekapGlobal() {
     },
   });
 
-  const baseFiltered = useMemo(() => {
-    let r = data?.rows || [];
-    if (filterGrade !== "all") r = r.filter((x) => x.grade === parseInt(filterGrade));
-    if (filterClass !== "all") r = r.filter((x) => x.className === filterClass);
-    if (filterStatus !== "all") r = r.filter((x) => x.status === filterStatus);
-    if (filterPredikat !== "all") r = r.filter((x) => x.predikat === filterPredikat);
+  const sourceRows = data?.rows || [];
+
+  const buildFilteredRows = (options?: { includeMode?: boolean; includeStatus?: boolean; includePredikat?: boolean }) => {
+    let r = sourceRows;
+
+    if ((options?.includeMode ?? true) && filterMode !== "all") {
+      r = r.filter((x) => x.displayMode === filterMode);
+    }
+    if (filterGrade !== "all") {
+      r = r.filter((x) => x.grade === parseInt(filterGrade));
+    }
+    if (filterClass !== "all") {
+      r = r.filter((x) => x.className === filterClass);
+    }
+    if ((options?.includeStatus ?? true) && filterStatus !== "all") {
+      r = r.filter((x) => x.status === filterStatus);
+    }
+    if ((options?.includePredikat ?? true) && filterPredikat !== "all") {
+      r = r.filter((x) => x.predikat === filterPredikat);
+    }
+
     r = sortRowsNewestFirst(r);
     if (onlyLatest) {
       const seen = new Set<string>();
@@ -287,13 +302,26 @@ export default function RekapGlobal() {
       }
       r = out;
     }
-    return sortRowsForDisplay(r);
-  }, [data, filterGrade, filterClass, filterStatus, filterPredikat, onlyLatest]);
 
-  const filtered = useMemo(() => {
-    if (filterMode === "all") return baseFiltered;
-    return baseFiltered.filter((x) => x.displayMode === filterMode);
-  }, [baseFiltered, filterMode]);
+    return sortRowsForDisplay(r);
+  };
+
+  const filtered = useMemo(
+    () => buildFilteredRows(),
+    [sourceRows, filterMode, filterGrade, filterClass, filterStatus, filterPredikat, onlyLatest]
+  );
+  const modeScopedRows = useMemo(
+    () => buildFilteredRows({ includeMode: false }),
+    [sourceRows, filterGrade, filterClass, filterStatus, filterPredikat, onlyLatest]
+  );
+  const statusScopedRows = useMemo(
+    () => buildFilteredRows({ includeStatus: false }),
+    [sourceRows, filterMode, filterGrade, filterClass, filterPredikat, onlyLatest]
+  );
+  const predikatScopedRows = useMemo(
+    () => buildFilteredRows({ includePredikat: false }),
+    [sourceRows, filterMode, filterGrade, filterClass, filterStatus, onlyLatest]
+  );
 
   const stats = useMemo(() => {
     const total = filtered.length;
@@ -305,25 +333,25 @@ export default function RekapGlobal() {
 
   const byMode = useMemo(() => {
     const m: Record<string, number> = {};
-    baseFiltered.forEach((r) => { m[r.displayMode] = (m[r.displayMode] || 0) + 1; });
+    modeScopedRows.forEach((r) => { m[r.displayMode] = (m[r.displayMode] || 0) + 1; });
     return Object.entries(m).map(([name, value]) => ({ name, value }));
-  }, [baseFiltered]);
+  }, [modeScopedRows]);
 
   const byClass = useMemo(() => {
     const m: Record<string, { lulus: number; tidak: number }> = {};
-    filtered.forEach((r) => {
+    statusScopedRows.forEach((r) => {
       if (!m[r.className]) m[r.className] = { lulus: 0, tidak: 0 };
       if (r.status === "Lulus") m[r.className].lulus++;
       else m[r.className].tidak++;
     });
     return Object.entries(m).map(([name, v]) => ({ name, ...v })).sort((a, b) => a.name.localeCompare(b.name));
-  }, [filtered]);
+  }, [statusScopedRows]);
 
   const byPredikat = useMemo(() => {
     const m: Record<string, number> = {};
-    filtered.forEach((r) => { m[r.predikat] = (m[r.predikat] || 0) + 1; });
+    predikatScopedRows.forEach((r) => { m[r.predikat] = (m[r.predikat] || 0) + 1; });
     return Object.entries(m).map(([name, value]) => ({ name, value }));
-  }, [filtered]);
+  }, [predikatScopedRows]);
 
   const grades = useMemo(() => [...new Set((data?.rows || []).map((r) => r.grade))].sort(), [data]);
   const classNames = useMemo(() => data?.classOptions || [], [data]);
@@ -332,6 +360,16 @@ export default function RekapGlobal() {
     [data]
   );
   const totalByMode = useMemo(() => byMode.reduce((sum, item) => sum + item.value, 0), [byMode]);
+  const statusSummary = useMemo(() => {
+    const total = statusScopedRows.length;
+    const lulus = statusScopedRows.filter((r) => r.status === "Lulus").length;
+    return {
+      total,
+      lulus,
+      tidak: Math.max(total - lulus, 0),
+    };
+  }, [statusScopedRows]);
+  const totalByPredikat = useMemo(() => byPredikat.reduce((sum, item) => sum + item.value, 0), [byPredikat]);
 
   const renderModeLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, value }: {
     cx?: number;
@@ -1030,7 +1068,21 @@ export default function RekapGlobal() {
               </div>
 
               <div className="p-4 rounded-lg border border-border bg-card">
-                <h3 className="text-sm font-semibold text-foreground mb-3">Lulus vs Tidak Lulus per Kelas</h3>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground">Lulus vs Tidak Lulus per Kelas</h3>
+                    <p className="text-xs text-muted-foreground">Klik batang atau kartu status untuk memfilter detail ujian.</p>
+                  </div>
+                  {filterStatus !== "all" && (
+                    <button
+                      type="button"
+                      onClick={() => setFilterStatus("all")}
+                      className="rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground transition hover:bg-muted"
+                    >
+                      Semua Status
+                    </button>
+                  )}
+                </div>
                 <ResponsiveContainer width="100%" height={240}>
                   <BarChart data={byClass}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -1038,24 +1090,120 @@ export default function RekapGlobal() {
                     <YAxis tick={{ fontSize: 11 }} />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="lulus" name="Lulus" fill="hsl(var(--success))" />
-                    <Bar dataKey="tidak" name="Tidak Lulus" fill="hsl(var(--destructive))" />
+                    <Bar dataKey="lulus" name="Lulus" fill="hsl(var(--success))" className="cursor-pointer" onClick={() => setFilterStatus("Lulus")} />
+                    <Bar dataKey="tidak" name="Tidak Lulus" fill="hsl(var(--destructive))" className="cursor-pointer" onClick={() => setFilterStatus("Tidak Lulus")} />
                   </BarChart>
                 </ResponsiveContainer>
+                <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                  <button
+                    type="button"
+                    onClick={() => setFilterStatus("all")}
+                    className={`rounded-2xl border px-3 py-2.5 text-left transition ${
+                      filterStatus === "all"
+                        ? "border-primary bg-primary/10 shadow-sm"
+                        : "border-border/70 bg-muted/10 hover:bg-muted/30"
+                    }`}
+                  >
+                    <p className="text-sm font-medium text-foreground">Semua Status</p>
+                    <p className="mt-1 text-lg font-bold text-foreground">{statusSummary.total}</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilterStatus("Lulus")}
+                    className={`rounded-2xl border px-3 py-2.5 text-left transition ${
+                      filterStatus === "Lulus"
+                        ? "border-primary bg-primary/10 shadow-sm"
+                        : "border-border/70 bg-muted/20 hover:bg-muted/30"
+                    }`}
+                  >
+                    <p className="text-sm font-medium text-foreground">Lulus</p>
+                    <p className="mt-1 text-lg font-bold text-foreground">{statusSummary.lulus}</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilterStatus("Tidak Lulus")}
+                    className={`rounded-2xl border px-3 py-2.5 text-left transition ${
+                      filterStatus === "Tidak Lulus"
+                        ? "border-primary bg-primary/10 shadow-sm"
+                        : "border-border/70 bg-muted/20 hover:bg-muted/30"
+                    }`}
+                  >
+                    <p className="text-sm font-medium text-foreground">Tidak Lulus</p>
+                    <p className="mt-1 text-lg font-bold text-foreground">{statusSummary.tidak}</p>
+                  </button>
+                </div>
               </div>
             </div>
 
             <div className="p-4 rounded-lg border border-border bg-card">
-              <h3 className="text-sm font-semibold text-foreground mb-3">Sebaran Predikat</h3>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">Sebaran Predikat</h3>
+                  <p className="text-xs text-muted-foreground">Klik batang atau kartu predikat untuk menyaring detail ujian.</p>
+                </div>
+                {filterPredikat !== "all" && (
+                  <button
+                    type="button"
+                    onClick={() => setFilterPredikat("all")}
+                    className="rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground transition hover:bg-muted"
+                  >
+                    Semua Predikat
+                  </button>
+                )}
+              </div>
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={byPredikat}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
-                  <Bar dataKey="value" fill="hsl(var(--primary))" />
+                  <Bar
+                    dataKey="value"
+                    fill="hsl(var(--primary))"
+                    className="cursor-pointer"
+                    onClick={(payload) => {
+                      if (payload?.activeLabel) {
+                        setFilterPredikat(String(payload.activeLabel));
+                      }
+                    }}
+                  />
                 </BarChart>
               </ResponsiveContainer>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                <button
+                  type="button"
+                  onClick={() => setFilterPredikat("all")}
+                  className={`rounded-2xl border px-3 py-2.5 text-left transition ${
+                    filterPredikat === "all"
+                      ? "border-primary bg-primary/10 shadow-sm"
+                      : "border-border/70 bg-muted/10 hover:bg-muted/30"
+                  }`}
+                >
+                  <p className="text-sm font-medium text-foreground">Semua Predikat</p>
+                  <p className="mt-1 text-lg font-bold text-foreground">{totalByPredikat}</p>
+                </button>
+                {byPredikat.map((item) => {
+                  const pct = totalByPredikat > 0 ? Math.round((item.value / totalByPredikat) * 100) : 0;
+                  return (
+                    <button
+                      key={item.name}
+                      type="button"
+                      onClick={() => setFilterPredikat(item.name)}
+                      className={`rounded-2xl border px-3 py-2.5 text-left transition ${
+                        filterPredikat === item.name
+                          ? "border-primary bg-primary/10 shadow-sm"
+                          : "border-border/70 bg-muted/20 hover:bg-muted/30"
+                      }`}
+                    >
+                      <p className="text-sm font-medium text-foreground">{item.name}</p>
+                      <div className="mt-1 flex items-end justify-between gap-3">
+                        <p className="text-lg font-bold text-foreground">{item.value}</p>
+                        <p className="text-xs font-medium text-muted-foreground">{pct}%</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Table */}
@@ -1082,7 +1230,7 @@ export default function RekapGlobal() {
                       <td className="py-2 px-2">
                         <span className={`text-xs px-2 py-0.5 rounded-full ${
                           r.displayMode === "Tahfizh Sertifikat"
-                            ? "bg-accent/15 text-accent-foreground"
+                            ? "bg-[#7C3AED]/15 text-[#6D28D9]"
                             : "bg-primary/10 text-primary"
                         }`}>
                           {r.displayMode}

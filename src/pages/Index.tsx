@@ -305,23 +305,23 @@ const Dashboard = () => {
   if (user) {
     return (
       <div className="min-h-screen bg-background">
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-4 py-5 sm:py-8">
           {/* Stats */}
-          <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
+          <div className="mb-6 grid grid-cols-2 gap-3 md:mb-8 md:gap-4 md:grid-cols-4">
             {loggedInStats.map((stat) => (
               <button
                 key={stat.label}
                 type="button"
                 onClick={() => handleAction(stat.path)}
-                className="animate-fade-in rounded-lg border border-border bg-card p-4 text-left shadow-card transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg"
+                className="animate-fade-in rounded-xl border border-border bg-card p-3 text-left shadow-card transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg sm:p-4"
               >
-                <div className="flex items-center gap-3">
-                  <div className={`rounded-lg bg-muted p-2 ${stat.color}`}>
+                <div className="flex min-h-16 items-center gap-3 sm:min-h-[72px]">
+                  <div className={`rounded-xl bg-muted p-2 ${stat.color}`}>
                     <stat.icon className="h-5 w-5" />
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                    <p className="text-xs text-muted-foreground">{stat.label}</p>
+                  <div className="min-w-0">
+                    <p className="text-xl font-bold text-foreground sm:text-2xl">{stat.value}</p>
+                    <p className="text-xs leading-5 text-muted-foreground sm:text-sm">{stat.label}</p>
                   </div>
                 </div>
               </button>
@@ -344,7 +344,7 @@ const Dashboard = () => {
             <button
               type="button"
               onClick={() => setSelectedGrade(null)}
-              className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+              className={`min-h-11 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
                 selectedGrade === null
                   ? "gradient-islamic text-primary-foreground"
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -357,7 +357,7 @@ const Dashboard = () => {
                 key={grade}
                 type="button"
                 onClick={() => setSelectedGrade(grade)}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                className={`min-h-11 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
                   selectedGrade === grade
                     ? "gradient-islamic text-primary-foreground"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -370,7 +370,7 @@ const Dashboard = () => {
 
           {/* Level Distribution Chart */}
           {levelData && levelData.length > 0 && (
-            <div className="mb-6 rounded-lg border border-border bg-card p-6 shadow-card">
+            <div className="mb-6 rounded-xl border border-border bg-card p-4 shadow-card sm:p-6">
               <h3 className="mb-4 font-semibold text-foreground">Distribusi Level Siswa</h3>
               <div className="flex flex-col items-center gap-6 md:flex-row">
                 <div className="w-full md:w-1/2" style={{ height: 250 }}>
@@ -421,7 +421,7 @@ const Dashboard = () => {
           </div>
 
           {/* Class Cards Grid */}
-          <div id="kelas-diampu" className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div id="kelas-diampu" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filteredClasses.map((classInfo) => (
               <ClassCard key={classInfo.id} classInfo={classInfo} />
             ))}
@@ -433,29 +433,29 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen w-screen max-w-[100vw] overflow-x-hidden bg-[#F8FAF5] text-[#18332A]">
-      <main className="mx-auto flex w-[100vw] max-w-[100vw] flex-col gap-8 overflow-x-hidden px-4 py-6 sm:px-6 lg:max-w-7xl lg:px-8">
+      <main className="mx-auto flex w-[100vw] max-w-[100vw] flex-col gap-6 overflow-x-hidden px-4 py-4 sm:gap-8 sm:px-6 sm:py-6 lg:max-w-7xl lg:px-8">
         <section className="w-[calc(100vw-2rem)] max-w-full overflow-hidden rounded-3xl border border-[#DCE9DD] bg-[#FBF7EB] shadow-[0_20px_70px_rgba(31,95,73,0.12)] lg:w-full">
-          <div className="grid min-w-0 gap-8 p-6 md:grid-cols-[1.3fr_0.7fr] md:p-10">
+          <div className="grid min-w-0 gap-5 p-5 sm:gap-6 sm:p-6 md:grid-cols-[1.3fr_0.7fr] md:gap-8 md:p-10">
             <div className="flex min-w-0 flex-col justify-center">
-              <div className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-[#C7A44C]/40 bg-white/80 px-3 py-1.5 text-xs font-semibold text-[#1F5F49]">
+              <div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-[#C7A44C]/40 bg-white/80 px-3 py-1.5 text-xs font-semibold text-[#1F5F49] sm:mb-5">
                 <Sparkles className="h-3.5 w-3.5 text-[#C7A44C]" />
                 Rekap Global & Monitoring Ujian
               </div>
 
-              <h1 className="max-w-4xl break-words text-3xl font-bold leading-tight text-[#18332A] md:text-5xl">
+              <h1 className="max-w-4xl break-words text-2xl font-bold leading-tight text-[#18332A] sm:text-3xl md:text-5xl">
                 Sistem digital untuk memantau nilai ujian Al-Qur'an seluruh kelas.
               </h1>
-              <p className="mt-5 max-w-3xl text-base leading-7 text-[#667A70] md:text-lg">
+              <p className="mt-4 max-w-3xl text-sm leading-6 text-[#667A70] sm:mt-5 sm:text-base md:text-lg">
                 Pantau hasil ujian Tahsin Dasar, Tahsin Lanjutan, dan Tahfizh dalam satu dashboard: dari capaian EBTA, nilai akhir, juz pencapaian, status kelulusan, sampai ranking siswa.
               </p>
 
-              <div className="mt-7 grid gap-3 sm:flex sm:flex-wrap">
+              <div className="mt-6 grid grid-cols-1 gap-3 sm:mt-7 sm:flex sm:flex-wrap">
                 {heroActions.map((action) => (
                   <button
                     key={action.label}
                     type="button"
                     onClick={() => handleAction(action.path)}
-                    className={`inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all hover:-translate-y-0.5 sm:w-auto ${
+                    className={`inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all hover:-translate-y-0.5 sm:min-h-11 sm:w-auto sm:py-2.5 ${
                       action.variant === "primary"
                         ? "bg-[#2F7D5F] text-white shadow-lg shadow-[#2F7D5F]/20 hover:bg-[#1F5F49]"
                         : "border border-[#DCE9DD] bg-white text-[#1F5F49] hover:border-[#2F7D5F]/40 hover:bg-[#E3F2E9]"
@@ -468,7 +468,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className="min-w-0 rounded-3xl border border-white/70 bg-white/75 p-5 shadow-[0_18px_50px_rgba(24,51,42,0.08)]">
+            <div className="min-w-0 rounded-3xl border border-white/70 bg-white/75 p-4 shadow-[0_18px_50px_rgba(24,51,42,0.08)] sm:p-5">
               <div className="flex items-center justify-between border-b border-[#DCE9DD] pb-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-[#667A70]">Command Center</p>
@@ -479,7 +479,7 @@ const Dashboard = () => {
                 </div>
               </div>
               <div className="mt-5 space-y-4">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-2xl bg-[#E3F2E9] p-4">
                     <p className="text-2xl font-bold text-[#1F5F49]">{publicSummary?.completedExamStudents ?? 0}</p>
                     <p className="text-xs text-[#667A70]">Sudah ujian</p>
@@ -513,32 +513,32 @@ const Dashboard = () => {
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-sm font-semibold text-[#2F7D5F]">Ringkasan Ujian</p>
-              <h2 className="text-2xl font-bold text-[#18332A]">Statistik utama sekolah</h2>
+              <h2 className="text-xl font-bold text-[#18332A] sm:text-2xl">Statistik utama sekolah</h2>
             </div>
             <p className="max-w-xl text-sm text-[#667A70]">
               Angka ujian khusus akan tetap kosong sampai data ujian tersimpan dan siap direkap.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-7">
             {summaryStats.map((stat) => (
-              <div key={stat.label} className="rounded-2xl border border-[#DCE9DD] bg-white p-4 shadow-sm">
-                <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-2xl ${stat.tone}`}>
-                  <stat.icon className="h-5 w-5" />
+              <div key={stat.label} className="rounded-2xl border border-[#DCE9DD] bg-white p-3 shadow-sm sm:p-4">
+                <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-2xl sm:mb-4 sm:h-11 sm:w-11 ${stat.tone}`}>
+                  <stat.icon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
-                <p className="text-2xl font-bold text-[#18332A]">{stat.value}</p>
-                <p className="mt-1 text-sm font-medium text-[#667A70]">{stat.label}</p>
+                <p className="text-xl font-bold text-[#18332A] sm:text-2xl">{stat.value}</p>
+                <p className="mt-1 text-xs font-medium leading-5 text-[#667A70] sm:text-sm">{stat.label}</p>
                 {stat.hint && <p className="mt-2 text-xs leading-5 text-[#667A70]">{stat.hint}</p>}
               </div>
             ))}
           </div>
         </section>
 
-        <section id="monitoring" className="w-[calc(100vw-2rem)] max-w-full rounded-3xl border border-[#DCE9DD] bg-white p-5 shadow-sm md:p-6 lg:w-full">
+        <section id="monitoring" className="w-[calc(100vw-2rem)] max-w-full rounded-3xl border border-[#DCE9DD] bg-white p-4 shadow-sm sm:p-5 md:p-6 lg:w-full">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <p className="text-sm font-semibold text-[#2F7D5F]">Monitoring Statistik Ujian Siswa</p>
-              <h2 className="text-2xl font-bold text-[#18332A]">Pantau mode ujian per kelas atau jenjang</h2>
+              <h2 className="text-xl font-bold text-[#18332A] sm:text-2xl">Pantau mode ujian per kelas atau jenjang</h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-[#667A70]">
                 Filter ini hanya memakai kelas yang tersedia untuk akun saat ini, termasuk pembatasan kelas untuk penguji.
               </p>
@@ -572,7 +572,7 @@ const Dashboard = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedClassId("all")}
-                  className={`whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
+                  className={`min-h-11 whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
                     selectedClassId === "all" ? "bg-[#2F7D5F] text-white" : "border border-[#DCE9DD] bg-[#F8FAF5] text-[#667A70]"
                   }`}
                 >
@@ -583,7 +583,7 @@ const Dashboard = () => {
                     key={classInfo.id}
                     type="button"
                     onClick={() => setSelectedClassId(classInfo.id)}
-                    className={`whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
+                    className={`min-h-11 whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
                       selectedClassId === classInfo.id ? "bg-[#2F7D5F] text-white" : "border border-[#DCE9DD] bg-[#F8FAF5] text-[#667A70]"
                     }`}
                   >
@@ -596,7 +596,7 @@ const Dashboard = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedGrade(null)}
-                  className={`rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
+                  className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
                     selectedGrade === null ? "bg-[#2F7D5F] text-white" : "border border-[#DCE9DD] bg-[#F8FAF5] text-[#667A70]"
                   }`}
                 >
@@ -607,7 +607,7 @@ const Dashboard = () => {
                     key={grade}
                     type="button"
                     onClick={() => setSelectedGrade(grade)}
-                    className={`rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
+                    className={`min-h-11 rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
                       selectedGrade === grade ? "bg-[#2F7D5F] text-white" : "border border-[#DCE9DD] bg-[#F8FAF5] text-[#667A70]"
                     }`}
                   >
@@ -620,7 +620,7 @@ const Dashboard = () => {
 
           <div className="mt-5 grid gap-4 md:grid-cols-3">
             {examModes.map((mode) => (
-              <div key={mode.title} className="rounded-2xl border border-[#DCE9DD] bg-[#F8FAF5] p-5">
+              <div key={mode.title} className="rounded-2xl border border-[#DCE9DD] bg-[#F8FAF5] p-4 sm:p-5">
                 <div className="flex items-start gap-3">
                   <div className="rounded-2xl bg-[#E3F2E9] p-3 text-[#2F7D5F]">
                     <mode.icon className="h-5 w-5" />
@@ -652,8 +652,8 @@ const Dashboard = () => {
           </div>
         </section>
 
-        <section className="grid w-[calc(100vw-2rem)] max-w-full gap-5 lg:w-full lg:grid-cols-[1fr_0.9fr]">
-          <div className="rounded-3xl border border-[#DCE9DD] bg-white p-6 shadow-sm">
+        <section className="grid w-[calc(100vw-2rem)] max-w-full gap-4 lg:w-full lg:grid-cols-[1fr_0.9fr]">
+          <div className="rounded-3xl border border-[#DCE9DD] bg-white p-5 shadow-sm sm:p-6">
             <div className="mb-5 flex items-center gap-3">
               <div className="rounded-2xl bg-[#E3F2E9] p-3 text-[#2F7D5F]">
                 <Sparkles className="h-5 w-5" />
@@ -672,7 +672,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-[#DCE9DD] bg-[#1F5F49] p-6 text-white shadow-sm">
+          <div className="rounded-3xl border border-[#DCE9DD] bg-[#1F5F49] p-5 text-white shadow-sm sm:p-6">
             <div className="flex items-center gap-3">
               <div className="rounded-2xl bg-white/12 p-3">
                 <BarChart3 className="h-5 w-5 text-[#F6EBC6]" />
@@ -688,7 +688,7 @@ const Dashboard = () => {
             <button
               type="button"
               onClick={() => navigate("/rekap-global")}
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-[#1F5F49] transition-all hover:-translate-y-0.5 hover:bg-[#FBF7EB]"
+              className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-[#1F5F49] transition-all hover:-translate-y-0.5 hover:bg-[#FBF7EB]"
             >
               <BarChart3 className="h-4 w-4" />
               Lihat Rekap Global
@@ -700,7 +700,7 @@ const Dashboard = () => {
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-sm font-semibold text-[#2F7D5F]">Peta Capaian Kelas</p>
-              <h2 className="text-2xl font-bold text-[#18332A]">Performa ringkas tiap rombel</h2>
+              <h2 className="text-xl font-bold text-[#18332A] sm:text-2xl">Performa ringkas tiap rombel</h2>
             </div>
             <p className="max-w-xl text-sm text-[#667A70]">
               Warna kartu mengikuti rata-rata progress hafalan: hijau tinggi, gold sedang, merah lembut perlu pendampingan.

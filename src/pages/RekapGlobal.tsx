@@ -270,9 +270,8 @@ export default function RekapGlobal() {
     },
   });
 
-  const filtered = useMemo(() => {
+  const baseFiltered = useMemo(() => {
     let r = data?.rows || [];
-    if (filterMode !== "all") r = r.filter((x) => x.displayMode === filterMode);
     if (filterGrade !== "all") r = r.filter((x) => x.grade === parseInt(filterGrade));
     if (filterClass !== "all") r = r.filter((x) => x.className === filterClass);
     if (filterStatus !== "all") r = r.filter((x) => x.status === filterStatus);
@@ -289,7 +288,12 @@ export default function RekapGlobal() {
       r = out;
     }
     return sortRowsForDisplay(r);
-  }, [data, filterMode, filterGrade, filterClass, filterStatus, filterPredikat, onlyLatest]);
+  }, [data, filterGrade, filterClass, filterStatus, filterPredikat, onlyLatest]);
+
+  const filtered = useMemo(() => {
+    if (filterMode === "all") return baseFiltered;
+    return baseFiltered.filter((x) => x.displayMode === filterMode);
+  }, [baseFiltered, filterMode]);
 
   const stats = useMemo(() => {
     const total = filtered.length;
@@ -301,9 +305,9 @@ export default function RekapGlobal() {
 
   const byMode = useMemo(() => {
     const m: Record<string, number> = {};
-    filtered.forEach((r) => { m[r.displayMode] = (m[r.displayMode] || 0) + 1; });
+    baseFiltered.forEach((r) => { m[r.displayMode] = (m[r.displayMode] || 0) + 1; });
     return Object.entries(m).map(([name, value]) => ({ name, value }));
-  }, [filtered]);
+  }, [baseFiltered]);
 
   const byClass = useMemo(() => {
     const m: Record<string, { lulus: number; tidak: number }> = {};
@@ -916,7 +920,21 @@ export default function RekapGlobal() {
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="p-4 rounded-lg border border-border bg-card">
-                <h3 className="text-sm font-semibold text-foreground mb-3">Distribusi Mode Ujian</h3>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground">Distribusi Mode Ujian</h3>
+                    <p className="text-xs text-muted-foreground">Klik potongan chart atau kartu statistik untuk menyaring tabel ujian.</p>
+                  </div>
+                  {filterMode !== "all" && (
+                    <button
+                      type="button"
+                      onClick={() => setFilterMode("all")}
+                      className="rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground transition hover:bg-muted"
+                    >
+                      Tampilkan Semua
+                    </button>
+                  )}
+                </div>
                 <div className="relative h-[280px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -931,26 +949,69 @@ export default function RekapGlobal() {
                         stroke="none"
                         labelLine={false}
                         label={renderModeLabel}
+                        onClick={(_, index) => {
+                          const selected = byMode[index];
+                          if (selected) setFilterMode(selected.name);
+                        }}
+                        className="cursor-pointer"
                       >
                         {byMode.map((d) => (
                           <Cell key={d.name} fill={MODE_COLORS[d.name] || "hsl(var(--muted))"} />
                         ))}
                       </Pie>
+                      <text
+                        x="50%"
+                        y="47%"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fill="hsl(var(--foreground))"
+                        style={{ fontSize: "34px", fontWeight: 700 }}
+                      >
+                        {totalByMode}
+                      </text>
+                      <text
+                        x="50%"
+                        y="58%"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fill="hsl(var(--muted-foreground))"
+                        style={{ fontSize: "11px", fontWeight: 600, letterSpacing: "0.24em", textTransform: "uppercase" }}
+                      >
+                        Total Ujian
+                      </text>
                       <Tooltip formatter={(value: number, name: string) => [`${value} ujian`, name]} />
                     </PieChart>
                   </ResponsiveContainer>
-                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                    <div className="rounded-full bg-background/88 px-5 py-4 text-center shadow-sm backdrop-blur-sm">
-                      <p className="text-3xl font-bold text-foreground">{totalByMode}</p>
-                      <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Total Ujian</p>
-                    </div>
-                  </div>
                 </div>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setFilterMode("all")}
+                    className={`rounded-2xl border px-3 py-2.5 text-left transition ${
+                      filterMode === "all"
+                        ? "border-primary bg-primary/10 shadow-sm"
+                        : "border-border/70 bg-muted/10 hover:bg-muted/30"
+                    }`}
+                  >
+                    <p className="text-sm font-medium text-foreground">Semua Mode</p>
+                    <div className="mt-1 flex items-end justify-between gap-3">
+                      <p className="text-lg font-bold text-foreground">{totalByMode}</p>
+                      <p className="text-xs font-medium text-muted-foreground">100%</p>
+                    </div>
+                  </button>
                   {byMode.map((item) => {
                     const pct = totalByMode > 0 ? Math.round((item.value / totalByMode) * 100) : 0;
                     return (
-                      <div key={item.name} className="rounded-2xl border border-border/70 bg-muted/20 px-3 py-2.5">
+                      <button
+                        key={item.name}
+                        type="button"
+                        onClick={() => setFilterMode(item.name)}
+                        className={`rounded-2xl border px-3 py-2.5 text-left transition ${
+                          filterMode === item.name
+                            ? "border-primary bg-primary/10 shadow-sm"
+                            : "border-border/70 bg-muted/20 hover:bg-muted/30"
+                        }`}
+                      >
                         <div className="flex items-center gap-2">
                           <span
                             className="h-2.5 w-2.5 rounded-full"
@@ -962,7 +1023,7 @@ export default function RekapGlobal() {
                           <p className="text-lg font-bold text-foreground">{item.value}</p>
                           <p className="text-xs font-medium text-muted-foreground">{pct}%</p>
                         </div>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>

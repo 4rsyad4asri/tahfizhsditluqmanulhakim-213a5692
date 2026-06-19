@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowUpWideNarrow, CheckCircle2, Loader2, RefreshCcw, ShieldAlert, Users, XCircle } from "lucide-react";
+import { ArrowUpWideNarrow, CheckCircle2, GraduationCap, Loader2, RefreshCcw, ShieldAlert, Users, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -24,6 +24,8 @@ type PreviewRow = {
   errorNote: string;
   fromClassId: string | null;
   toClassId: string | null;
+  sortGrade: number;
+  sortSection: string;
 };
 
 type ExecutionRow = {
@@ -41,6 +43,8 @@ type Summary = {
   failed: number;
   alreadyProcessed: number;
 };
+
+type PreviewFilter = "all" | PreviewOutcome;
 
 const formatAcademicYearLabel = (year?: AcademicYearRow | null) => year?.name || "Belum dipilih";
 
@@ -110,6 +114,8 @@ export default function MassClassPromotion() {
   const [toYearId, setToYearId] = useState("");
   const [previewRequested, setPreviewRequested] = useState(false);
   const [executionSummary, setExecutionSummary] = useState<Summary | null>(null);
+  const [activeFilter, setActiveFilter] = useState<PreviewFilter>("all");
+  const [classFilter, setClassFilter] = useState("all");
 
   const { data: academicYears, isLoading: yearsLoading, error: yearsError } = useQuery({
     queryKey: ["academic-years"],
@@ -171,6 +177,8 @@ export default function MassClassPromotion() {
   useEffect(() => {
     setPreviewRequested(false);
     setExecutionSummary(null);
+    setActiveFilter("all");
+    setClassFilter("all");
   }, [fromYearId, toYearId]);
 
   useEffect(() => {
@@ -206,7 +214,8 @@ export default function MassClassPromotion() {
   const previewRows = useMemo<PreviewRow[]>(() => {
     if (!students?.length || !fromYearId || !toYearId || fromYearId === toYearId) return [];
 
-    return students.map((student) => {
+    return students
+      .map((student) => {
       const duplicateKey = `${student.id}-${fromYearId}-${toYearId}`;
       const classRow = student.class_id ? classesById.get(student.class_id) || null : null;
       const defaultRow: PreviewRow = {
@@ -219,6 +228,8 @@ export default function MassClassPromotion() {
         errorNote: "",
         fromClassId: student.class_id || null,
         toClassId: null,
+        sortGrade: classRow?.grade ?? -1,
+        sortSection: classRow?.section?.trim().toUpperCase() ?? "",
       };
 
       if (processedKeySet.has(duplicateKey)) {
@@ -274,10 +285,45 @@ export default function MassClassPromotion() {
         fromClassId: classRow.id,
         toClassId: targetClass.id,
       };
-    });
+      })
+      .sort((a, b) => {
+        if (a.sortGrade !== b.sortGrade) return b.sortGrade - a.sortGrade;
+
+        const sectionComparison = a.sortSection.localeCompare(b.sortSection, "id", { sensitivity: "base" });
+        if (sectionComparison !== 0) return sectionComparison;
+
+        return a.studentName.localeCompare(b.studentName, "id", { sensitivity: "base" });
+      });
   }, [classesById, fromYearId, processedKeySet, students, targetClassByKey, toYearId]);
 
   const previewSummary = useMemo(() => summarizePreview(previewRows), [previewRows]);
+  const classFilterOptions = useMemo(() => {
+    const map = new Map<string, { value: string; label: string; sortGrade: number; sortSection: string }>();
+
+    for (const row of previewRows) {
+      if (!row.fromClassId || map.has(row.fromClassId)) continue;
+      map.set(row.fromClassId, {
+        value: row.fromClassId,
+        label: row.oldClassName,
+        sortGrade: row.sortGrade,
+        sortSection: row.sortSection,
+      });
+    }
+
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.sortGrade !== b.sortGrade) return b.sortGrade - a.sortGrade;
+      return a.sortSection.localeCompare(b.sortSection, "id", { sensitivity: "base" });
+    });
+  }, [previewRows]);
+  const filteredPreviewRows = useMemo(
+    () =>
+      previewRows.filter((row) => {
+        if (activeFilter !== "all" && row.outcome !== activeFilter) return false;
+        if (classFilter !== "all" && row.fromClassId !== classFilter) return false;
+        return true;
+      }),
+    [activeFilter, classFilter, previewRows],
+  );
   const readyRows = useMemo(
     () => previewRows.filter((row) => row.outcome === "ready_promote" || row.outcome === "ready_alumni"),
     [previewRows],
@@ -327,6 +373,43 @@ export default function MassClassPromotion() {
 
   const isLoading = yearsLoading || classesLoading || studentsLoading || historyLoading;
   const pageError = yearsError || classesError || studentsError || historyError;
+  const filterCards = [
+    {
+      key: "all" as const,
+      label: "Semua Siswa",
+      count: previewRows.length,
+      icon: Users,
+      activeClassName: "border-primary bg-primary/5 text-primary",
+    },
+    {
+      key: "ready_promote" as const,
+      label: "Siap Naik Kelas",
+      count: previewSummary.promoted,
+      icon: ArrowUpWideNarrow,
+      activeClassName: "border-emerald-200 bg-emerald-50 text-emerald-900",
+    },
+    {
+      key: "ready_alumni" as const,
+      label: "Siap Jadi Alumni",
+      count: previewSummary.alumni,
+      icon: GraduationCap,
+      activeClassName: "border-blue-200 bg-blue-50 text-blue-900",
+    },
+    {
+      key: "failed" as const,
+      label: "Gagal",
+      count: previewSummary.failed,
+      icon: XCircle,
+      activeClassName: "border-rose-200 bg-rose-50 text-rose-900",
+    },
+    {
+      key: "already_processed" as const,
+      label: "Sudah Diproses",
+      count: previewSummary.alreadyProcessed,
+      icon: RefreshCcw,
+      activeClassName: "border-amber-200 bg-amber-50 text-amber-900",
+    },
+  ];
 
   if (!isAdmin) {
     return (
@@ -450,23 +533,30 @@ export default function MassClassPromotion() {
           </section>
         ) : previewRequested ? (
           <>
-            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-2xl border border-border bg-card p-4 shadow-card">
-                <p className="text-xs font-medium text-muted-foreground">Siap Naik Kelas</p>
-                <p className="mt-2 text-2xl font-bold text-foreground">{previewSummary.promoted}</p>
-              </div>
-              <div className="rounded-2xl border border-border bg-card p-4 shadow-card">
-                <p className="text-xs font-medium text-muted-foreground">Siap Jadi Alumni</p>
-                <p className="mt-2 text-2xl font-bold text-foreground">{previewSummary.alumni}</p>
-              </div>
-              <div className="rounded-2xl border border-border bg-card p-4 shadow-card">
-                <p className="text-xs font-medium text-muted-foreground">Gagal</p>
-                <p className="mt-2 text-2xl font-bold text-foreground">{previewSummary.failed}</p>
-              </div>
-              <div className="rounded-2xl border border-border bg-card p-4 shadow-card">
-                <p className="text-xs font-medium text-muted-foreground">Sudah Pernah Diproses</p>
-                <p className="mt-2 text-2xl font-bold text-foreground">{previewSummary.alreadyProcessed}</p>
-              </div>
+            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+              {filterCards.map((card) => {
+                const Icon = card.icon;
+                const isActive = activeFilter === card.key;
+
+                return (
+                  <button
+                    key={card.key}
+                    type="button"
+                    onClick={() => setActiveFilter(card.key)}
+                    className={`rounded-2xl border bg-card p-4 text-left shadow-card transition-colors hover:border-primary/40 hover:bg-primary/5 ${
+                      isActive ? card.activeClassName : "border-border text-foreground"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className={`text-xs font-medium ${isActive ? "text-current/80" : "text-muted-foreground"}`}>{card.label}</p>
+                        <p className="mt-2 text-2xl font-bold">{card.count}</p>
+                      </div>
+                      <Icon className="h-5 w-5 shrink-0" />
+                    </div>
+                  </button>
+                );
+              })}
             </section>
 
             <section className="rounded-2xl border border-border bg-card shadow-card">
@@ -477,18 +567,40 @@ export default function MassClassPromotion() {
                     Preview ini tidak mengubah database. Hanya baris yang berstatus siap yang akan diproses setelah konfirmasi.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => executeMutation.mutate()}
-                  disabled={executeMutation.isPending || readyRows.length === 0}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold gradient-islamic text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
-                >
-                  {executeMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                  {executeMutation.isPending ? "Memproses..." : "Konfirmasi dan Proses"}
-                </button>
+                <div className="flex flex-col gap-3 md:items-end">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                    <div className="min-w-56">
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground">Filter Kelas</label>
+                      <select
+                        value={classFilter}
+                        onChange={(event) => setClassFilter(event.target.value)}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                      >
+                        <option value="all">Semua kelas</option>
+                        {classFilterOptions.map((item) => (
+                          <option key={item.value} value={item.value}>
+                            {item.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => executeMutation.mutate()}
+                      disabled={executeMutation.isPending || readyRows.length === 0}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold gradient-islamic text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+                    >
+                      {executeMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                      {executeMutation.isPending ? "Memproses..." : "Konfirmasi dan Proses"}
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Menampilkan {filteredPreviewRows.length} dari {previewRows.length} siswa.
+                  </p>
+                </div>
               </div>
 
-              {!previewRows.length ? (
+              {!filteredPreviewRows.length ? (
                 <div className="px-5 py-12 text-center text-muted-foreground">Tidak ada data preview yang bisa ditampilkan.</div>
               ) : (
                 <>
@@ -505,7 +617,7 @@ export default function MassClassPromotion() {
                         </tr>
                       </thead>
                       <tbody>
-                        {previewRows.map((row) => (
+                        {filteredPreviewRows.map((row) => (
                           <tr key={row.studentId} className="border-t border-border/70 align-top">
                             <td className="px-5 py-4 font-medium text-foreground">{row.studentName}</td>
                             <td className="px-5 py-4 text-muted-foreground">{row.oldClassName}</td>
@@ -522,7 +634,7 @@ export default function MassClassPromotion() {
                   </div>
 
                   <div className="space-y-3 px-4 py-4 md:hidden">
-                    {previewRows.map((row) => (
+                    {filteredPreviewRows.map((row) => (
                       <div key={row.studentId} className="rounded-2xl border border-border bg-background p-4 shadow-sm">
                         <div className="flex items-start justify-between gap-3">
                           <div>

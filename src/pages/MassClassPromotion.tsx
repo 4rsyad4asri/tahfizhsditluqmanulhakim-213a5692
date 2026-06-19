@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowUpWideNarrow, CheckCircle2, GraduationCap, Loader2, RefreshCcw, ShieldAlert, Users, XCircle } from "lucide-react";
+import { ArrowUpWideNarrow, CheckCircle2, GraduationCap, Loader2, RefreshCcw, Search, ShieldAlert, Users, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -116,6 +116,7 @@ export default function MassClassPromotion() {
   const [executionSummary, setExecutionSummary] = useState<Summary | null>(null);
   const [activeFilter, setActiveFilter] = useState<PreviewFilter>("all");
   const [classFilter, setClassFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const { data: academicYears, isLoading: yearsLoading, error: yearsError } = useQuery({
     queryKey: ["academic-years"],
@@ -179,6 +180,7 @@ export default function MassClassPromotion() {
     setExecutionSummary(null);
     setActiveFilter("all");
     setClassFilter("all");
+    setSearchTerm("");
   }, [fromYearId, toYearId]);
 
   useEffect(() => {
@@ -320,9 +322,10 @@ export default function MassClassPromotion() {
       previewRows.filter((row) => {
         if (activeFilter !== "all" && row.outcome !== activeFilter) return false;
         if (classFilter !== "all" && row.fromClassId !== classFilter) return false;
+        if (searchTerm.trim() && !row.studentName.toLowerCase().includes(searchTerm.trim().toLowerCase())) return false;
         return true;
       }),
-    [activeFilter, classFilter, previewRows],
+    [activeFilter, classFilter, previewRows, searchTerm],
   );
   const readyRows = useMemo(
     () => previewRows.filter((row) => row.outcome === "ready_promote" || row.outcome === "ready_alumni"),
@@ -568,7 +571,20 @@ export default function MassClassPromotion() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-3 md:items-end">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-end">
+                    <div className="min-w-64">
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground">Cari Nama Siswa</label>
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <input
+                          type="text"
+                          value={searchTerm}
+                          onChange={(event) => setSearchTerm(event.target.value)}
+                          placeholder="Ketik nama siswa..."
+                          className="w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                      </div>
+                    </div>
                     <div className="min-w-56">
                       <label className="mb-1 block text-xs font-medium text-muted-foreground">Filter Kelas</label>
                       <select

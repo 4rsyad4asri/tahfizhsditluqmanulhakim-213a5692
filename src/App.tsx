@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,25 +8,25 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "@/components/AppLayout";
-import Index from "./pages/Index";
-import ClassStudents from "./pages/ClassStudents";
-import StudentDetail from "./pages/StudentDetail";
-import ManageStudents from "./pages/ManageStudents";
-import ManageUsers from "./pages/ManageUsers";
-import RekapSertifikat from "./pages/RekapSertifikat";
-import RekapGlobal from "./pages/RekapGlobal";
-import SearchStudents from "./pages/SearchStudents";
-import AcademicYears from "./pages/AcademicYears";
-import MassClassPromotion from "./pages/MassClassPromotion";
+const Index = lazy(() => import("./pages/Index"));
+const ClassStudents = lazy(() => import("./pages/ClassStudents"));
+const StudentDetail = lazy(() => import("./pages/StudentDetail"));
+const ManageStudents = lazy(() => import("./pages/ManageStudents"));
+const ManageUsers = lazy(() => import("./pages/ManageUsers"));
+const RekapSertifikat = lazy(() => import("./pages/RekapSertifikat"));
+const RekapGlobal = lazy(() => import("./pages/RekapGlobal"));
+const SearchStudents = lazy(() => import("./pages/SearchStudents"));
+const AcademicYears = lazy(() => import("./pages/AcademicYears"));
+const MassClassPromotion = lazy(() => import("./pages/MassClassPromotion"));
 
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Profile from "./pages/Profile";
-import ChangePassword from "./pages/ChangePassword";
-import ProfilPenguji from "./pages/ProfilPenguji";
-import NotFound from "./pages/NotFound";
-import TahfizhVerification from "./pages/TahfizhVerification";
-import VerificationCenter from "./pages/VerificationCenter";
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const Profile = lazy(() => import("./pages/Profile"));
+const ChangePassword = lazy(() => import("./pages/ChangePassword"));
+const ProfilPenguji = lazy(() => import("./pages/ProfilPenguji"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const TahfizhVerification = lazy(() => import("./pages/TahfizhVerification"));
+const VerificationCenter = lazy(() => import("./pages/VerificationCenter"));
 
 const queryClient = new QueryClient();
 
@@ -83,26 +83,28 @@ function ScrollControls() {
 function AppRoutes() {
   return (
     <AuthProvider>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<Index />} />
-          <Route path="/kelas/:classId" element={<ClassStudents />} />
-          <Route path="/siswa/:studentId" element={<StudentDetail />} />
-          <Route path="/tahun-ajaran" element={<ProtectedRoute requiredRole="admin"><AcademicYears /></ProtectedRoute>} />
-          <Route path="/naik-kelas-massal" element={<ProtectedRoute requiredRole="admin"><MassClassPromotion /></ProtectedRoute>} />
-          <Route path="/kelola-siswa" element={<ProtectedRoute requiredRole="admin"><ManageStudents /></ProtectedRoute>} />
-          <Route path="/kelola-user" element={<ProtectedRoute requiredRole="admin"><ManageUsers /></ProtectedRoute>} />
-          <Route path="/rekap-sertifikat" element={<ProtectedRoute><RekapSertifikat /></ProtectedRoute>} />
-          <Route path="/rekap-global" element={<RekapGlobal />} />
-          <Route path="/cari-siswa" element={<SearchStudents />} />
-          <Route path="/ganti-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          <Route path="/profil" element={<ProtectedRoute><ProfilPenguji /></ProtectedRoute>} />
-        </Route>
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <Suspense fallback={<div className="flex h-screen w-full items-center justify-center text-muted-foreground">Memuat halaman...</div>}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<Index />} />
+            <Route path="/kelas/:classId" element={<ClassStudents />} />
+            <Route path="/siswa/:studentId" element={<StudentDetail />} />
+            <Route path="/tahun-ajaran" element={<ProtectedRoute requiredRole="admin"><AcademicYears /></ProtectedRoute>} />
+            <Route path="/naik-kelas-massal" element={<ProtectedRoute requiredRole="admin"><MassClassPromotion /></ProtectedRoute>} />
+            <Route path="/kelola-siswa" element={<ProtectedRoute requiredRole="admin"><ManageStudents /></ProtectedRoute>} />
+            <Route path="/kelola-user" element={<ProtectedRoute requiredRole="admin"><ManageUsers /></ProtectedRoute>} />
+            <Route path="/rekap-sertifikat" element={<ProtectedRoute><RekapSertifikat /></ProtectedRoute>} />
+            <Route path="/rekap-global" element={<RekapGlobal />} />
+            <Route path="/cari-siswa" element={<SearchStudents />} />
+            <Route path="/ganti-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/profil" element={<ProtectedRoute><ProfilPenguji /></ProtectedRoute>} />
+          </Route>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
     </AuthProvider>
   );
 }
@@ -113,11 +115,13 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/verifikasi/:type/:token" element={<VerificationCenter />} />
-          <Route path="/verifikasi/tahfizh/:token" element={<TahfizhVerification />} />
-          <Route path="/*" element={<AppRoutes />} />
-        </Routes>
+        <Suspense fallback={<div className="flex h-screen w-full items-center justify-center text-muted-foreground">Memuat verifikasi...</div>}>
+          <Routes>
+            <Route path="/verifikasi/:type/:token" element={<VerificationCenter />} />
+            <Route path="/verifikasi/tahfizh/:token" element={<TahfizhVerification />} />
+            <Route path="/*" element={<AppRoutes />} />
+          </Routes>
+        </Suspense>
         <ScrollControls />
       </BrowserRouter>
     </TooltipProvider>

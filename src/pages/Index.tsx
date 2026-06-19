@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import ClassCard from "@/components/ClassCard";
 import { useClasses } from "@/hooks/useClasses";
@@ -23,7 +23,8 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getSafeErrorMessage } from "@/utils/errorMessages";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
+// Removing static recharts import
+const LevelDistributionChart = lazy(() => import("@/components/LevelDistributionChart"));
 
 const LEVEL_COLORS = [
   "#2F7D5F",
@@ -405,31 +406,9 @@ const Dashboard = () => {
               <h3 className="mb-4 font-semibold text-foreground">Distribusi Level Siswa</h3>
               <div className="flex flex-col items-center gap-6 md:flex-row">
                 <div className="w-full md:w-1/2" style={{ height: 250 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={levelData}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={90}
-                        innerRadius={45}
-                        paddingAngle={3}
-                        label={({ name, pct }) => `${name} (${pct}%)`}
-                        labelLine={false}
-                      >
-                        {levelData.map((_, i) => (
-                          <Cell key={i} fill={LEVEL_COLORS[i % LEVEL_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }}
-                        formatter={(value: number, name: string) => [`${value} siswa`, name]}
-                      />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <Suspense fallback={<div className="flex h-full w-full items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}>
+                    <LevelDistributionChart levelData={levelData} levelColors={LEVEL_COLORS} />
+                  </Suspense>
                 </div>
                 <div className="grid w-full grid-cols-1 gap-3 md:w-1/2">
                   {levelData.map((item, i) => (

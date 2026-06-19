@@ -1,5 +1,5 @@
 import { loadArabicFont } from "@/utils/loadArabicFont";
-import jsPDF from "jspdf";
+import type { jsPDF } from "jspdf";
 import type {
   TahsinDasarEntry,
   TahsinLanjutanEntry,
@@ -53,12 +53,15 @@ function getRataKelancaran(entries: { kelancaran?: number }[]) {
   return Math.round(total / entries.length);
 }
 
+
 export const generateTahsinPDF = async (data: TahsinExamData) => {
   data = {
     ...data,
     studentName: formatStudentName(data.studentName),
   };
-  const doc = new jsPDF({
+  const { default: JsPDFModule } = await import("jspdf");
+  const JsPDF = (JsPDFModule as any).jsPDF || JsPDFModule;
+  const doc = new JsPDF({
     orientation: "portrait",
     unit: "mm",
     format: "a4",

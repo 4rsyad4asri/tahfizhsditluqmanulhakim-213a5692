@@ -1,4 +1,4 @@
-import jsPDF from "jspdf";
+import type { jsPDF } from "jspdf";
 import {
   CERTIFICATE_HEIGHT,
   CERTIFICATE_WIDTH,
@@ -86,7 +86,9 @@ export const buildCertificatePDF = async (
   const layout = layoutOverride ?? await loadCertificateLayout();
   const image = await renderCertificateImage(formattedData, layout);
   const placement = getCertificatePdfPlacement(format);
-  const doc = new jsPDF({
+  const { default: JsPDFModule } = await import("jspdf");
+  const JsPDF = (JsPDFModule as any).jsPDF || JsPDFModule;
+  const doc = new JsPDF({
     orientation: "landscape",
     unit: "mm",
     format: [placement.pageWidth, placement.pageHeight],

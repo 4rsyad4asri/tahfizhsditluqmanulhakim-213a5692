@@ -1,5 +1,22 @@
-import jsPDF from "jspdf";
-import autoTable, { type RowInput } from "jspdf-autotable";
+import type { jsPDF } from "jspdf";
+import type { RowInput } from "jspdf-autotable";
+
+let autoTableFn: any;
+let jsPDFFn: any;
+
+async function initPdfLibs() {
+  if (!jsPDFFn) {
+    const [jsPDFModule, autoTableModule] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable")
+    ]);
+    jsPDFFn = jsPDFModule.default || (jsPDFModule as any).jsPDF;
+    autoTableFn = autoTableModule.default;
+  }
+  return jsPDFFn;
+}
+
+const autoTable = (...args: any[]) => autoTableFn(...args);
 import QRCode from "qrcode";
 import { loadArabicFont } from "@/utils/loadArabicFont";
 import generateCatatanOtomatis from "@/utils/catatanOtomatis";
@@ -1182,15 +1199,6 @@ export async function generateRaportPDF(
     ...data,
     studentName: formatStudentName(data.studentName),
   };
-  const doc = new jsPDF({
-    orientation: opts.orientation,
-    unit: "mm",
-    format: "a4",
-  });
-
-  await loadArabicFont(doc);
-
-  const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 10;
   const visualLayout = normalizeRaportVisualLayout(

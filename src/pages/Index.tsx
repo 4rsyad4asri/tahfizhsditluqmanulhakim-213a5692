@@ -1,10 +1,10 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ClassCard from "@/components/ClassCard";
 import { useClasses } from "@/hooks/useClasses";
 import { useMyAssignedClasses } from "@/hooks/useMyAssignedClasses";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Award,
@@ -59,6 +59,7 @@ const isTahfizhCertificateExam = (row: { mode?: string | null; nilai_aspek?: unk
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [selectedGrade, setSelectedGrade] = useState<number | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<string>("all");
   const [monitoringMode, setMonitoringMode] = useState<MonitoringMode>("class");
@@ -66,24 +67,14 @@ const Dashboard = () => {
   const { data: assignedClassIds } = useMyAssignedClasses();
   const { user, isPenguji } = useAuthContext();
 
-  // Fetch student level distribution
-  const { data: levelData } = useQuery({
-    queryKey: ["student-level-distribution"],
+  const { data: studentLevels } = useQuery({
+    queryKey: ["dashboard-student-levels"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("students")
-        .select("level");
+        .select("class_id, level");
       if (error) throw error;
-      const counts: Record<string, number> = {};
-      (data || []).forEach((s) => {
-        counts[s.level] = (counts[s.level] || 0) + 1;
-      });
-      const total = data?.length || 1;
-      return Object.entries(counts).map(([name, value]) => ({
-        name,
-        value,
-        pct: Math.round((value / total) * 100),
-      }));
+      return data || [];
     },
   });
 
@@ -159,6 +150,28 @@ const Dashboard = () => {
     if (selectedGrade === null) return accessibleClasses;
     return accessibleClasses.filter((classInfo) => classInfo.grade === selectedGrade);
   }, [accessibleClasses, selectedGrade]);
+
+  const levelData = useMemo(() => {
+    if (!studentLevels?.length || !filteredClasses.length) return [];
+
+    const visibleClassIds = new Set(filteredClasses.map((classInfo) => classInfo.id));
+    const counts: Record<string, number> = {};
+    let total = 0;
+
+    studentLevels.forEach((student) => {
+      if (!student.class_id || !visibleClassIds.has(student.class_id) || !student.level) return;
+      counts[student.level] = (counts[student.level] || 0) + 1;
+      total += 1;
+    });
+
+    return Object.entries(counts)
+      .map(([name, value]) => ({
+        name,
+        value,
+        pct: total > 0 ? Math.round((value / total) * 100) : 0,
+      }))
+      .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name));
+  }, [filteredClasses, studentLevels]);
 
   const publicActiveClasses = useMemo(() => {
     if (!publicSummary?.activeClassIds.length) return accessibleClasses;
@@ -281,6 +294,24 @@ const Dashboard = () => {
     if (progress >= 70) return "border-[#E6D28F] bg-[#FBF7EB] text-[#765D18]";
     return "border-[#E9B5A8] bg-[#FFF1ED] text-[#8A3A29]";
   };
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("dashboard-student-levels-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "students" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["dashboard-student-levels"] });
+          queryClient.invalidateQueries({ queryKey: ["classes"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   if (isLoading) {
     return (

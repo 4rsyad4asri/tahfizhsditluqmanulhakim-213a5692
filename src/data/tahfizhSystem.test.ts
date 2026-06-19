@@ -89,18 +89,40 @@ describe("Tahfizh scoring", () => {
 
     expect(sequence).toHaveLength(10);
     expect(sequence.map((item) => item.surah)).toEqual(Array(10).fill("Al-Baqarah"));
-    expect(sequence.map((item) => item.ayatRange)).toEqual([
-      "1-16",
-      "17-29",
-      "30-48",
-      "49-61",
-      "62-76",
-      "77-88",
-      "89-101",
-      "102-112",
-      "113-126",
-      "127-141",
+    expect(sequence.map((item) => item.ayatAwal)).toEqual([
+      1,
+      17,
+      30,
+      49,
+      62,
+      77,
+      89,
+      102,
+      113,
+      127,
     ]);
+    expect(sequence.map((item) => item.ayatAkhir)).toEqual([
+      16,
+      29,
+      48,
+      61,
+      76,
+      88,
+      101,
+      112,
+      126,
+      141,
+    ]);
+    expect(sequence.every((item) => item.ayatRange === undefined)).toBe(true);
+  });
+
+  it("leaves verse fields empty for other certificate juz rows so they stay editable", () => {
+    const sequence = getCertificateSequenceForJuz(3);
+
+    expect(sequence.map((item) => item.surah)).toEqual(["Al-Baqarah", "Ali 'Imran"]);
+    expect(sequence.every((item) => item.ayatAwal === undefined)).toBe(true);
+    expect(sequence.every((item) => item.ayatAkhir === undefined)).toBe(true);
+    expect(sequence.every((item) => item.ayatRange === undefined)).toBe(true);
   });
 
   it("uses the current penalty formula with waqaf weight one", () => {

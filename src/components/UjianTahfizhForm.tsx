@@ -1036,7 +1036,7 @@ function TahfizhAssessmentInput({
         <Field label="Ayat Awal">
           <input
             value={assessment.ayatAwal ?? ""}
-            disabled={disabled || mode === "Sertifikat"}
+            disabled={disabled}
             onChange={(event) => onUpdate(index, "ayatAwal", event.target.value)}
             placeholder={assessment.ayatRange || "-"}
             className="field-input min-w-0"
@@ -1046,7 +1046,7 @@ function TahfizhAssessmentInput({
         <Field label="Ayat Akhir">
           <input
             value={assessment.ayatAkhir ?? ""}
-            disabled={disabled || mode === "Sertifikat"}
+            disabled={disabled}
             onChange={(event) => onUpdate(index, "ayatAkhir", event.target.value)}
             placeholder={assessment.ayatRange || "-"}
             className="field-input min-w-0"

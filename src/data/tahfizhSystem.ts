@@ -126,16 +126,16 @@ export const JUZ_30_CERTIFICATE_SEQUENCE: TahfizhSurahAssessment[] = [
 ];
 
 export const JUZ_1_CERTIFICATE_SEQUENCE: TahfizhSurahAssessment[] = [
-  { surah: "Al-Baqarah", juz: 1, ayatRange: "1-16", kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
-  { surah: "Al-Baqarah", juz: 1, ayatRange: "17-29", kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
-  { surah: "Al-Baqarah", juz: 1, ayatRange: "30-48", kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
-  { surah: "Al-Baqarah", juz: 1, ayatRange: "49-61", kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
-  { surah: "Al-Baqarah", juz: 1, ayatRange: "62-76", kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
-  { surah: "Al-Baqarah", juz: 1, ayatRange: "77-88", kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
-  { surah: "Al-Baqarah", juz: 1, ayatRange: "89-101", kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
-  { surah: "Al-Baqarah", juz: 1, ayatRange: "102-112", kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
-  { surah: "Al-Baqarah", juz: 1, ayatRange: "113-126", kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
-  { surah: "Al-Baqarah", juz: 1, ayatRange: "127-141", kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
+  { surah: "Al-Baqarah", juz: 1, ayatAwal: 1, ayatAkhir: 16, kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
+  { surah: "Al-Baqarah", juz: 1, ayatAwal: 17, ayatAkhir: 29, kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
+  { surah: "Al-Baqarah", juz: 1, ayatAwal: 30, ayatAkhir: 48, kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
+  { surah: "Al-Baqarah", juz: 1, ayatAwal: 49, ayatAkhir: 61, kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
+  { surah: "Al-Baqarah", juz: 1, ayatAwal: 62, ayatAkhir: 76, kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
+  { surah: "Al-Baqarah", juz: 1, ayatAwal: 77, ayatAkhir: 88, kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
+  { surah: "Al-Baqarah", juz: 1, ayatAwal: 89, ayatAkhir: 101, kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
+  { surah: "Al-Baqarah", juz: 1, ayatAwal: 102, ayatAkhir: 112, kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
+  { surah: "Al-Baqarah", juz: 1, ayatAwal: 113, ayatAkhir: 126, kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
+  { surah: "Al-Baqarah", juz: 1, ayatAwal: 127, ayatAkhir: 141, kelancaran: 100, lahnJali: 0, lahnKhofi: 0, waqaf: 0, salahSambung: 0 },
 ];
 
 type Juz30Group = {
@@ -181,7 +181,7 @@ export function createCertificateAssessment(index = 0): TahfizhSurahAssessment {
 
 export function getCertificateSequenceForJuz(juz = 30): TahfizhSurahAssessment[] {
   if (juz === 1) {
-    return JUZ_1_CERTIFICATE_SEQUENCE.map((item) => ({ ...item, sequenceLabel: getSurahLabelForCertificate(item.surah, item.ayatRange) }));
+    return JUZ_1_CERTIFICATE_SEQUENCE.map((item) => ({ ...item, sequenceLabel: item.surah }));
   }
 
   if (juz === 30) {
@@ -191,14 +191,16 @@ export function getCertificateSequenceForJuz(juz = 30): TahfizhSurahAssessment[]
   return getSurahsForJuz(juz).map((item) => ({
     surah: item.name,
     juz,
-    ayatRange: item.ayatRange,
+    ayatAwal: undefined,
+    ayatAkhir: undefined,
+    ayatRange: undefined,
     kelancaran: 100,
     lahnJali: 0,
     lahnKhofi: 0,
     waqaf: 0,
     salahSambung: 0,
     catatan: "",
-    sequenceLabel: getSurahLabelForCertificate(item.name, item.ayatRange),
+    sequenceLabel: item.name,
   }));
 }
 

@@ -34,6 +34,7 @@ interface Row {
   className: string;
   grade: number;
   mode: string;
+  displayMode: string;
   tanggal: string;
   createdAt: string;
   nilai: number;
@@ -68,7 +69,8 @@ interface CombinedPdfProgress {
 }
 
 const MODE_COLORS: Record<string, string> = {
-  "Tahfizh": "hsl(var(--primary))",
+  "Tahfizh Reguler": "hsl(var(--primary))",
+  "Tahfizh Sertifikat": "hsl(var(--accent))",
   "Tahsin Dasar": "hsl(var(--success))",
   "Tahsin Lanjutan": "hsl(var(--warning))",
 };
@@ -166,10 +168,28 @@ function sortRowsForDisplay(rows: Row[]) {
       a.grade - b.grade ||
       rowDisplayCollator.compare(a.className, b.className) ||
       rowDisplayCollator.compare(a.studentName, b.studentName) ||
-      rowDisplayCollator.compare(a.mode, b.mode) ||
+      rowDisplayCollator.compare(a.displayMode, b.displayMode) ||
       rowDisplayCollator.compare(a.tanggal, b.tanggal)
     );
   });
+}
+
+function getDisplayMode(ujian: any) {
+  if (ujian?.mode !== "Tahfizh") return ujian?.mode || "-";
+
+  const aspek =
+    ujian?.nilai_aspek && typeof ujian.nilai_aspek === "object" && !Array.isArray(ujian.nilai_aspek)
+      ? ujian.nilai_aspek
+      : {};
+  const tahfizhMode = inferTahfizhModeForExam({
+    mode: ujian?.mode,
+    tahfizhMode: aspek?.tahfizhMode,
+    verificationType: aspek?.verificationType,
+    assessedBy: ujian?.assessed_by,
+    tanggal: ujian?.tanggal,
+  }) || "Reguler";
+
+  return `Tahfizh ${tahfizhMode}`;
 }
 
 export default function RekapGlobal() {
@@ -227,6 +247,7 @@ export default function RekapGlobal() {
           className: resolveExamClassName(syncedUjian, c) || "Unknown",
           grade: resolveExamGrade(syncedUjian, c?.grade),
           mode: syncedUjian.mode,
+          displayMode: getDisplayMode(syncedUjian),
           tanggal: syncedUjian.tanggal,
           createdAt: syncedUjian.created_at,
           nilai: syncedUjian.nilai_akhir,
@@ -244,7 +265,7 @@ export default function RekapGlobal() {
 
   const filtered = useMemo(() => {
     let r = data || [];
-    if (filterMode !== "all") r = r.filter((x) => x.mode === filterMode);
+    if (filterMode !== "all") r = r.filter((x) => x.displayMode === filterMode);
     if (filterGrade !== "all") r = r.filter((x) => x.grade === parseInt(filterGrade));
     if (filterClass !== "all") r = r.filter((x) => x.className === filterClass);
     if (filterStatus !== "all") r = r.filter((x) => x.status === filterStatus);
@@ -272,7 +293,7 @@ export default function RekapGlobal() {
 
   const byMode = useMemo(() => {
     const m: Record<string, number> = {};
-    filtered.forEach((r) => { m[r.mode] = (m[r.mode] || 0) + 1; });
+    filtered.forEach((r) => { m[r.displayMode] = (m[r.displayMode] || 0) + 1; });
     return Object.entries(m).map(([name, value]) => ({ name, value }));
   }, [filtered]);
 
@@ -312,7 +333,7 @@ export default function RekapGlobal() {
     exportJsonToExcel(
       filtered.map((r) => ({
         Nama: r.studentName, Kelas: r.className, Kelas_Tingkat: r.grade,
-        Mode: r.mode, Tanggal: r.tanggal, Nilai: r.nilai, Status: r.status, Predikat: r.predikat,
+        Mode: r.displayMode, Tanggal: r.tanggal, Nilai: r.nilai, Status: r.status, Predikat: r.predikat,
       })),
       "Rekap Global",
       `Rekap_Global_${new Date().toISOString().slice(0,10)}.xlsx`
@@ -552,7 +573,7 @@ export default function RekapGlobal() {
             const resolvedAssets = await resolveRaportSignatureAssets(r.ujian?.assessed_by, assets);
             const doc = await generateRaportPDF(data, header, resolvedAssets, eff);
             const blob = doc.output("blob") as Blob;
-            const fname = `Raport_${sanitizeFileName(r.mode)}_${sanitizeFileName(r.className)}_${sanitizeFileName(r.studentName)}.pdf`;
+            const fname = `Raport_${sanitizeFileName(r.displayMode)}_${sanitizeFileName(r.className)}_${sanitizeFileName(r.studentName)}.pdf`;
             zip.file(fname, blob);
             successCount++;
           } catch (e) {
@@ -719,7 +740,8 @@ export default function RekapGlobal() {
             <select value={filterMode} onChange={(e) => setFilterMode(e.target.value)}
               className="px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm">
               <option value="all">Semua Mode</option>
-              <option value="Tahfizh">Tahfizh</option>
+              <option value="Tahfizh Reguler">Tahfizh Reguler</option>
+              <option value="Tahfizh Sertifikat">Tahfizh Sertifikat</option>
               <option value="Tahsin Dasar">Tahsin Dasar</option>
               <option value="Tahsin Lanjutan">Tahsin Lanjutan</option>
             </select>
@@ -907,7 +929,15 @@ export default function RekapGlobal() {
                     <tr key={r.ujianId} className="border-b border-border/50 hover:bg-muted/30">
                       <td className="py-2 px-2 font-medium text-foreground">{r.studentName}</td>
                       <td className="py-2 px-2 text-muted-foreground">{r.className}</td>
-                      <td className="py-2 px-2"><span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">{r.mode}</span></td>
+                      <td className="py-2 px-2">
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          r.displayMode === "Tahfizh Sertifikat"
+                            ? "bg-accent/15 text-accent-foreground"
+                            : "bg-primary/10 text-primary"
+                        }`}>
+                          {r.displayMode}
+                        </span>
+                      </td>
                       <td className="py-2 px-2 text-muted-foreground">{r.tanggal}</td>
                       <td className="py-2 px-2 text-center font-semibold text-foreground">{r.nilai}</td>
                       <td className="py-2 px-2 text-muted-foreground">{r.predikat}</td>

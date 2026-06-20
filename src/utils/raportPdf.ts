@@ -1,22 +1,10 @@
-import type { jsPDF } from "jspdf";
-import type { RowInput } from "jspdf-autotable";
-
-let autoTableFn: any;
-let jsPDFFn: any;
+import jsPDF from "jspdf";
+import autoTable, { type RowInput } from "jspdf-autotable";
 
 async function initPdfLibs() {
-  if (!jsPDFFn) {
-    const [jsPDFModule, autoTableModule] = await Promise.all([
-      import("jspdf"),
-      import("jspdf-autotable")
-    ]);
-    jsPDFFn = jsPDFModule.default || (jsPDFModule as any).jsPDF;
-    autoTableFn = autoTableModule.default;
-  }
-  return jsPDFFn;
+  return jsPDF;
 }
 
-const autoTable = (...args: any[]) => autoTableFn(...args);
 import QRCode from "qrcode";
 import { loadArabicFont } from "@/utils/loadArabicFont";
 import generateCatatanOtomatis from "@/utils/catatanOtomatis";

@@ -3,12 +3,13 @@ import { useClassStudents } from "@/hooks/useClassStudents";
 import { useMyAssignedClasses } from "@/hooks/useMyAssignedClasses";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { ArrowLeft, Search, Loader2, ShieldAlert } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import AssignPengujiDialog from "@/components/AssignPengujiDialog";
 import { useClassPenguji } from "@/hooks/usePenguji";
 import ClassExamStats from "@/components/ClassExamStats";
 import { formatStudentName } from "@/utils/formatName";
+import { DataTablePagination } from "@/components/DataTablePagination";
 
 const ClassStudents = () => {
   const { classId } = useParams<{ classId: string }>();
@@ -67,6 +68,20 @@ const ClassStudents = () => {
   const filteredStudents = students.filter(s =>
     s.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 50;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const paginatedStudents = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredStudents.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredStudents, currentPage]);
+
+  const totalPages = Math.ceil(filteredStudents.length / ITEMS_PER_PAGE);
 
   const statusBadge = (status: string) => {
     switch (status) {
@@ -134,7 +149,7 @@ const ClassStudents = () => {
         <div className="mt-6">
         {/* Mobile Cards */}
         <div className="md:hidden space-y-3">
-          {filteredStudents.map((student) => (
+          {paginatedStudents.map((student) => (
             <div
               key={student.id}
               className="bg-card rounded-lg border border-border p-4 shadow-card animate-fade-in"
@@ -177,7 +192,7 @@ const ClassStudents = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredStudents.map((student, idx) => (
+                {paginatedStudents.map((student, idx) => (
                   <tr
                     key={student.id}
                     className={`border-b border-border/50 hover:bg-muted/30 transition-colors ${idx % 2 === 0 ? '' : 'bg-muted/10'}`}
@@ -200,6 +215,15 @@ const ClassStudents = () => {
             </table>
           </div>
         </div>
+        {filteredStudents.length > 0 && (
+          <div className="mt-4 p-4 bg-card rounded-lg border border-border">
+            <DataTablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          </div>
+        )}
         </div>
       </main>
     </div>

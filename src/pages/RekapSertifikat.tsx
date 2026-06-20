@@ -13,12 +13,13 @@ import { Loader2, Download, Filter, CheckCircle2, XCircle, Edit2, X, Eye, Send }
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { exportJsonToExcel } from "@/utils/excel";
+import CertificatePreviewDialog from "@/components/CertificatePreviewDialog";
+import { DataTablePagination } from "@/components/DataTablePagination";
 import {
   buildCertificatePDF,
   safeFileName,
   type CertificateData,
 } from "@/utils/generateCertificatePDF";
-import CertificatePreviewDialog from "@/components/CertificatePreviewDialog";
 import {
   buildVerificationUrl,
   isLegacyTahfizhCertificateCandidate,
@@ -233,6 +234,14 @@ const RekapSertifikat = () => {
   const [selectedBulkIds, setSelectedBulkIds] = useState<string[]>([]);
   const [bulkRangeStart, setBulkRangeStart] = useState("");
   const [bulkRangeEnd, setBulkRangeEnd] = useState("");
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 50;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterKelas, filterJuz, filterPublish, showAll]);
+
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [isBulkDownloading, setIsBulkDownloading] = useState(false);
   const [bulkPdfFormat, setBulkPdfFormat] = useState<CertificatePdfFormat>("a4-landscape");
@@ -681,6 +690,13 @@ const RekapSertifikat = () => {
     ),
     [filterPublish, filteredByClassAndJuz],
   );
+
+  const paginatedRows = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filtered, currentPage]);
+
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
 
   const lulusItems = useMemo(
     () => filteredByClassAndJuz.filter((i) => i.status === "Lulus"),
@@ -1180,7 +1196,7 @@ const RekapSertifikat = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((item) => (
+                    {paginatedRows.map((item) => (
                       <tr key={item.id} className={`border-b border-border hover:bg-muted/50 transition-colors ${item.status === "Tidak Lulus" ? "bg-destructive/5" : ""}`}>
                         <td className="px-4 py-3 text-foreground">{item.certificateSequence ?? "-"}</td>
                         {isAdmin && (
@@ -1409,6 +1425,15 @@ const RekapSertifikat = () => {
                     )}
                   </tbody>
               </table>
+              {filtered.length > 0 && (
+                <div className="p-4 border-t border-border mt-2">
+                  <DataTablePagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                  />
+                </div>
+              )}
             </div>
           </>
         )}

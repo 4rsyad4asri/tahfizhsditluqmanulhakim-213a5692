@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Search, Users, Loader2, ArrowLeft, BookOpen, Award } from "lucide-react";
 import { formatStudentName } from "@/utils/formatName";
+import { DataTablePagination } from "@/components/DataTablePagination";
 
 interface StudentWithClass {
   id: string;
@@ -66,6 +67,20 @@ const SearchStudents = () => {
       return matchName && matchLevel && matchGrade;
     });
   }, [students, searchQuery, filterLevel, filterGrade]);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 50;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterLevel, filterGrade]);
+
+  const paginatedStudents = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filtered, currentPage]);
+
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
 
   const statusColor = (status: string) => {
     if (status === "Lulus") return "bg-green-100 text-green-800 border-green-200";
@@ -144,8 +159,9 @@ const SearchStudents = () => {
             <p>Tidak ada siswa yang ditemukan</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map(s => (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {paginatedStudents.map(s => (
               <div
                 key={s.id}
                 onClick={() => navigate(`/siswa/${s.id}`)}
@@ -168,8 +184,18 @@ const SearchStudents = () => {
                     Target Juz {s.target_juz}
                   </Badge>
                 </div>
+                </div>
+              ))}
+            </div>
+            {filtered.length > 0 && (
+              <div className="mt-4 bg-card rounded-lg border border-border p-4 shadow-card">
+                <DataTablePagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
               </div>
-            ))}
+            )}
           </div>
         )}
       </main>

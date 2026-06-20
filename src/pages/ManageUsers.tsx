@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -13,6 +13,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import AssignKelasDialog from "@/components/AssignKelasDialog";
+import { DataTablePagination } from "@/components/DataTablePagination";
 
 type AppRole = "admin" | "penguji" | "guru" | "parent";
 type Status = "pending" | "approved" | "rejected" | "inactive";
@@ -54,6 +55,13 @@ export default function ManageUsers() {
   const [resetUser, setResetUser] = useState<UserRow | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 50;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterRole, filterStatus]);
+
   const { data: users, isLoading } = useQuery({
     queryKey: ["admin-users"],
     queryFn: async () => {
@@ -89,6 +97,13 @@ export default function ManageUsers() {
       return true;
     });
   }, [users, search, filterRole, filterStatus]);
+
+  const paginatedRows = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filtered, currentPage]);
+
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
 
   const callAction = useMutation({
     mutationFn: async (body: { action: string; target_user_id: string; payload?: any }) => {
@@ -181,7 +196,7 @@ export default function ManageUsers() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((u) => (
+                {paginatedRows.map((u) => (
                   <tr key={u.id} className="border-t border-border hover:bg-muted/20">
                     <Td>
                       <div className="font-semibold text-foreground">{u.full_name || "—"}</div>
@@ -249,6 +264,15 @@ export default function ManageUsers() {
                 ))}
               </tbody>
             </table>
+            {filtered.length > 0 && (
+              <div className="p-4 border-t border-border">
+                <DataTablePagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              </div>
+            )}
           </div>
         )}
 

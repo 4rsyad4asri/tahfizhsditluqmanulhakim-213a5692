@@ -13,7 +13,8 @@ import {
   AlertTriangle,
   Download
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { DataTablePagination } from "@/components/DataTablePagination";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -96,6 +97,13 @@ const ManageStudents = () => {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleteAllConfirm, setDeleteAllConfirm] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 50;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedClass, selectedStudentStatus, selectedLevel, selectedCertificationStatus]);
 
   const handleSyncStatus = async () => {
 
@@ -357,6 +365,13 @@ const filteredStudents: StudentListRow[] = useMemo(() => {
       return matchesSearch && matchesStudentStatus && matchesLevel && matchesCertificationStatus;
     });
 }, [latestExamByStudent, search, selectedCertificationStatus, selectedLevel, selectedStudentStatus, students]);
+
+  const paginatedStudents = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredStudents.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredStudents, currentPage]);
+
+  const totalPages = Math.ceil(filteredStudents.length / ITEMS_PER_PAGE);
 
   const handleExport = () => {
     const dataToExport = filteredStudents.map((s: StudentListRow) => ({
@@ -670,7 +685,7 @@ const filteredStudents: StudentListRow[] = useMemo(() => {
         <>
             {/* Mobile Cards */}
             <div className="md:hidden space-y-3">
-              {filteredStudents.map((student: StudentListRow) =>
+              {paginatedStudents.map((student: StudentListRow) =>
             <div key={student.id} className="bg-card rounded-lg border border-border p-4 shadow-card">
                   <div className="flex items-start justify-between mb-2">
                     <div>
@@ -722,7 +737,7 @@ const filteredStudents: StudentListRow[] = useMemo(() => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredStudents.map((student: StudentListRow, idx: number) =>
+                    {paginatedStudents.map((student: StudentListRow, idx: number) =>
                   <tr key={student.id} className={`border-b border-border/50 hover:bg-muted/30 transition-colors ${idx % 2 ? 'bg-muted/10' : ''}`}>
                         <td className="px-4 py-3 font-medium text-foreground">{formatStudentName(student.name)}</td>
                         <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{student.nis || "-"}</td>
@@ -782,6 +797,14 @@ const filteredStudents: StudentListRow[] = useMemo(() => {
                 </table>
               </div>
             </div>
+
+            {filteredStudents.length > 0 && (
+              <DataTablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            )}
 
             {filteredStudents.length === 0 && !isLoading &&
           <div className="text-center py-12 text-muted-foreground">

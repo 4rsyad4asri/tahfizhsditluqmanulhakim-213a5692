@@ -1,6 +1,7 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { DataTablePagination } from "@/components/DataTablePagination";
 import {
   aggregateTahfizhAssessmentsForDisplay,
   normalizeTahfizhPayload,
@@ -212,6 +213,13 @@ export default function RekapGlobal() {
   const combinedPdfCancelRef = useRef(false);
   const bulkCancelRef = useRef(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 50;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterMode, filterGrade, filterClass, filterStatus, filterPredikat, onlyLatest]);
+
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ["rekap-global"],
     queryFn: async () => {
@@ -370,6 +378,13 @@ export default function RekapGlobal() {
     };
   }, [statusScopedRows]);
   const totalByPredikat = useMemo(() => byPredikat.reduce((sum, item) => sum + item.value, 0), [byPredikat]);
+
+  const paginatedRows = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filtered, currentPage]);
+
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
 
   const renderModeLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, value }: {
     cx?: number;
@@ -1223,7 +1238,7 @@ export default function RekapGlobal() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.slice(0, 200).map((r) => (
+                  {paginatedRows.map((r) => (
                     <tr key={r.ujianId} className="border-b border-border/50 hover:bg-muted/30">
                       <td className="py-2 px-2 font-medium text-foreground">{r.studentName}</td>
                       <td className="py-2 px-2 text-muted-foreground">{r.className}</td>
@@ -1271,8 +1286,12 @@ export default function RekapGlobal() {
                   ))}
                 </tbody>
               </table>
-              {filtered.length > 200 && (
-                <p className="text-xs text-muted-foreground mt-2 text-center">Menampilkan 200 baris pertama. Export Excel untuk data lengkap.</p>
+              {filtered.length > 0 && (
+                <DataTablePagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
               )}
             </div>
           </>
@@ -1293,4 +1312,4 @@ export default function RekapGlobal() {
       )}
     </div>
   );
-}
+};

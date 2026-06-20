@@ -11,6 +11,30 @@ type SidebarProps = {
   isAdmin: boolean;
 };
 
+const routePreloaders: Record<string, () => Promise<unknown>> = {
+  "/": () => import("@/pages/Index"),
+  "/kelola-siswa": () => import("@/pages/ManageStudents"),
+  "/profil": () => import("@/pages/ProfilPenguji"),
+  "/tahun-ajaran": () => import("@/pages/AcademicYears"),
+  "/naik-kelas-massal": () => import("@/pages/MassClassPromotion"),
+  "/rekap-global": () => import("@/pages/RekapGlobal"),
+  "/rekap-sertifikat": () => import("@/pages/RekapSertifikat"),
+  "/profile": () => import("@/pages/Profile"),
+  "/kelola-user": () => import("@/pages/ManageUsers"),
+};
+const preloadedRoutes = new Set<string>();
+
+function preloadRoute(path?: string) {
+  if (!path || preloadedRoutes.has(path)) return;
+  const preload = routePreloaders[path];
+  if (!preload) return;
+
+  preloadedRoutes.add(path);
+  void preload().catch(() => {
+    preloadedRoutes.delete(path);
+  });
+}
+
 const DESKTOP_EXPANDED_WIDTH = "w-[308px]";
 const DESKTOP_COLLAPSED_WIDTH = "w-[104px]";
 
@@ -35,6 +59,9 @@ function SidebarMenuItem({
       type="button"
       disabled={item.disabled}
       title={collapsed ? item.label : undefined}
+      onPointerEnter={() => preloadRoute(item.path)}
+      onPointerDown={() => preloadRoute(item.path)}
+      onFocus={() => preloadRoute(item.path)}
       onClick={onClick}
       className={cn(
         "group relative flex w-full items-center gap-3 overflow-hidden rounded-[22px] border px-3 py-3 text-left transition-all duration-150",

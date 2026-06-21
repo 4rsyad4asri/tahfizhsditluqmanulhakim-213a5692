@@ -39,8 +39,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
           </button>
 
           <button type="button" onClick={() => navigate("/")} className="min-w-0 text-left">
-            <div className="truncate text-base font-bold text-slate-900 sm:text-lg">Tahfizh SDIT Luqmanul Hakim</div>
-            <div className="hidden text-xs text-slate-500 sm:block">by Web Developer: Miftahul Arsyad Asri, S.H</div>
+            <div className="text-sm font-bold leading-tight text-slate-900 sm:text-lg sm:leading-normal">Tahfizh SDIT Luqmanul Hakim</div>
+            <div className="mt-0.5 text-[10px] leading-tight text-slate-500 sm:text-xs sm:leading-normal">by Web Developer: Miftahul Arsyad Asri, S.H</div>
           </button>
         </div>
 

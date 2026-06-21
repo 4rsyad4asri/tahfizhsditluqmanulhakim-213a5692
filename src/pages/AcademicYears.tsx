@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, CheckCircle2, Loader2, Plus, Save } from "lucide-react";
 import { toast } from "sonner";
@@ -15,6 +15,22 @@ type AcademicYearRow = {
   created_at: string;
   updated_at: string;
 };
+
+type AcademicSemesterRow = {
+  id: string;
+  academic_year_id: string;
+  semester_number: number;
+  name: string;
+  is_active: boolean;
+  status: string;
+  start_date: string | null;
+  end_date: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+const EMPTY_ACADEMIC_YEARS: AcademicYearRow[] = [];
+const EMPTY_ACADEMIC_SEMESTERS: AcademicSemesterRow[] = [];
 
 const formatDate = (value?: string | null) => {
   if (!value) return "-";
@@ -38,23 +54,47 @@ export default function AcademicYears() {
     end_date: "",
     activate_now: false,
   });
+  const [semesterDates, setSemesterDates] = useState<
+    Record<string, { start_date: string; end_date: string }>
+  >({});
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["academic-years"],
-    queryFn: async (): Promise<AcademicYearRow[]> => {
-      const { data, error } = await supabase
-        .from("academic_years")
-        .select("*")
-        .order("is_active", { ascending: false })
-        .order("created_at", { ascending: false });
+    queryFn: async (): Promise<{ years: AcademicYearRow[]; semesters: AcademicSemesterRow[] }> => {
+      const [yearsResult, semestersResult] = await Promise.all([
+        supabase
+          .from("academic_years")
+          .select("*")
+          .order("is_active", { ascending: false })
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("academic_semesters")
+          .select("*")
+          .order("semester_number", { ascending: true }),
+      ]);
 
-      if (error) throw error;
-      return data || [];
+      if (yearsResult.error) throw yearsResult.error;
+      if (semestersResult.error) throw semestersResult.error;
+      return {
+        years: yearsResult.data || [],
+        semesters: semestersResult.data || [],
+      };
     },
     enabled: isAdmin,
   });
 
-  const activeYear = useMemo(() => (data || []).find((item) => item.is_active) || null, [data]);
+  const years = data?.years || EMPTY_ACADEMIC_YEARS;
+  const semesters = data?.semesters || EMPTY_ACADEMIC_SEMESTERS;
+  const activeYear = useMemo(() => years.find((item) => item.is_active) || null, [years]);
+  const activeSemester = useMemo(() => semesters.find((item) => item.is_active) || null, [semesters]);
+  const semestersByYear = useMemo(
+    () =>
+      semesters.reduce<Record<string, AcademicSemesterRow[]>>((result, semester) => {
+        (result[semester.academic_year_id] ||= []).push(semester);
+        return result;
+      }, {}),
+    [semesters],
+  );
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["academic-years"] });
 
@@ -111,6 +151,58 @@ export default function AcademicYears() {
     },
   });
 
+  const activateSemester = useMutation({
+    mutationFn: async (row: AcademicSemesterRow) => {
+      const confirmed = window.confirm(
+        `Aktifkan Semester ${row.name}? Tahun ajaran terkait juga akan menjadi aktif.`,
+      );
+      if (!confirmed) return false;
+
+      const { error } = await supabase
+        .from("academic_semesters")
+        .update({ is_active: true, status: "aktif" })
+        .eq("id", row.id);
+      if (error) throw error;
+      return true;
+    },
+    onSuccess: async (changed) => {
+      if (!changed) return;
+      await refresh();
+      toast.success("Semester aktif berhasil diperbarui.");
+    },
+    onError: (error: unknown) => {
+      toast.error(error instanceof Error ? error.message : "Gagal mengaktifkan semester.");
+    },
+  });
+
+  const saveSemesterDates = useMutation({
+    mutationFn: async (row: AcademicSemesterRow) => {
+      const dates = semesterDates[row.id] || {
+        start_date: row.start_date || "",
+        end_date: row.end_date || "",
+      };
+      if (dates.start_date && dates.end_date && dates.start_date > dates.end_date) {
+        throw new Error("Tanggal mulai semester tidak boleh melewati tanggal selesai.");
+      }
+
+      const { error } = await supabase
+        .from("academic_semesters")
+        .update({
+          start_date: dates.start_date || null,
+          end_date: dates.end_date || null,
+        })
+        .eq("id", row.id);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      await refresh();
+      toast.success("Tanggal semester berhasil disimpan.");
+    },
+    onError: (error: unknown) => {
+      toast.error(error instanceof Error ? error.message : "Gagal menyimpan tanggal semester.");
+    },
+  });
+
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-background">
@@ -135,8 +227,14 @@ export default function AcademicYears() {
             </p>
           </div>
           <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-900 shadow-sm">
-            <span className="font-semibold">Tahun ajaran aktif:</span>{" "}
-            {activeYear ? activeYear.name : "Belum ada yang aktif"}
+            <p>
+              <span className="font-semibold">Tahun ajaran aktif:</span>{" "}
+              {activeYear ? activeYear.name : "Belum ada yang aktif"}
+            </p>
+            <p className="mt-1">
+              <span className="font-semibold">Semester aktif:</span>{" "}
+              {activeSemester ? `${activeSemester.semester_number} - ${activeSemester.name}` : "Belum dipilih"}
+            </p>
           </div>
         </div>
 
@@ -218,7 +316,7 @@ export default function AcademicYears() {
             <div className="px-5 py-12 text-center text-muted-foreground">
               Gagal memuat tahun ajaran. Pastikan migration `academic_years` sudah dijalankan di Supabase.
             </div>
-          ) : !data || data.length === 0 ? (
+          ) : years.length === 0 ? (
             <div className="px-5 py-12 text-center text-muted-foreground">Belum ada data tahun ajaran.</div>
           ) : (
             <>
@@ -235,8 +333,9 @@ export default function AcademicYears() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.map((row) => (
-                      <tr key={row.id} className="border-t border-border/70">
+                    {years.map((row) => (
+                      <Fragment key={row.id}>
+                      <tr className="border-t border-border/70 align-top">
                         <td className="px-5 py-4 font-semibold text-foreground">{row.name}</td>
                         <td className="px-5 py-4">
                           <span
@@ -270,13 +369,90 @@ export default function AcademicYears() {
                           )}
                         </td>
                       </tr>
+                      <tr className="border-t border-border/40 bg-muted/10">
+                        <td className="px-5 pb-5 pt-3" colSpan={6}>
+                          <div className="grid gap-3 lg:grid-cols-2">
+                            {(semestersByYear[row.id] || []).map((semester) => {
+                              const dates = semesterDates[semester.id] || {
+                                start_date: semester.start_date || "",
+                                end_date: semester.end_date || "",
+                              };
+                              return (
+                                <div key={semester.id} className="rounded-xl border border-border bg-muted/20 p-3">
+                                  <div className="flex items-center justify-between gap-3">
+                                    <p className="text-xs font-semibold text-foreground">
+                                      Semester {semester.semester_number} - {semester.name}
+                                    </p>
+                                    <span
+                                      className={
+                                        semester.is_active
+                                          ? "rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-semibold text-emerald-700"
+                                          : "rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600"
+                                      }
+                                    >
+                                      {semester.is_active ? "aktif" : "arsip"}
+                                    </span>
+                                  </div>
+                                  <div className="mt-3 grid grid-cols-2 gap-2">
+                                    <input
+                                      type="date"
+                                      aria-label={`Tanggal mulai Semester ${semester.semester_number}`}
+                                      value={dates.start_date}
+                                      onChange={(event) =>
+                                        setSemesterDates((prev) => ({
+                                          ...prev,
+                                          [semester.id]: { ...dates, start_date: event.target.value },
+                                        }))
+                                      }
+                                      className="min-w-0 rounded-md border border-input bg-background px-2 py-1.5 text-xs"
+                                    />
+                                    <input
+                                      type="date"
+                                      aria-label={`Tanggal selesai Semester ${semester.semester_number}`}
+                                      value={dates.end_date}
+                                      onChange={(event) =>
+                                        setSemesterDates((prev) => ({
+                                          ...prev,
+                                          [semester.id]: { ...dates, end_date: event.target.value },
+                                        }))
+                                      }
+                                      className="min-w-0 rounded-md border border-input bg-background px-2 py-1.5 text-xs"
+                                    />
+                                  </div>
+                                  <div className="mt-3 flex flex-wrap gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => saveSemesterDates.mutate(semester)}
+                                      disabled={saveSemesterDates.isPending}
+                                      className="rounded-lg border border-border px-3 py-1.5 text-[11px] font-semibold text-foreground hover:bg-muted disabled:opacity-50"
+                                    >
+                                      Simpan Tanggal
+                                    </button>
+                                    {!semester.is_active && (
+                                      <button
+                                        type="button"
+                                        onClick={() => activateSemester.mutate(semester)}
+                                        disabled={activateSemester.isPending}
+                                        className="rounded-lg border border-emerald-200 px-3 py-1.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
+                                      >
+                                        Aktifkan Semester
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </td>
+                      </tr>
+                      </Fragment>
                     ))}
                   </tbody>
                 </table>
               </div>
 
               <div className="space-y-3 px-4 py-4 md:hidden">
-                {data.map((row) => (
+                {years.map((row) => (
                   <div key={row.id} className="rounded-2xl border border-border bg-background p-4 shadow-sm">
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -313,6 +489,71 @@ export default function AcademicYears() {
                           Jadikan Aktif
                         </button>
                       )}
+                    </div>
+
+                    <div className="mt-4 space-y-3 border-t border-border pt-4">
+                      {(semestersByYear[row.id] || []).map((semester) => {
+                        const dates = semesterDates[semester.id] || {
+                          start_date: semester.start_date || "",
+                          end_date: semester.end_date || "",
+                        };
+                        return (
+                          <div key={semester.id} className="rounded-xl bg-muted/30 p-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-xs font-semibold">
+                                Semester {semester.semester_number} - {semester.name}
+                              </p>
+                              <span className="text-[10px] font-semibold text-muted-foreground">
+                                {semester.is_active ? "aktif" : "arsip"}
+                              </span>
+                            </div>
+                            <div className="mt-2 grid grid-cols-2 gap-2">
+                              <input
+                                type="date"
+                                value={dates.start_date}
+                                onChange={(event) =>
+                                  setSemesterDates((prev) => ({
+                                    ...prev,
+                                    [semester.id]: { ...dates, start_date: event.target.value },
+                                  }))
+                                }
+                                className="min-w-0 rounded-md border border-input bg-background px-2 py-1.5 text-xs"
+                              />
+                              <input
+                                type="date"
+                                value={dates.end_date}
+                                onChange={(event) =>
+                                  setSemesterDates((prev) => ({
+                                    ...prev,
+                                    [semester.id]: { ...dates, end_date: event.target.value },
+                                  }))
+                                }
+                                className="min-w-0 rounded-md border border-input bg-background px-2 py-1.5 text-xs"
+                              />
+                            </div>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={() => saveSemesterDates.mutate(semester)}
+                                disabled={saveSemesterDates.isPending}
+                                className="rounded-lg border border-border px-3 py-1.5 text-[11px] font-semibold"
+                              >
+                                Simpan Tanggal
+                              </button>
+                              {!semester.is_active && (
+                                <button
+                                  type="button"
+                                  onClick={() => activateSemester.mutate(semester)}
+                                  disabled={activateSemester.isPending}
+                                  className="rounded-lg border border-emerald-200 px-3 py-1.5 text-[11px] font-semibold text-emerald-700"
+                                >
+                                  Aktifkan
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}

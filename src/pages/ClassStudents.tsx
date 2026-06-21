@@ -15,6 +15,8 @@ const ClassStudents = () => {
   const { classId } = useParams<{ classId: string }>();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 50;
 
   const grade = classId ? parseInt(classId.charAt(0)) : 0;
   const section = classId ? classId.charAt(1) : "";
@@ -27,6 +29,25 @@ const ClassStudents = () => {
 
   // Check access for penguji
   const hasAccess = !isPenguji || assignedClassIds === null || assignedClassIds === undefined || (classId_db && assignedClassIds.includes(classId_db));
+
+  const filteredStudents = useMemo(() => {
+    const students = data?.students || [];
+    const normalizedSearch = search.toLowerCase();
+    return students.filter((student) =>
+      student.name.toLowerCase().includes(normalizedSearch)
+    );
+  }, [data?.students, search]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, classId]);
+
+  const paginatedStudents = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredStudents.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredStudents, currentPage]);
+
+  const totalPages = Math.ceil(filteredStudents.length / ITEMS_PER_PAGE);
 
   if (isLoading) {
     return (
@@ -64,24 +85,6 @@ const ClassStudents = () => {
   }
 
   const { classInfo, students } = data;
-
-  const filteredStudents = students.filter(s =>
-    s.name.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 50;
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search]);
-
-  const paginatedStudents = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredStudents.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredStudents, currentPage]);
-
-  const totalPages = Math.ceil(filteredStudents.length / ITEMS_PER_PAGE);
 
   const statusBadge = (status: string) => {
     switch (status) {

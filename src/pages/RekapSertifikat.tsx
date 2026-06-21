@@ -75,9 +75,11 @@ interface RekapItem {
 interface EditModalState {
   isOpen: boolean;
   ujianId: string | null;
+  studentId: string | null;
   certificateId: string | null;
   publishStatus: PublishStatus;
-  studentName: string;
+  currentStudentName: string;
+  newStudentName: string;
   currentNomorSertifikat: string;
   newNomorSertifikat: string;
 }
@@ -249,9 +251,11 @@ const RekapSertifikat = () => {
   const [editModal, setEditModal] = useState<EditModalState>({
     isOpen: false,
     ujianId: null,
+    studentId: null,
     certificateId: null,
     publishStatus: "belum_publish",
-    studentName: "",
+    currentStudentName: "",
+    newStudentName: "",
     currentNomorSertifikat: "",
     newNomorSertifikat: "",
   });
@@ -512,14 +516,18 @@ const RekapSertifikat = () => {
     },
   });
 
-  const editNomorSertifikatMutation = useMutation({
+  const reviseCertificateMutation = useMutation({
     mutationFn: async ({
       ujianId,
+      studentId,
+      studentName,
       nomorSertifikat,
       certificateId,
       publishStatus,
     }: {
       ujianId: string;
+      studentId: string;
+      studentName: string;
       nomorSertifikat: string;
       certificateId: string | null;
       publishStatus: PublishStatus;
@@ -529,6 +537,10 @@ const RekapSertifikat = () => {
         (publishStatus === "published" || publishStatus === "revised");
 
       const operations: PromiseLike<{ error: Error | null }>[] = [
+        supabase
+          .from("students")
+          .update({ name: studentName })
+          .eq("id", studentId),
         supabase
           .from("ujian")
           .update({ nomor_sertifikat: nomorSertifikat })
@@ -540,6 +552,7 @@ const RekapSertifikat = () => {
           supabase
             .from("tahfizh_certificates")
             .update({
+              student_name_snapshot: studentName,
               certificate_number: nomorSertifikat,
               status: "revised",
             })
@@ -556,17 +569,21 @@ const RekapSertifikat = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rekap-sertifikat"] });
       queryClient.invalidateQueries({ queryKey: ["student-detail"] });
+      queryClient.invalidateQueries({ queryKey: ["all-students"] });
       queryClient.invalidateQueries({ queryKey: ["rekap-ujian-global"] });
+      queryClient.invalidateQueries({ queryKey: ["verification-document"] });
       toast({
         title: "Berhasil",
-        description: "Nomor sertifikat berhasil direvisi",
+        description: "Nama siswa dan nomor sertifikat berhasil disinkronkan",
       });
       setEditModal({
         isOpen: false,
         ujianId: null,
+        studentId: null,
         certificateId: null,
         publishStatus: "belum_publish",
-        studentName: "",
+        currentStudentName: "",
+        newStudentName: "",
         currentNomorSertifikat: "",
         newNomorSertifikat: "",
       });
@@ -574,7 +591,7 @@ const RekapSertifikat = () => {
     onError: () => {
       toast({
         title: "Gagal",
-        description: "Gagal mengubah nomor sertifikat",
+        description: "Gagal merevisi data sertifikat",
         variant: "destructive",
       });
     },
@@ -582,6 +599,7 @@ const RekapSertifikat = () => {
 
   const openEditModal = (
     ujianId: string,
+    studentId: string,
     certificateId: string | null,
     studentName: string,
     currentNomorSertifikat: string,
@@ -592,16 +610,18 @@ const RekapSertifikat = () => {
     }
     if (publishStatus === "published" || publishStatus === "revised") {
       const confirmed = confirm(
-        `Sertifikat ${studentName} sudah ${publishStatus}. Revisi ini hanya akan mengubah nomor sertifikat dokumen published. Lanjutkan?`,
+        `Sertifikat ${studentName} sudah ${publishStatus}. Revisi akan memperbarui nama siswa dan/atau nomor sertifikat pada dokumen published. Lanjutkan?`,
       );
       if (!confirmed) return;
     }
     setEditModal({
       isOpen: true,
       ujianId,
+      studentId,
       certificateId,
       publishStatus,
-      studentName,
+      currentStudentName: studentName,
+      newStudentName: studentName,
       currentNomorSertifikat,
       newNomorSertifikat: currentNomorSertifikat,
     });
@@ -611,30 +631,41 @@ const RekapSertifikat = () => {
     setEditModal({
       isOpen: false,
       ujianId: null,
+      studentId: null,
       certificateId: null,
       publishStatus: "belum_publish",
-      studentName: "",
+      currentStudentName: "",
+      newStudentName: "",
       currentNomorSertifikat: "",
       newNomorSertifikat: "",
     });
   };
 
-  const handleSaveNomorSertifikat = () => {
-    if (!editModal.ujianId || !editModal.newNomorSertifikat.trim()) {
+  const handleSaveCertificateRevision = () => {
+    const newStudentName = formatStudentName(editModal.newStudentName.trim());
+    const newNomorSertifikat = editModal.newNomorSertifikat.trim();
+
+    if (
+      !editModal.ujianId
+      || !editModal.studentId
+      || !newStudentName
+      || !newNomorSertifikat
+    ) {
       toast({
         title: "Gagal",
-        description: "Nomor sertifikat tidak boleh kosong",
+        description: "Nama siswa dan nomor sertifikat tidak boleh kosong",
         variant: "destructive",
       });
       return;
     }
 
     if (
-      editModal.newNomorSertifikat === editModal.currentNomorSertifikat
+      newStudentName === editModal.currentStudentName
+      && newNomorSertifikat === editModal.currentNomorSertifikat
     ) {
       toast({
         title: "Tidak ada perubahan",
-        description: "Nomor sertifikat sama dengan sebelumnya",
+        description: "Nama siswa dan nomor sertifikat masih sama",
         variant: "destructive",
       });
       return;
@@ -642,12 +673,14 @@ const RekapSertifikat = () => {
 
     if (
       confirm(
-        `Ubah nomor sertifikat ${editModal.studentName} dari:\n"${editModal.currentNomorSertifikat}"\n\nmenjadi:\n"${editModal.newNomorSertifikat}"?`
+        `Revisi data sertifikat published?\n\nNama:\n"${editModal.currentStudentName}"\nmenjadi\n"${newStudentName}"\n\nNomor sertifikat:\n"${editModal.currentNomorSertifikat}"\nmenjadi\n"${newNomorSertifikat}"`
       )
     ) {
-      editNomorSertifikatMutation.mutate({
+      reviseCertificateMutation.mutate({
         ujianId: editModal.ujianId,
-        nomorSertifikat: editModal.newNomorSertifikat,
+        studentId: editModal.studentId,
+        studentName: newStudentName,
+        nomorSertifikat: newNomorSertifikat,
         certificateId: editModal.certificateId,
         publishStatus: editModal.publishStatus,
       });
@@ -1349,15 +1382,16 @@ const RekapSertifikat = () => {
                                       onClick={() =>
                                         openEditModal(
                                           item.id,
+                                          item.studentId,
                                           item.certificateId || null,
                                           item.studentName,
                                           item.nomorSertifikat,
                                           item.publishStatus,
                                         )
                                       }
-                                      disabled={editNomorSertifikatMutation.isPending}
+                                      disabled={reviseCertificateMutation.isPending}
                                       className="inline-flex items-center gap-1 rounded-md bg-blue-100 px-2 py-1.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-200 disabled:opacity-50"
-                                      title="Edit Nomor Sertifikat"
+                                      title="Edit Nama dan Nomor Sertifikat"
                                     >
                                       <Edit2 className="w-3 h-3" />
                                     </button>
@@ -1372,15 +1406,16 @@ const RekapSertifikat = () => {
                                         onClick={() =>
                                           openEditModal(
                                             item.id,
+                                            item.studentId,
                                             item.certificateId || null,
                                             item.studentName,
                                             item.nomorSertifikat,
                                             item.publishStatus,
                                           )
                                         }
-                                        disabled={editNomorSertifikatMutation.isPending}
+                                        disabled={reviseCertificateMutation.isPending}
                                         className="inline-flex items-center gap-1 rounded-md bg-blue-100 px-2 py-1.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-200 disabled:opacity-50"
-                                        title="Revisi Nomor Sertifikat"
+                                        title="Revisi Nama dan Nomor Sertifikat"
                                       >
                                         <Edit2 className="w-3 h-3" />
                                       </button>
@@ -1491,12 +1526,12 @@ const RekapSertifikat = () => {
         }
       />
 
-      {/* Modal Edit Nomor Sertifikat */}
+      {/* Modal Revisi Data Sertifikat */}
       {editModal.isOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-card rounded-lg border border-border shadow-lg max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-foreground">Edit Nomor Sertifikat</h3>
+              <h3 className="text-lg font-semibold text-foreground">Revisi Data Sertifikat</h3>
               <button
                 onClick={closeEditModal}
                 className="text-muted-foreground hover:text-foreground"
@@ -1508,9 +1543,20 @@ const RekapSertifikat = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-muted-foreground mb-2">
-                  Nama Siswa
+                  Nama Siswa Baru
                 </label>
-                <p className="text-foreground font-medium">{editModal.studentName}</p>
+                <input
+                  type="text"
+                  value={editModal.newStudentName}
+                  onChange={(e) =>
+                    setEditModal({
+                      ...editModal,
+                      newStudentName: e.target.value,
+                    })
+                  }
+                  placeholder="Masukkan nama siswa yang benar"
+                  className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
               </div>
 
               <div>
@@ -1556,11 +1602,11 @@ const RekapSertifikat = () => {
                   Batal
                 </button>
                 <button
-                  onClick={handleSaveNomorSertifikat}
-                  disabled={editNomorSertifikatMutation.isPending}
+                  onClick={handleSaveCertificateRevision}
+                  disabled={reviseCertificateMutation.isPending}
                   className="flex-1 px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {editNomorSertifikatMutation.isPending ? (
+                  {reviseCertificateMutation.isPending ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
                       Menyimpan...

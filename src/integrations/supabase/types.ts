@@ -667,6 +667,7 @@ export type Database = {
       }
       ujian: {
         Row: {
+          academic_semester_id: string | null
           academic_year_id: string | null
           assessed_by: string | null
           class_name_at_exam: string | null
@@ -686,6 +687,7 @@ export type Database = {
           verification_token: string
         }
         Insert: {
+          academic_semester_id?: string | null
           academic_year_id?: string | null
           assessed_by?: string | null
           class_name_at_exam?: string | null
@@ -705,6 +707,7 @@ export type Database = {
           verification_token?: string
         }
         Update: {
+          academic_semester_id?: string | null
           academic_year_id?: string | null
           assessed_by?: string | null
           class_name_at_exam?: string | null
@@ -724,6 +727,13 @@ export type Database = {
           verification_token?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ujian_academic_semester_id_fkey"
+            columns: ["academic_semester_id"]
+            isOneToOne: false
+            referencedRelation: "academic_semesters"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ujian_academic_year_id_fkey"
             columns: ["academic_year_id"]

@@ -6,10 +6,18 @@ export interface AcademicYearSnapshot {
   name: string;
 }
 
+export interface AcademicSemesterSnapshot {
+  id: string;
+  academic_year_id: string;
+  semester_number: number;
+  name: string;
+}
+
 export interface ExamClassSnapshot {
   class_name_at_exam: string | null;
   grade_at_exam: number | null;
   academic_year_id: string | null;
+  academic_semester_id: string;
 }
 
 export async function getActiveAcademicYear(): Promise<AcademicYearSnapshot | null> {
@@ -23,17 +31,33 @@ export async function getActiveAcademicYear(): Promise<AcademicYearSnapshot | nu
   return data || null;
 }
 
+export async function getActiveAcademicSemester(): Promise<AcademicSemesterSnapshot | null> {
+  const { data, error } = await supabase
+    .from("academic_semesters")
+    .select("id, academic_year_id, semester_number, name")
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data || null;
+}
+
 export async function buildExamClassSnapshot(studentId: string): Promise<ExamClassSnapshot> {
-  const [{ data: student, error: studentError }, activeYear] = await Promise.all([
+  const [{ data: student, error: studentError }, activeSemester] = await Promise.all([
     supabase
       .from("students")
       .select("class_id, classes(name, grade, section)")
       .eq("id", studentId)
       .maybeSingle(),
-    getActiveAcademicYear(),
+    getActiveAcademicSemester(),
   ]);
 
   if (studentError) throw studentError;
+  if (!activeSemester) {
+    throw new Error(
+      "Belum ada semester aktif. Aktifkan semester pada menu Tahun Ajaran sebelum menyimpan ujian.",
+    );
+  }
 
   const classInfo = student?.classes as
     | { name?: string | null; grade?: number | null; section?: string | null }
@@ -46,7 +70,8 @@ export async function buildExamClassSnapshot(studentId: string): Promise<ExamCla
       classInfo?.grade === null || classInfo?.grade === undefined
         ? null
         : Number(classInfo.grade) || null,
-    academic_year_id: activeYear?.id || null,
+    academic_year_id: activeSemester.academic_year_id,
+    academic_semester_id: activeSemester.id,
   };
 }
 

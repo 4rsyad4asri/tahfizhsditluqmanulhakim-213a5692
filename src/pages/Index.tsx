@@ -37,6 +37,14 @@ const LEVEL_COLORS = [
 const GRADES = [1, 2, 3, 4, 5, 6];
 
 type MonitoringMode = "class" | "grade";
+type ExamPeriodScope = "active" | "all";
+
+type ActiveAcademicPeriod = {
+  id: string;
+  semester_number: number;
+  name: string;
+  academic_years: { name: string } | null;
+};
 
 type PublicDashboardSummary = {
   activeClassIds: string[];
@@ -64,6 +72,7 @@ const Dashboard = () => {
   const [selectedGrade, setSelectedGrade] = useState<number | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<string>("all");
   const [monitoringMode, setMonitoringMode] = useState<MonitoringMode>("class");
+  const [examPeriodScope, setExamPeriodScope] = useState<ExamPeriodScope>("active");
   const { data: classes, isLoading, error } = useClasses();
   const { data: assignedClassIds } = useMyAssignedClasses();
   const { user, isPenguji } = useAuthContext();
@@ -79,8 +88,22 @@ const Dashboard = () => {
     },
   });
 
+  const { data: activeAcademicPeriod } = useQuery({
+    queryKey: ["active-academic-period"],
+    queryFn: async (): Promise<ActiveAcademicPeriod | null> => {
+      const { data, error } = await supabase
+        .from("academic_semesters")
+        .select("id, semester_number, name, academic_years(name)")
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data || null;
+    },
+  });
+
   const { data: publicSummary } = useQuery({
-    queryKey: ["public-dashboard-summary"],
+    queryKey: ["public-dashboard-summary", examPeriodScope, activeAcademicPeriod?.id || null],
     queryFn: async (): Promise<PublicDashboardSummary> => {
       const fallback: PublicDashboardSummary = {
         activeClassIds: [],
@@ -90,9 +113,26 @@ const Dashboard = () => {
         completedExamStudents: 0,
       };
 
+      let ujianQuery = supabase
+        .from("ujian")
+        .select("student_id, mode, status, nilai_akhir, nilai_aspek, academic_semester_id");
+
+      if (examPeriodScope === "active") {
+        if (!activeAcademicPeriod?.id) {
+          const assignmentsResult = await supabase.from("class_penguji").select("class_id");
+          return {
+            ...fallback,
+            activeClassIds: assignmentsResult.error
+              ? []
+              : [...new Set((assignmentsResult.data || []).map((row) => row.class_id).filter(Boolean))],
+          };
+        }
+        ujianQuery = ujianQuery.eq("academic_semester_id", activeAcademicPeriod.id);
+      }
+
       const [assignmentsResult, ujianResult] = await Promise.all([
         supabase.from("class_penguji").select("class_id"),
-        supabase.from("ujian").select("student_id, mode, status, nilai_akhir, nilai_aspek"),
+        ujianQuery,
       ]);
 
       const activeClassIds = assignmentsResult.error
@@ -138,6 +178,12 @@ const Dashboard = () => {
       };
     },
   });
+
+  const activePeriodLabel = activeAcademicPeriod
+    ? `${activeAcademicPeriod.academic_years?.name || "Tahun Ajaran"} · Semester ${activeAcademicPeriod.semester_number} ${activeAcademicPeriod.name}`
+    : "Belum ada semester aktif";
+  const dashboardPeriodLabel =
+    examPeriodScope === "active" ? activePeriodLabel : "Semua periode termasuk data lama";
 
   const accessibleClasses = useMemo(() => {
     if (!classes) return [];
@@ -218,10 +264,10 @@ const Dashboard = () => {
   const summaryStats = [
     { icon: Users, label: "Total Siswa", value: publicTotalStudents, tone: "bg-[#E3F2E9] text-[#1F5F49]" },
     { icon: Layers, label: "Kelas Aktif", value: publicTotalClasses, hint: "Berdasarkan kelas yang terhubung ke guru", tone: "bg-[#FBF7EB] text-[#8A6F26]" },
-    { icon: ClipboardCheck, label: "Sudah Ujian", value: publicSummary?.completedExamStudents ?? 0, hint: "Sudah punya nilai tersimpan", tone: "bg-[#DCE9DD] text-[#1F5F49]" },
+    { icon: ClipboardCheck, label: "Sudah Ujian", value: publicSummary?.completedExamStudents ?? 0, hint: dashboardPeriodLabel, tone: "bg-[#DCE9DD] text-[#1F5F49]" },
     { icon: Award, label: "Lulus Ujian Tahfizh Sertifikat", value: publicSummary?.certifiedStudents ?? 0, hint: "Masuk Rekap Sertifikat", tone: "bg-[#F6EBC6] text-[#7A6120]" },
     { icon: ClipboardCheck, label: "Lulus Ujian Tahfizh Reguler", value: publicSummary?.passedExamStudents ?? 0, hint: "Di luar ujian sertifikat", tone: "bg-white text-[#2F7D5F]" },
-    { icon: Search, label: "Belum Ujian", value: publicStudentsWithoutExam, hint: "Belum ada nilai ujian tersimpan", tone: "bg-white text-[#667A70]" },
+    { icon: Search, label: "Belum Ujian", value: publicStudentsWithoutExam, hint: dashboardPeriodLabel, tone: "bg-white text-[#667A70]" },
     { icon: BarChart3, label: "Rata-rata Nilai Ujian", value: publicSummary?.averageExamScore ?? "-", tone: "bg-white text-[#1F5F49]" },
   ];
 
@@ -307,6 +353,21 @@ const Dashboard = () => {
           queryClient.invalidateQueries({ queryKey: ["classes"] });
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "ujian" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["public-dashboard-summary"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "academic_semesters" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["active-academic-period"] });
+          queryClient.invalidateQueries({ queryKey: ["public-dashboard-summary"] });
+        }
+      )
       .subscribe();
 
     return () => {
@@ -339,6 +400,20 @@ const Dashboard = () => {
       <div className="min-h-screen bg-background">
         <main className="container mx-auto px-4 py-5 sm:py-8">
           {/* Stats */}
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-card">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Periode statistik ujian</p>
+              <p className="mt-1 text-sm font-semibold text-foreground">{dashboardPeriodLabel}</p>
+            </div>
+            <select
+              value={examPeriodScope}
+              onChange={(event) => setExamPeriodScope(event.target.value as ExamPeriodScope)}
+              className="rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
+            >
+              <option value="active">Semester Aktif</option>
+              <option value="all">Semua Periode</option>
+            </select>
+          </div>
           <div className="mb-6 grid grid-cols-2 gap-3 md:mb-8 md:gap-4 md:grid-cols-4">
             {loggedInStats.map((stat) => (
               <button
@@ -449,7 +524,7 @@ const Dashboard = () => {
             <div className="flex min-w-0 flex-col justify-center">
               <div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-[#C7A44C]/40 bg-white/80 px-3 py-1.5 text-xs font-semibold text-[#1F5F49] sm:mb-5">
                 <Sparkles className="h-3.5 w-3.5 text-[#C7A44C]" />
-                Rekap Global & Monitoring Ujian
+                {dashboardPeriodLabel}
               </div>
 
               <h1 className="max-w-4xl break-words text-2xl font-bold leading-tight text-[#18332A] sm:text-3xl md:text-5xl">
@@ -525,9 +600,17 @@ const Dashboard = () => {
               <p className="text-sm font-semibold text-[#2F7D5F]">Ringkasan Ujian</p>
               <h2 className="text-xl font-bold text-[#18332A] sm:text-2xl">Statistik utama sekolah</h2>
             </div>
-            <p className="max-w-xl text-sm text-[#667A70]">
-              Angka ujian khusus akan tetap kosong sampai data ujian tersimpan dan siap direkap.
-            </p>
+            <div className="flex flex-col items-start gap-2 sm:items-end">
+              <select
+                value={examPeriodScope}
+                onChange={(event) => setExamPeriodScope(event.target.value as ExamPeriodScope)}
+                className="rounded-xl border border-[#DCE9DD] bg-white px-3 py-2 text-sm font-semibold text-[#1F5F49]"
+              >
+                <option value="active">Semester Aktif</option>
+                <option value="all">Semua Periode</option>
+              </select>
+              <p className="max-w-xl text-sm text-[#667A70]">{dashboardPeriodLabel}</p>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-7">

@@ -3,7 +3,7 @@ export function formatStudentName(name: string): string {
     .trim()
     .replace(/\s+/g, " ")
     .toLocaleLowerCase("id-ID")
-    .replace(/(^|[\s-])(\p{L})/gu, (_, separator: string, letter: string) =>
+    .replace(/(^|[^\p{L}])(\p{L})/gu, (_, separator: string, letter: string) =>
       `${separator}${letter.toLocaleUpperCase("id-ID")}`,
     );
 }

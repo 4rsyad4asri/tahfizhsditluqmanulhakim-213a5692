@@ -158,6 +158,11 @@ export default function RaportPreviewDialog({
   const previewSeqRef = useRef(0);
   const activeUjian = localUjian || ujian;
   const activeMode = (activeUjian?.mode || "Tahfizh") as RaportMode;
+  const academicPeriod =
+    activeUjian?.academic_period ||
+    (activeUjian?.academic_years?.name && activeUjian?.academic_semesters
+      ? `${activeUjian.academic_years.name} · Semester ${activeUjian.academic_semesters.semester_number} ${activeUjian.academic_semesters.name}`
+      : activeUjian?.academic_years?.name || undefined);
   const examinerId = activeUjian?.assessed_by as string | null | undefined;
   const [visualLayout, setVisualLayout] = useState<RaportVisualLayout>(() =>
     loadRaportVisualLayout(activeMode, DEFAULT_OPTS.orientation, examinerId)
@@ -430,6 +435,7 @@ export default function RaportPreviewDialog({
       nis: nis || undefined,
       nisn: nisn || undefined,
       assessorName,
+      academicPeriod,
       tanggal,
       nilaiAkhir: effectiveNilaiAkhir,
       status: normalizedTahfizh?.status ?? activeUjian?.status ?? "-",
@@ -453,7 +459,7 @@ export default function RaportPreviewDialog({
       waqafTest: aspek.waqafTest as WaqafSymbolTest | undefined,
       ujianId: activeUjian?.id,
     };
-  }, [activeUjian, studentName, className, nis, nisn, assessorName, tanggal, finalCatatan, verificationToken]);
+  }, [activeUjian, studentName, className, nis, nisn, assessorName, academicPeriod, tanggal, finalCatatan, verificationToken]);
 
   const verifyUrl = useMemo(
     () =>
@@ -664,6 +670,9 @@ export default function RaportPreviewDialog({
       <DialogContent className="max-w-6xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Preview Raport Ujian {activeUjian.mode}</DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            {academicPeriod || "Data lama · Belum terikat semester"}
+          </p>
         </DialogHeader>
 
         <div className="flex flex-wrap gap-2 items-center justify-between border-b pb-3">

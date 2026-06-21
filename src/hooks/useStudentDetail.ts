@@ -74,7 +74,7 @@ export function useStudentDetail(studentId: string | undefined) {
 
       const { data: ujian } = await supabase
         .from("ujian")
-        .select("*")
+        .select("*, academic_years(name), academic_semesters(name, semester_number)")
         .eq("student_id", studentId)
         .order("tanggal", { ascending: false });
 

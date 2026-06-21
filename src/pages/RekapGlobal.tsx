@@ -45,6 +45,9 @@ interface Row {
   nis?: string | null;
   nisn?: string | null;
   assessorName?: string;
+  academicYearId: string | null;
+  academicSemesterId: string | null;
+  academicPeriod: string;
 }
 
 interface BulkFailedItem {
@@ -72,6 +75,16 @@ interface CombinedPdfProgress {
 interface RekapGlobalQueryResult {
   rows: Row[];
   classOptions: string[];
+  academicYears: Array<{ id: string; name: string; is_active: boolean }>;
+  academicSemesters: Array<{
+    id: string;
+    academic_year_id: string;
+    semester_number: number;
+    name: string;
+    is_active: boolean;
+  }>;
+  activeAcademicYearId: string | null;
+  activeAcademicSemesterId: string | null;
 }
 
 const MODE_COLORS: Record<string, string> = {
@@ -204,6 +217,8 @@ export default function RekapGlobal() {
   const [filterClass, setFilterClass] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterPredikat, setFilterPredikat] = useState<string>("all");
+  const [filterAcademicYear, setFilterAcademicYear] = useState<string>("active");
+  const [filterAcademicSemester, setFilterAcademicSemester] = useState<string>("active");
   const [onlyLatest, setOnlyLatest] = useState<boolean>(true);
   const [previewRow, setPreviewRow] = useState<Row | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -218,17 +233,30 @@ export default function RekapGlobal() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterMode, filterGrade, filterClass, filterStatus, filterPredikat, onlyLatest]);
+  }, [filterMode, filterGrade, filterClass, filterStatus, filterPredikat, filterAcademicYear, filterAcademicSemester, onlyLatest]);
 
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ["rekap-global"],
     queryFn: async () => {
-      const { data: ujianData, error: e1 } = await supabase
-        .from("ujian")
-        .select("id, student_id, mode, tanggal, created_at, nilai_akhir, status, nilai_aspek, grade, verification_token, document_status, assessed_by, class_name_at_exam, grade_at_exam, academic_year_id")
-        .order("tanggal", { ascending: false })
-        .order("created_at", { ascending: false });
+      const [ujianResult, academicYearsResult, academicSemestersResult] = await Promise.all([
+        supabase
+          .from("ujian")
+          .select("id, student_id, mode, tanggal, created_at, nilai_akhir, status, nilai_aspek, grade, verification_token, document_status, assessed_by, class_name_at_exam, grade_at_exam, academic_year_id, academic_semester_id")
+          .order("tanggal", { ascending: false })
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("academic_years")
+          .select("id, name, is_active")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("academic_semesters")
+          .select("id, academic_year_id, semester_number, name, is_active")
+          .order("semester_number", { ascending: true }),
+      ]);
+      const { data: ujianData, error: e1 } = ujianResult;
       if (e1) throw e1;
+      if (academicYearsResult.error) throw academicYearsResult.error;
+      if (academicSemestersResult.error) throw academicSemestersResult.error;
 
       const studentIds = [...new Set((ujianData || []).map((u) => u.student_id))];
       const { data: students } = studentIds.length
@@ -247,6 +275,10 @@ export default function RekapGlobal() {
       const sMap = new Map((students || []).map((s: any) => [s.id, s]));
       const cMap = new Map((classes || []).map((c: any) => [c.id, c]));
       const pMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+      const academicYears = academicYearsResult.data || [];
+      const academicSemesters = academicSemestersResult.data || [];
+      const academicYearMap = new Map(academicYears.map((year) => [year.id, year]));
+      const academicSemesterMap = new Map(academicSemesters.map((semester) => [semester.id, semester]));
 
       const rows: Row[] = (ujianData || []).map((u: any) => {
         const s = sMap.get(u.student_id) as any;
@@ -254,6 +286,21 @@ export default function RekapGlobal() {
         const p = u.assessed_by ? (pMap.get(u.assessed_by) as any) : null;
         const syncedUjian = getSyncedUjian(u);
         const aspek = syncedUjian.nilai_aspek as any;
+        const academicYear = syncedUjian.academic_year_id
+          ? academicYearMap.get(syncedUjian.academic_year_id)
+          : null;
+        const academicSemester = syncedUjian.academic_semester_id
+          ? academicSemesterMap.get(syncedUjian.academic_semester_id)
+          : null;
+        const academicPeriod = academicYear && academicSemester
+          ? `${academicYear.name} · Semester ${academicSemester.semester_number} ${academicSemester.name}`
+          : academicYear?.name || "Data lama · Belum terikat semester";
+        const ujianWithPeriod = {
+          ...syncedUjian,
+          academic_years: academicYear || null,
+          academic_semesters: academicSemester || null,
+          academic_period: academicPeriod,
+        };
         return {
           ujianId: syncedUjian.id,
           studentId: syncedUjian.student_id,
@@ -267,14 +314,24 @@ export default function RekapGlobal() {
           nilai: syncedUjian.nilai_akhir,
           status: syncedUjian.status,
           predikat: aspek?.predikat || "-",
-          ujian: syncedUjian,
+          ujian: ujianWithPeriod,
           nis: s?.nis,
           nisn: s?.nisn,
           assessorName: p?.full_name || aspek?.assessorName,
+          academicYearId: syncedUjian.academic_year_id || null,
+          academicSemesterId: syncedUjian.academic_semester_id || null,
+          academicPeriod,
         };
       });
       const classOptions = [...new Set((classes || []).map((c: any) => c?.name).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-      return { rows, classOptions } satisfies RekapGlobalQueryResult;
+      return {
+        rows,
+        classOptions,
+        academicYears,
+        academicSemesters,
+        activeAcademicYearId: academicYears.find((year) => year.is_active)?.id || null,
+        activeAcademicSemesterId: academicSemesters.find((semester) => semester.is_active)?.id || null,
+      } satisfies RekapGlobalQueryResult;
     },
   });
 
@@ -282,6 +339,17 @@ export default function RekapGlobal() {
 
   const buildFilteredRows = (options?: { includeMode?: boolean; includeStatus?: boolean; includePredikat?: boolean }) => {
     let r = sourceRows;
+    const selectedAcademicYearId =
+      filterAcademicYear === "active" ? data?.activeAcademicYearId : filterAcademicYear;
+    const selectedAcademicSemesterId =
+      filterAcademicSemester === "active" ? data?.activeAcademicSemesterId : filterAcademicSemester;
+
+    if (selectedAcademicYearId && selectedAcademicYearId !== "all") {
+      r = r.filter((x) => x.academicYearId === selectedAcademicYearId);
+    }
+    if (selectedAcademicSemesterId && selectedAcademicSemesterId !== "all") {
+      r = r.filter((x) => x.academicSemesterId === selectedAcademicSemesterId);
+    }
 
     if ((options?.includeMode ?? true) && filterMode !== "all") {
       r = r.filter((x) => x.displayMode === filterMode);
@@ -316,19 +384,19 @@ export default function RekapGlobal() {
 
   const filtered = useMemo(
     () => buildFilteredRows(),
-    [sourceRows, filterMode, filterGrade, filterClass, filterStatus, filterPredikat, onlyLatest]
+    [sourceRows, data, filterMode, filterGrade, filterClass, filterStatus, filterPredikat, filterAcademicYear, filterAcademicSemester, onlyLatest]
   );
   const modeScopedRows = useMemo(
     () => buildFilteredRows({ includeMode: false }),
-    [sourceRows, filterGrade, filterClass, filterStatus, filterPredikat, onlyLatest]
+    [sourceRows, data, filterGrade, filterClass, filterStatus, filterPredikat, filterAcademicYear, filterAcademicSemester, onlyLatest]
   );
   const statusScopedRows = useMemo(
     () => buildFilteredRows({ includeStatus: false }),
-    [sourceRows, filterMode, filterGrade, filterClass, filterPredikat, onlyLatest]
+    [sourceRows, data, filterMode, filterGrade, filterClass, filterPredikat, filterAcademicYear, filterAcademicSemester, onlyLatest]
   );
   const predikatScopedRows = useMemo(
     () => buildFilteredRows({ includePredikat: false }),
-    [sourceRows, filterMode, filterGrade, filterClass, filterStatus, onlyLatest]
+    [sourceRows, data, filterMode, filterGrade, filterClass, filterStatus, filterAcademicYear, filterAcademicSemester, onlyLatest]
   );
 
   const stats = useMemo(() => {
@@ -367,6 +435,14 @@ export default function RekapGlobal() {
     () => [...new Set((data?.rows || []).map((r) => r.predikat).filter((predikat) => predikat && predikat !== "-"))].sort((a, b) => a.localeCompare(b)),
     [data]
   );
+  const semesterOptions = useMemo(() => {
+    const selectedYearId =
+      filterAcademicYear === "active" ? data?.activeAcademicYearId : filterAcademicYear;
+    if (!selectedYearId || selectedYearId === "all") return data?.academicSemesters || [];
+    return (data?.academicSemesters || []).filter(
+      (semester) => semester.academic_year_id === selectedYearId,
+    );
+  }, [data, filterAcademicYear]);
   const totalByMode = useMemo(() => byMode.reduce((sum, item) => sum + item.value, 0), [byMode]);
   const statusSummary = useMemo(() => {
     const total = statusScopedRows.length;
@@ -432,7 +508,7 @@ export default function RekapGlobal() {
     exportJsonToExcel(
       filtered.map((r) => ({
         Nama: r.studentName, Kelas: r.className, Kelas_Tingkat: r.grade,
-        Mode: r.displayMode, Tanggal: r.tanggal, Nilai: r.nilai, Status: r.status, Predikat: r.predikat,
+        Periode: r.academicPeriod, Mode: r.displayMode, Tanggal: r.tanggal, Nilai: r.nilai, Status: r.status, Predikat: r.predikat,
       })),
       "Rekap Global",
       `Rekap_Global_${new Date().toISOString().slice(0,10)}.xlsx`
@@ -447,6 +523,8 @@ export default function RekapGlobal() {
     if (filterClass !== "all") activeFilters.push(`Kelas ${filterClass}`);
     if (filterStatus !== "all") activeFilters.push(filterStatus);
     if (filterPredikat !== "all") activeFilters.push(`Predikat ${filterPredikat}`);
+    if (filterAcademicYear !== "all") activeFilters.push("Tahun Ajaran Terpilih");
+    if (filterAcademicSemester !== "all") activeFilters.push("Semester Terpilih");
 
     const suffix = activeFilters.length > 0
       ? activeFilters.map(sanitizeFileName).filter(Boolean).join("_")
@@ -836,6 +914,39 @@ export default function RekapGlobal() {
         {/* Filters */}
         <div className="flex flex-wrap gap-3 p-4 rounded-lg border border-border bg-card">
           <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Tahun Ajaran</label>
+            <select
+              value={filterAcademicYear}
+              onChange={(e) => {
+                setFilterAcademicYear(e.target.value);
+                setFilterAcademicSemester(e.target.value === "active" ? "active" : "all");
+              }}
+              className="px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm"
+            >
+              <option value="active">Tahun Ajaran Aktif</option>
+              <option value="all">Semua Tahun Ajaran</option>
+              {(data?.academicYears || []).map((year) => (
+                <option key={year.id} value={year.id}>{year.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Semester</label>
+            <select
+              value={filterAcademicSemester}
+              onChange={(e) => setFilterAcademicSemester(e.target.value)}
+              className="px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm"
+            >
+              <option value="active">Semester Aktif</option>
+              <option value="all">Semua Semester / Data Lama</option>
+              {semesterOptions.map((semester) => (
+                <option key={semester.id} value={semester.id}>
+                  Semester {semester.semester_number} - {semester.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">Mode Ujian</label>
             <select value={filterMode} onChange={(e) => setFilterMode(e.target.value)}
               className="px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm">
@@ -1224,11 +1335,12 @@ export default function RekapGlobal() {
             {/* Table */}
             <div className="p-4 rounded-lg border border-border bg-card">
               <h3 className="text-sm font-semibold text-foreground mb-3">Detail Ujian ({filtered.length})</h3>
-              <table className="min-w-[1040px] text-sm">
+              <table className="min-w-[1180px] text-sm">
                 <thead className="text-xs text-muted-foreground border-b border-border">
                   <tr>
                     <th className="text-left py-2 px-2">Nama</th>
                     <th className="text-left py-2 px-2">Kelas</th>
+                    <th className="text-left py-2 px-2">Periode</th>
                     <th className="text-left py-2 px-2">Mode</th>
                     <th className="text-left py-2 px-2">Tanggal</th>
                     <th className="text-center py-2 px-2">Nilai</th>
@@ -1242,6 +1354,7 @@ export default function RekapGlobal() {
                     <tr key={r.ujianId} className="border-b border-border/50 hover:bg-muted/30">
                       <td className="py-2 px-2 font-medium text-foreground">{r.studentName}</td>
                       <td className="py-2 px-2 text-muted-foreground">{r.className}</td>
+                      <td className="py-2 px-2 text-xs text-muted-foreground">{r.academicPeriod}</td>
                       <td className="py-2 px-2">
                         <span className={`text-xs px-2 py-0.5 rounded-full ${
                           r.displayMode === "Tahfizh Sertifikat"

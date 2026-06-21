@@ -77,6 +77,7 @@ export interface RaportData {
   nis?: string;
   nisn?: string;
   assessorName?: string;
+  academicPeriod?: string;
   tanggal: string;
   nilaiAkhir: number;
   status: string;
@@ -470,6 +471,9 @@ function drawStudentInfo(
     body: [
       ["Nama Siswa", formatStudentName(data.studentName), "Kelas", formatClassName(data.className)],
       ["NIS/NISN", `${data.nis || "-"} / ${data.nisn || "-"}`, "Tanggal", fmtTanggal(data.tanggal)],
+      ...(data.academicPeriod
+        ? [["Periode", data.academicPeriod, "Penguji", data.assessorName || "-"]]
+        : []),
     ],
   });
 }

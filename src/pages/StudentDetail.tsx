@@ -938,6 +938,10 @@ const StudentDetail = () => {
                 const ujianStatus = displayUjian.status || displayUjian.status_sertifikasi || "Proses";
                 const documentStatus = displayUjian.document_status || displayUjian.nilai_aspek?.documentStatus || "Draft";
                 const isPublished = documentStatus === "Published";
+                const academicPeriod =
+                  displayUjian.academic_years?.name && displayUjian.academic_semesters
+                    ? `${displayUjian.academic_years.name} · Semester ${displayUjian.academic_semesters.semester_number} ${displayUjian.academic_semesters.name}`
+                    : displayUjian.academic_years?.name || "Data lama · Belum terikat semester";
                 const nilaiAspek =
                   displayUjian.nilai_aspek && typeof displayUjian.nilai_aspek === "object" && !Array.isArray(displayUjian.nilai_aspek)
                     ? displayUjian.nilai_aspek
@@ -960,6 +964,7 @@ const StudentDetail = () => {
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <p className="text-sm font-semibold text-foreground">{displayUjian.mode}</p>
+                        <p className="mt-1 text-xs font-medium text-primary">{academicPeriod}</p>
                         <p className="text-xs text-muted-foreground">
                           {displayUjian.tanggal && new Date(displayUjian.tanggal).toLocaleDateString("id-ID")}
                           {u.assessed_by && ` • Penguji: ${assessorMap[u.assessed_by] || u.assessed_by}`}

@@ -147,6 +147,10 @@ export function buildRaportData(
     nis: nis || undefined,
     nisn: nisn || undefined,
     assessorName: assessorName || aspek?.assessorName,
+    academicPeriod: ujian?.academic_period ||
+      (ujian?.academic_years?.name && ujian?.academic_semesters
+        ? `${ujian.academic_years.name} · Semester ${ujian.academic_semesters.semester_number} ${ujian.academic_semesters.name}`
+        : ujian?.academic_years?.name || undefined),
     tanggal: tanggalOverride || ujian?.tanggal || new Date().toISOString().split("T")[0],
     nilaiAkhir: effectiveNilaiAkhir,
     status: normalizedTahfizh?.status ?? ujian?.status ?? "-",

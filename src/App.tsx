@@ -8,6 +8,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "@/components/AppLayout";
+import MassClassPromotion from "./pages/MassClassPromotion";
 const Index = lazy(() => import("./pages/Index"));
 const ClassStudents = lazy(() => import("./pages/ClassStudents"));
 const StudentDetail = lazy(() => import("./pages/StudentDetail"));
@@ -17,7 +18,6 @@ const RekapSertifikat = lazy(() => import("./pages/RekapSertifikat"));
 const RekapGlobal = lazy(() => import("./pages/RekapGlobal"));
 const SearchStudents = lazy(() => import("./pages/SearchStudents"));
 const AcademicYears = lazy(() => import("./pages/AcademicYears"));
-const MassClassPromotion = lazy(() => import("./pages/MassClassPromotion"));
 
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));

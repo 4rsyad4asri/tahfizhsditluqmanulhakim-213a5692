@@ -16,7 +16,6 @@ const routePreloaders: Record<string, () => Promise<unknown>> = {
   "/kelola-siswa": () => import("@/pages/ManageStudents"),
   "/profil": () => import("@/pages/ProfilPenguji"),
   "/tahun-ajaran": () => import("@/pages/AcademicYears"),
-  "/naik-kelas-massal": () => import("@/pages/MassClassPromotion"),
   "/rekap-global": () => import("@/pages/RekapGlobal"),
   "/rekap-sertifikat": () => import("@/pages/RekapSertifikat"),
   "/profile": () => import("@/pages/Profile"),

@@ -469,8 +469,8 @@ function drawStudentInfo(
       },
     },
     body: [
-      ["Kelas", formatClassName(data.className), "Nama Siswa", formatStudentName(data.studentName)],
-      ["Periode", data.academicPeriod || "-", "NIS/NISN", `${data.nis || "-"} / ${data.nisn || "-"}`],
+      ["Nama Siswa", formatStudentName(data.studentName), "Kelas", formatClassName(data.className)],
+      ["NIS/NISN", `${data.nis || "-"} / ${data.nisn || "-"}`, "Periode", data.academicPeriod || "-"],
     ],
   });
 }

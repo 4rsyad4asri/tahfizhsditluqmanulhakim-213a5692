@@ -50,32 +50,29 @@ export function useAuth() {
   }, []);
 
   useEffect(() => {
-    // Set up listener FIRST
+    let mounted = true;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+
         if (session?.user) {
-          // Use setTimeout to avoid deadlocks with Supabase auth
-          setTimeout(async () => {
-            const { role, profile } = await fetchRoleAndProfile(session.user.id);
+          const { role, profile } = await fetchRoleAndProfile(session.user.id);
+          if (mounted) {
             setState({ user: session.user, session, role, profile, loading: false });
-          }, 0);
+          }
         } else {
-          setState({ user: null, session: null, role: null, profile: null, loading: false });
+          if (mounted) {
+            setState({ user: null, session: null, role: null, profile: null, loading: false });
+          }
         }
       }
     );
 
-    // Then check existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const { role, profile } = await fetchRoleAndProfile(session.user.id);
-        setState({ user: session.user, session, role, profile, loading: false });
-      } else {
-        setState(prev => ({ ...prev, loading: false }));
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [fetchRoleAndProfile]);
 
   const signIn = async (email: string, password: string) => {

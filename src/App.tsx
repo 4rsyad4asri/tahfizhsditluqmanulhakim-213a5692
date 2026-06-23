@@ -3,13 +3,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuthContext } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "@/components/AppLayout";
 import MassClassPromotion from "./pages/MassClassPromotion";
 const Index = lazy(() => import("./pages/Index"));
+const Landing = lazy(() => import("./pages/Landing"));
 const ClassStudents = lazy(() => import("./pages/ClassStudents"));
 const StudentDetail = lazy(() => import("./pages/StudentDetail"));
 const ManageStudents = lazy(() => import("./pages/ManageStudents"));
@@ -27,6 +28,12 @@ const ProfilPenguji = lazy(() => import("./pages/ProfilPenguji"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const TahfizhVerification = lazy(() => import("./pages/TahfizhVerification"));
 const VerificationCenter = lazy(() => import("./pages/VerificationCenter"));
+
+function HomeEntry() {
+  const { user, loading } = useAuthContext();
+  if (!loading && user) return <Navigate to="/dashboard" replace />;
+  return <Landing />;
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -96,8 +103,10 @@ function AppRoutes() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/" element={<HomeEntry />} />
+          <Route path="/landing" element={<HomeEntry />} />
           <Route element={<AppLayout />}>
-            <Route path="/" element={<Index />} />
+            <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/kelas/:classId" element={<ClassStudents />} />
             <Route path="/siswa/:studentId" element={<StudentDetail />} />
             <Route path="/tahun-ajaran" element={<ProtectedRoute requiredRole="admin"><AcademicYears /></ProtectedRoute>} />

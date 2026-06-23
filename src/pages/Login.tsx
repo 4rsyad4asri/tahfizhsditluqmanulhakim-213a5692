@@ -102,6 +102,9 @@ export default function Login() {
             </Link>
           </p>
         </form>
+        <Link to="/" className="mt-4 block text-center text-xs text-muted-foreground hover:text-foreground hover:underline">
+          Kembali ke halaman utama
+        </Link>
       </div>
     </div>);
 

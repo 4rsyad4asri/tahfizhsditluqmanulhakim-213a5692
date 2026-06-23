@@ -12,7 +12,7 @@ type SidebarProps = {
 };
 
 const routePreloaders: Record<string, () => Promise<unknown>> = {
-  "/": () => import("@/pages/Index"),
+  "/dashboard": () => import("@/pages/Index"),
   "/kelola-siswa": () => import("@/pages/ManageStudents"),
   "/profil": () => import("@/pages/ProfilPenguji"),
   "/tahun-ajaran": () => import("@/pages/AcademicYears"),

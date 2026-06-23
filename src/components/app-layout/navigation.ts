@@ -36,8 +36,8 @@ export const dashboardItem: NavItem = {
   label: "Dashboard",
   description: "Ringkasan utama dan akses kelas.",
   icon: LayoutDashboard,
-  path: "/",
-  match: (pathname) => pathname === "/" || pathStartsWith("/kelas")(pathname) || pathStartsWith("/siswa")(pathname),
+  path: "/dashboard",
+  match: (pathname) => pathname === "/dashboard" || pathStartsWith("/kelas")(pathname) || pathStartsWith("/siswa")(pathname),
 };
 
 export const navSections: NavSection[] = [
@@ -80,7 +80,7 @@ export const navSections: NavSection[] = [
         label: "Input Ujian",
         description: "Mulai dari dashboard, lalu pilih kelas dan siswa.",
         icon: BookOpenCheck,
-        path: "/",
+        path: "/dashboard",
         match: dashboardItem.match,
       },
       {

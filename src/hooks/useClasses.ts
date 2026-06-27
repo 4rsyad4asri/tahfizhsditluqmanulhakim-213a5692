@@ -25,7 +25,8 @@ export function useClasses() {
 
       const { data: students, error: studentError } = await supabase
         .from("students")
-        .select("class_id, progress_hafalan, status_sertifikasi");
+        .select("class_id, progress_hafalan, status_sertifikasi")
+        .eq("student_status", "aktif");
 
       if (studentError) throw studentError;
 

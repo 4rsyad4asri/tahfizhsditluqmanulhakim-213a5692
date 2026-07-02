@@ -82,7 +82,8 @@ const Dashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("students")
-        .select("class_id, level");
+        .select("class_id, level")
+        .eq("student_status", "aktif");
       if (error) throw error;
       return data || [];
     },
@@ -130,8 +131,9 @@ const Dashboard = () => {
         ujianQuery = ujianQuery.eq("academic_semester_id", activeAcademicPeriod.id);
       }
 
-      const [assignmentsResult, ujianResult] = await Promise.all([
+      const [assignmentsResult, studentsResult, ujianResult] = await Promise.all([
         supabase.from("class_penguji").select("class_id"),
+        supabase.from("students").select("id").eq("student_status", "aktif"),
         ujianQuery,
       ]);
 
@@ -143,7 +145,12 @@ const Dashboard = () => {
         return { ...fallback, activeClassIds };
       }
 
-      const ujianRows = ujianResult.data || [];
+      if (studentsResult.error) {
+        return { ...fallback, activeClassIds };
+      }
+
+      const activeStudentIds = new Set((studentsResult.data || []).map((student) => student.id));
+      const ujianRows = (ujianResult.data || []).filter((row) => activeStudentIds.has(row.student_id));
       const certificateRows = ujianRows.filter(isTahfizhCertificateExam);
       const regularExamRows = ujianRows.filter((row) => row.mode === "Tahfizh" && !isTahfizhCertificateExam(row));
       const passedExamStudents = new Set(

@@ -57,6 +57,8 @@ const buildClassName = (item?: ClassRow | null) => {
 
 const buildTargetKey = (grade: number, section: string) => `${grade}-${section.trim().toUpperCase()}`;
 
+const ensureArray = <T,>(value: T[] | unknown): T[] => (Array.isArray(value) ? value : []);
+
 const emptySummary = (): Summary => ({
   promoted: 0,
   alumni: 0,
@@ -119,7 +121,7 @@ export default function MassClassPromotion() {
   const [searchTerm, setSearchTerm] = useState("");
 
   const { data: academicYears, isLoading: yearsLoading, error: yearsError } = useQuery({
-    queryKey: ["academic-years"],
+    queryKey: ["mass-class-promotion-academic-years"],
     queryFn: async (): Promise<AcademicYearRow[]> => {
       const { data, error } = await supabase
         .from("academic_years")
@@ -128,7 +130,7 @@ export default function MassClassPromotion() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return ensureArray<AcademicYearRow>(data);
     },
     enabled: isAdmin,
   });
@@ -138,7 +140,7 @@ export default function MassClassPromotion() {
     queryFn: async (): Promise<ClassRow[]> => {
       const { data, error } = await supabase.from("classes").select("*").order("grade").order("section");
       if (error) throw error;
-      return data || [];
+      return ensureArray<ClassRow>(data);
     },
     enabled: isAdmin,
   });
@@ -153,7 +155,7 @@ export default function MassClassPromotion() {
         .order("name");
 
       if (error) throw error;
-      return data || [];
+      return ensureArray<StudentRow>(data);
     },
     enabled: isAdmin,
   });
@@ -170,7 +172,7 @@ export default function MassClassPromotion() {
         .eq("academic_year_to", toYearId);
 
       if (error) throw error;
-      return data || [];
+      return ensureArray<HistoryRow>(data);
     },
     enabled: isAdmin && Boolean(fromYearId) && Boolean(toYearId),
   });
@@ -184,39 +186,45 @@ export default function MassClassPromotion() {
   }, [fromYearId, toYearId]);
 
   useEffect(() => {
-    if (!academicYears?.length) return;
-    const activeYear = academicYears.find((item) => item.is_active);
+    const yearRows = ensureArray<AcademicYearRow>(academicYears);
+    if (!yearRows.length) return;
+    const activeYear = yearRows.find((item) => item.is_active);
     if (!activeYear) return;
 
     setFromYearId((current) => current || activeYear.id);
   }, [academicYears]);
 
-  const yearsById = useMemo(() => new Map((academicYears || []).map((item) => [item.id, item])), [academicYears]);
-  const classesById = useMemo(() => new Map((classes || []).map((item) => [item.id, item])), [classes]);
+  const yearRows = useMemo(() => ensureArray<AcademicYearRow>(academicYears), [academicYears]);
+  const classRows = useMemo(() => ensureArray<ClassRow>(classes), [classes]);
+  const studentRows = useMemo(() => ensureArray<StudentRow>(students), [students]);
+  const historyRows = useMemo(() => ensureArray<HistoryRow>(processedHistory), [processedHistory]);
+
+  const yearsById = useMemo(() => new Map(yearRows.map((item) => [item.id, item])), [yearRows]);
+  const classesById = useMemo(() => new Map(classRows.map((item) => [item.id, item])), [classRows]);
 
   const targetClassByKey = useMemo(() => {
     const map = new Map<string, ClassRow>();
-    for (const item of classes || []) {
+    for (const item of classRows) {
       map.set(buildTargetKey(item.grade, item.section), item);
     }
     return map;
-  }, [classes]);
+  }, [classRows]);
 
   const processedKeySet = useMemo(() => {
     const set = new Set<string>();
-    for (const item of processedHistory || []) {
+    for (const item of historyRows) {
       set.add(`${item.student_id}-${item.academic_year_from}-${item.academic_year_to}`);
     }
     return set;
-  }, [processedHistory]);
+  }, [historyRows]);
 
   const selectedFromYear = fromYearId ? yearsById.get(fromYearId) || null : null;
   const selectedToYear = toYearId ? yearsById.get(toYearId) || null : null;
 
   const previewRows = useMemo<PreviewRow[]>(() => {
-    if (!students?.length || !fromYearId || !toYearId || fromYearId === toYearId) return [];
+    if (!studentRows.length || !fromYearId || !toYearId || fromYearId === toYearId) return [];
 
-    return students
+    return studentRows
       .map((student) => {
       const duplicateKey = `${student.id}-${fromYearId}-${toYearId}`;
       const classRow = student.class_id ? classesById.get(student.class_id) || null : null;
@@ -296,7 +304,7 @@ export default function MassClassPromotion() {
 
         return a.studentName.localeCompare(b.studentName, "id", { sensitivity: "base" });
       });
-  }, [classesById, fromYearId, processedKeySet, students, targetClassByKey, toYearId]);
+  }, [classesById, fromYearId, processedKeySet, studentRows, targetClassByKey, toYearId]);
 
   const previewSummary = useMemo(() => summarizePreview(previewRows), [previewRows]);
   const classFilterOptions = useMemo(() => {
@@ -458,7 +466,7 @@ export default function MassClassPromotion() {
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="">Pilih tahun ajaran asal</option>
-                {(academicYears || []).map((item) => (
+                {yearRows.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.name}
                     {item.is_active ? " (aktif)" : ""}
@@ -475,7 +483,7 @@ export default function MassClassPromotion() {
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="">Pilih tahun ajaran tujuan</option>
-                {(academicYears || []).map((item) => (
+                {yearRows.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.name}
                     {item.is_active ? " (aktif)" : ""}

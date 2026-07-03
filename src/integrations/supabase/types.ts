@@ -124,7 +124,7 @@ export type Database = {
         }
         Insert: {
           id: string
-          layout: Json
+          layout?: Json
           updated_at?: string
           updated_by?: string | null
         }
@@ -135,141 +135,6 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
-      }
-      tahfizh_certificates: {
-        Row: {
-          certificate_number: string
-          class_name_snapshot: string
-          coordinator_name_snapshot: string | null
-          coordinator_user_id: string | null
-          created_at: string
-          document_number: string | null
-          final_score_snapshot: number
-          id: string
-          issued_date: string
-          juz_snapshot: string
-          layout_snapshot: Json | null
-          predicate_snapshot: string
-          principal_name_snapshot: string | null
-          published_at: string
-          published_by: string | null
-          revision_note: string | null
-          status: string
-          student_id: string
-          student_name_snapshot: string
-          ujian_id: string
-          updated_at: string
-          verification_token: string | null
-        }
-        Insert: {
-          certificate_number: string
-          class_name_snapshot: string
-          coordinator_name_snapshot?: string | null
-          coordinator_user_id?: string | null
-          created_at?: string
-          document_number?: string | null
-          final_score_snapshot: number
-          id?: string
-          issued_date: string
-          juz_snapshot: string
-          layout_snapshot?: Json | null
-          predicate_snapshot: string
-          principal_name_snapshot?: string | null
-          published_at?: string
-          published_by?: string | null
-          revision_note?: string | null
-          status?: string
-          student_id: string
-          student_name_snapshot: string
-          ujian_id: string
-          updated_at?: string
-          verification_token?: string | null
-        }
-        Update: {
-          certificate_number?: string
-          class_name_snapshot?: string
-          coordinator_name_snapshot?: string | null
-          coordinator_user_id?: string | null
-          created_at?: string
-          document_number?: string | null
-          final_score_snapshot?: number
-          id?: string
-          issued_date?: string
-          juz_snapshot?: string
-          layout_snapshot?: Json | null
-          predicate_snapshot?: string
-          principal_name_snapshot?: string | null
-          published_at?: string
-          published_by?: string | null
-          revision_note?: string | null
-          status?: string
-          student_id?: string
-          student_name_snapshot?: string
-          ujian_id?: string
-          updated_at?: string
-          verification_token?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tahfizh_certificates_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tahfizh_certificates_ujian_id_fkey"
-            columns: ["ujian_id"]
-            isOneToOne: true
-            referencedRelation: "ujian"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      tahfizh_certificate_layout_overrides: {
-        Row: {
-          created_at: string
-          id: string
-          layout: Json
-          student_id: string | null
-          ujian_id: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          layout: Json
-          student_id?: string | null
-          ujian_id: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          layout?: Json
-          student_id?: string | null
-          ujian_id?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tahfizh_certificate_layout_overrides_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tahfizh_certificate_layout_overrides_ujian_id_fkey"
-            columns: ["ujian_id"]
-            isOneToOne: true
-            referencedRelation: "ujian"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       class_penguji: {
         Row: {
@@ -617,9 +482,9 @@ export type Database = {
           nis: string | null
           nisn: string | null
           progress_hafalan: number
-          student_status: string
-          status_siswa: string
           status_sertifikasi: Database["public"]["Enums"]["certification_status"]
+          status_siswa: string
+          student_status: string
           target_juz: number
           updated_at: string
         }
@@ -633,9 +498,9 @@ export type Database = {
           nis?: string | null
           nisn?: string | null
           progress_hafalan?: number
-          student_status?: string
-          status_siswa?: string
           status_sertifikasi?: Database["public"]["Enums"]["certification_status"]
+          status_siswa?: string
+          student_status?: string
           target_juz?: number
           updated_at?: string
         }
@@ -649,9 +514,9 @@ export type Database = {
           nis?: string | null
           nisn?: string | null
           progress_hafalan?: number
-          student_status?: string
-          status_siswa?: string
           status_sertifikasi?: Database["public"]["Enums"]["certification_status"]
+          status_siswa?: string
+          student_status?: string
           target_juz?: number
           updated_at?: string
         }
@@ -661,6 +526,141 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tahfizh_certificate_layout_overrides: {
+        Row: {
+          created_at: string
+          id: string
+          layout: Json
+          student_id: string | null
+          ujian_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          layout: Json
+          student_id?: string | null
+          ujian_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          layout?: Json
+          student_id?: string | null
+          ujian_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tahfizh_certificate_layout_overrides_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tahfizh_certificate_layout_overrides_ujian_id_fkey"
+            columns: ["ujian_id"]
+            isOneToOne: true
+            referencedRelation: "ujian"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tahfizh_certificates: {
+        Row: {
+          certificate_number: string
+          class_name_snapshot: string
+          coordinator_name_snapshot: string | null
+          coordinator_user_id: string | null
+          created_at: string
+          document_number: string | null
+          final_score_snapshot: number
+          id: string
+          issued_date: string
+          juz_snapshot: string
+          layout_snapshot: Json | null
+          predicate_snapshot: string
+          principal_name_snapshot: string | null
+          published_at: string
+          published_by: string | null
+          revision_note: string | null
+          status: string
+          student_id: string
+          student_name_snapshot: string
+          ujian_id: string
+          updated_at: string
+          verification_token: string | null
+        }
+        Insert: {
+          certificate_number: string
+          class_name_snapshot: string
+          coordinator_name_snapshot?: string | null
+          coordinator_user_id?: string | null
+          created_at?: string
+          document_number?: string | null
+          final_score_snapshot: number
+          id?: string
+          issued_date: string
+          juz_snapshot: string
+          layout_snapshot?: Json | null
+          predicate_snapshot: string
+          principal_name_snapshot?: string | null
+          published_at?: string
+          published_by?: string | null
+          revision_note?: string | null
+          status?: string
+          student_id: string
+          student_name_snapshot: string
+          ujian_id: string
+          updated_at?: string
+          verification_token?: string | null
+        }
+        Update: {
+          certificate_number?: string
+          class_name_snapshot?: string
+          coordinator_name_snapshot?: string | null
+          coordinator_user_id?: string | null
+          created_at?: string
+          document_number?: string | null
+          final_score_snapshot?: number
+          id?: string
+          issued_date?: string
+          juz_snapshot?: string
+          layout_snapshot?: Json | null
+          predicate_snapshot?: string
+          principal_name_snapshot?: string | null
+          published_at?: string
+          published_by?: string | null
+          revision_note?: string | null
+          status?: string
+          student_id?: string
+          student_name_snapshot?: string
+          ujian_id?: string
+          updated_at?: string
+          verification_token?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tahfizh_certificates_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tahfizh_certificates_ujian_id_fkey"
+            columns: ["ujian_id"]
+            isOneToOne: true
+            referencedRelation: "ujian"
             referencedColumns: ["id"]
           },
         ]
@@ -793,12 +793,12 @@ export type Database = {
           _student_ids: string[]
         }
         Returns: {
-          from_class_id: string | null
-          message: string | null
-          result_status: string | null
-          status_after: string | null
-          student_id: string | null
-          to_class_id: string | null
+          from_class_id: string
+          message: string
+          result_status: string
+          status_after: string
+          student_id: string
+          to_class_id: string
         }[]
       }
     }

@@ -45,7 +45,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden bg-gradient-to-br from-background via-muted to-background">
+    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden bg-gradient-to-br from-primary/10 via-background to-secondary/10">
       {/* Animated background elements */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/10 blur-[100px] animate-pulse"></div>
@@ -55,12 +55,12 @@ export default function Login() {
       <div className="w-full max-w-sm animate-fade-in relative z-10">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-primary to-primary/60 text-primary-foreground shadow-lg mb-4 transform hover:scale-105 hover:rotate-3 transition-all duration-300">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-islamic text-primary-foreground shadow-lg mb-4 transform hover:scale-105 hover:rotate-3 transition-all duration-300">
             <BookOpen className="w-8 h-8" />
           </div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-foreground tracking-tight text-center">
             Sistem Laporan <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/70">
+            <span className="text-transparent bg-clip-text gradient-islamic">
               Ujian Tahfizh
             </span>
           </h1>
@@ -102,7 +102,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full flex items-center justify-center gap-2 py-3 mt-2 rounded-xl text-sm font-bold bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-md">
+            className="w-full flex items-center justify-center gap-2 py-3 mt-2 rounded-xl text-sm font-bold gradient-islamic text-primary-foreground shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-md">
             {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5" />}
             {submitting ? "Memproses..." : "Masuk ke Akun"}
           </button>

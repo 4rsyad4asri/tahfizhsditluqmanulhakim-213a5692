@@ -60,7 +60,7 @@ export default function Login() {
           </div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-foreground tracking-tight text-center">
             Sistem Laporan <br />
-            <span className="text-transparent bg-clip-text gradient-islamic text-xl md:text-2xl mt-2 block">
+            <span className="text-[#eacb7b] drop-shadow-sm text-xl md:text-2xl mt-2 block">
               Setoran dan Ujian Tahsin & Tahfizh
             </span>
           </h1>

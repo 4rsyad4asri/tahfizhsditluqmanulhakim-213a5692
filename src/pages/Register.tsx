@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { BookOpen, Eye, EyeOff, Loader2, Search, UserPlus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { formatClassName } from "@/utils/className";
 
 type RoleOpt = "guru" | "penguji" | "parent";
 type ParentChildForm = {

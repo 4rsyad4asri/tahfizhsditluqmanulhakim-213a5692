@@ -41,13 +41,17 @@ export default function Register() {
   const [bio, setBio] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [assignedClasses, setAssignedClasses] = useState<string[]>([]);
+  const [assignedClassId, setAssignedClassId] = useState<string>("");
   const [parentChildren, setParentChildren] = useState<ParentChildForm[]>([createChildForm()]);
 
   const { data: classes } = useQuery({
     queryKey: ["classes-public"],
     queryFn: async () => {
-      const { data } = await supabase.from("classes").select("id,name").order("grade").order("section");
+      const { data } = await supabase
+        .from("classes")
+        .select("id,name,grade,section")
+        .order("grade")
+        .order("section");
       return data || [];
     },
   });
@@ -118,6 +122,11 @@ export default function Register() {
       }
     }
 
+    if (role === "guru" && !assignedClassId) {
+      toast.error("Pilih 1 kelas wali");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const { error } = await supabase.auth.signUp({
@@ -131,7 +140,7 @@ export default function Register() {
             whatsapp: whatsapp.trim(),
             role,
             bio,
-            assigned_classes: role === "guru" ? assignedClasses : undefined,
+            assigned_classes: role === "guru" ? [assignedClassId] : undefined,
             parent_students: role === "parent"
               ? parentLinks.map(({ student_id, nisn }) => ({ student_id, nisn }))
               : undefined,
@@ -147,9 +156,6 @@ export default function Register() {
       setSubmitting(false);
     }
   };
-
-  const toggleClass = (id: string) =>
-    setAssignedClasses((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   const addChildForm = () => {
     setParentChildren((prev) => [...prev, createChildForm()]);
@@ -188,22 +194,26 @@ export default function Register() {
               className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="penguji">Penguji</option>
-              <option value="guru">Guru</option>
+              <option value="guru">Guru Wali Kelas</option>
               <option value="parent">Orang Tua</option>
             </select>
           </div>
 
           {role === "guru" && (
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Kelas/Rombel yang Diampu</label>
-              <div className="max-h-32 overflow-auto rounded-md border border-input p-2 space-y-1">
-                {(classes || []).map((c) => (
-                  <label key={c.id} className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={assignedClasses.includes(c.id)} onChange={() => toggleClass(c.id)} />
-                    {c.name}
-                  </label>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Kelas Wali (Rombel) *</label>
+              <select
+                value={assignedClassId}
+                onChange={(e) => setAssignedClassId(e.target.value)}
+                className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">-- Pilih kelas --</option>
+                {(classes || []).map((c: any) => (
+                  <option key={c.id} value={c.id}>
+                    {formatClassName({ grade: c.grade, section: c.section, name: c.name })}
+                  </option>
                 ))}
-              </div>
+              </select>
             </div>
           )}
 

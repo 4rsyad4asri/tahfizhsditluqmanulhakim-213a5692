@@ -60,11 +60,11 @@ export default function Login() {
           </div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-foreground tracking-tight text-center">
             Sistem Laporan <br />
-            <span className="text-transparent bg-clip-text gradient-islamic">
-              Ujian Tahfizh
+            <span className="text-transparent bg-clip-text gradient-islamic text-xl md:text-2xl mt-2 block">
+              Setoran dan Ujian Tahsin & Tahfizh
             </span>
           </h1>
-          <p className="text-sm text-muted-foreground mt-2 font-medium">Masuk ke sistem untuk melanjutkan</p>
+          <p className="text-sm text-muted-foreground mt-2 font-medium text-center">Masuk ke sistem untuk melanjutkan</p>
         </div>
 
         {/* Form with Glassmorphism */}

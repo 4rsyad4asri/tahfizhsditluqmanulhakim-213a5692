@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { syncStudentStatus } from "@/utils/syncStudentStatus";
 import { getStudentLevelFromExam, getStudentTargetLabelFromExam, type StudentExamSyncRow } from "@/utils/studentExamSync";
 import {
@@ -11,7 +12,8 @@ import {
   ChevronDown,
   FileSpreadsheet,
   AlertTriangle,
-  Download
+  Download,
+  RotateCcw
 } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { DataTablePagination } from "@/components/DataTablePagination";
@@ -28,8 +30,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger } from
-"@/components/ui/dialog";
+  DialogTrigger,
+  DialogFooter
+} from "@/components/ui/dialog";
 import type { Database } from "@/integrations/supabase/types";
 
 type StudentLevel = Database["public"]["Enums"]["student_level"];
@@ -97,6 +100,8 @@ const ManageStudents = () => {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleteAllConfirm, setDeleteAllConfirm] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
@@ -131,6 +136,33 @@ const ManageStudents = () => {
 
   }
 };
+
+  const handleResetStatus = async () => {
+    try {
+      setResetting(true);
+      if (filteredStudents.length === 0) {
+        toast.error("Tidak ada siswa untuk di-reset");
+        return;
+      }
+      
+      const ids = filteredStudents.map(s => s.id);
+      
+      const { error } = await supabase.from("students")
+        .update({ status_sertifikasi: "Belum Ujian" as never })
+        .in("id", ids);
+        
+      if (error) throw error;
+
+      toast.success(`Status sertifikasi ${ids.length} siswa berhasil di-reset.`);
+      setShowResetDialog(false);
+      queryClient.invalidateQueries({ queryKey: ["all-students"] });
+    } catch (e: any) {
+      toast.error(e.message || "Gagal mereset status");
+    } finally {
+      setResetting(false);
+    }
+  };
+
   // Fetch classes
 const { data: classes } = useQuery({
   queryKey: ["all-classes"],
@@ -444,6 +476,54 @@ const filteredStudents: StudentListRow[] = useMemo(() => {
     </>
   )}
 </button>
+
+  {isAdmin && (
+    <>
+      <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <DialogTrigger asChild>
+          <button
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-red-100 hover:bg-red-200 transition-colors border border-red-300 text-red-700 whitespace-nowrap"
+          >
+            <RotateCcw className="w-4 h-4" />
+            Reset Status
+          </button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" />
+              Konfirmasi Reset Status
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-foreground mb-2">
+              Anda yakin ingin mereset <strong>Status Sertifikasi</strong> menjadi "Belum Ujian"?
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Aksi ini akan diaplikasikan ke <strong>{filteredStudents.length}</strong> siswa yang sesuai dengan filter pencarian saat ini. 
+              Pastikan filter kelas/target sudah sesuai agar tidak mereset siswa yang salah.
+            </p>
+          </div>
+          <DialogFooter>
+            <button
+              onClick={() => setShowResetDialog(false)}
+              className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 font-medium text-sm transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleResetStatus}
+              disabled={resetting}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium text-sm transition-colors disabled:opacity-50"
+            >
+              {resetting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              Ya, Reset Semua
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )}
 
 <button
   onClick={() => setImportOpen(true)}
@@ -878,3 +958,4 @@ const filteredStudents: StudentListRow[] = useMemo(() => {
 };
 
 export default ManageStudents;
+

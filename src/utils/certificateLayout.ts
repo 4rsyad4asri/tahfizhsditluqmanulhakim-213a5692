@@ -68,7 +68,10 @@ export interface CertificateLayout {
   principalTitle: CertificateElementLayout;
   leftLogo: CertificateImageLayout;
   rightLogo: CertificateImageLayout;
+  showCoordinatorSignature: boolean;
+  showPrincipalSignature: boolean;
 }
+
 
 export const DEFAULT_CERTIFICATE_LAYOUT: CertificateLayout = {
   certificateNumber: {

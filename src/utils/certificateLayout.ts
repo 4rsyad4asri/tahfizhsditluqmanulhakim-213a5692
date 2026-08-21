@@ -330,6 +330,9 @@ export const normalizeCertificateLayout = (value: unknown): CertificateLayout =>
     ),
     leftLogo: normalizeImageElement(raw.leftLogo, DEFAULT_CERTIFICATE_LAYOUT.leftLogo),
     rightLogo: normalizeImageElement(raw.rightLogo, DEFAULT_CERTIFICATE_LAYOUT.rightLogo),
+    showCoordinatorSignature: raw.showCoordinatorSignature === true,
+    showPrincipalSignature: raw.showPrincipalSignature === true,
+
   };
 };
 

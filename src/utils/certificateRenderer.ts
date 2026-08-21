@@ -330,22 +330,27 @@ export const renderCertificateImage = async (
     );
   }
 
-  await drawContainedImage(
-    ctx,
-    data.coordinatorSignatureDataUrl,
-    layout.coordinatorSignature.x,
-    layout.coordinatorSignature.y,
-    layout.coordinatorSignature.width,
-    layout.coordinatorSignature.height,
-  );
-  await drawContainedImage(
-    ctx,
-    data.principalSignatureDataUrl,
-    layout.principalSignature.x,
-    layout.principalSignature.y,
-    layout.principalSignature.width,
-    layout.principalSignature.height,
-  );
+  if (layout.showCoordinatorSignature) {
+    await drawContainedImage(
+      ctx,
+      data.coordinatorSignatureDataUrl,
+      layout.coordinatorSignature.x,
+      layout.coordinatorSignature.y,
+      layout.coordinatorSignature.width,
+      layout.coordinatorSignature.height,
+    );
+  }
+  if (layout.showPrincipalSignature) {
+    await drawContainedImage(
+      ctx,
+      data.principalSignatureDataUrl,
+      layout.principalSignature.x,
+      layout.principalSignature.y,
+      layout.principalSignature.width,
+      layout.principalSignature.height,
+    );
+  }
+
 
   if (data.showCoordinatorIdentity) {
     drawSpacedText(

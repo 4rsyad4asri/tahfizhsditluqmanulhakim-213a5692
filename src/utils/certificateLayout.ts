@@ -68,7 +68,10 @@ export interface CertificateLayout {
   principalTitle: CertificateElementLayout;
   leftLogo: CertificateImageLayout;
   rightLogo: CertificateImageLayout;
+  showCoordinatorSignature: boolean;
+  showPrincipalSignature: boolean;
 }
+
 
 export const DEFAULT_CERTIFICATE_LAYOUT: CertificateLayout = {
   certificateNumber: {
@@ -221,7 +224,10 @@ export const DEFAULT_CERTIFICATE_LAYOUT: CertificateLayout = {
     width: 184,
     height: 184,
   },
+  showCoordinatorSignature: false,
+  showPrincipalSignature: false,
 };
+
 
 let cachedLayout: CertificateLayout | null = null;
 
@@ -324,6 +330,9 @@ export const normalizeCertificateLayout = (value: unknown): CertificateLayout =>
     ),
     leftLogo: normalizeImageElement(raw.leftLogo, DEFAULT_CERTIFICATE_LAYOUT.leftLogo),
     rightLogo: normalizeImageElement(raw.rightLogo, DEFAULT_CERTIFICATE_LAYOUT.rightLogo),
+    showCoordinatorSignature: raw.showCoordinatorSignature === true,
+    showPrincipalSignature: raw.showPrincipalSignature === true,
+
   };
 };
 

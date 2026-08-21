@@ -224,7 +224,10 @@ export const DEFAULT_CERTIFICATE_LAYOUT: CertificateLayout = {
     width: 184,
     height: 184,
   },
+  showCoordinatorSignature: false,
+  showPrincipalSignature: false,
 };
+
 
 let cachedLayout: CertificateLayout | null = null;
 

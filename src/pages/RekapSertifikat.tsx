@@ -279,11 +279,26 @@ const RekapSertifikat = () => {
         .order("tanggal", { ascending: true })
         .order("created_at", { ascending: true }); // Urutan asli tetap stabil pada tanggal yang sama
 
-      const { data: ujianData, error: ujianError } = await query;
+      const [{ data: ujianData, error: ujianError }, { data: academicYears, error: academicYearsError }, { data: academicSemesters, error: academicSemestersError }] = await Promise.all([
+        query,
+        supabase.from("academic_years").select("id, name, is_active").order("created_at", { ascending: false }),
+        supabase.from("academic_semesters").select("id, academic_year_id, semester_number, name, is_active").order("semester_number", { ascending: true }),
+      ]);
       if (ujianError) throw ujianError;
+      if (academicYearsError) throw academicYearsError;
+      if (academicSemestersError) throw academicSemestersError;
 
       const studentIds = [...new Set((ujianData || []).map((u) => u.student_id))];
-      if (studentIds.length === 0) return { items: [] as RekapItem[], classes: [] as string[] };
+      if (studentIds.length === 0) {
+        return {
+          items: [] as RekapItem[],
+          classes: [] as string[],
+          academicYears: academicYears || [],
+          academicSemesters: academicSemesters || [],
+          activeAcademicYearId: academicYears?.find((year) => year.is_active)?.id || null,
+          activeAcademicSemesterId: academicSemesters?.find((semester) => semester.is_active)?.id || null,
+        };
+      }
       const ujianIds = (ujianData || []).map((u) => u.id);
 
       const [{ data: students }, certificateResult, overrideResult] = await Promise.all([

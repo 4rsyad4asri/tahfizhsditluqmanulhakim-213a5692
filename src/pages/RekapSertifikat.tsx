@@ -742,14 +742,28 @@ const RekapSertifikat = () => {
 
   const items = useMemo(() => data?.items || [], [data?.items]);
   const classOptions = data?.classes || [];
+  const selectedAcademicYearId = filterAcademicYear === "active"
+    ? data?.activeAcademicYearId
+    : filterAcademicYear;
+  const selectedAcademicSemesterId = filterAcademicSemester === "active"
+    ? data?.activeAcademicSemesterId
+    : filterAcademicSemester;
+  const academicYears = data?.academicYears || [];
+  const academicSemesters = data?.academicSemesters || [];
+  const semesterOptions = useMemo(() => {
+    if (!selectedAcademicYearId || selectedAcademicYearId === "all") return academicSemesters;
+    return academicSemesters.filter((semester) => semester.academic_year_id === selectedAcademicYearId);
+  }, [academicSemesters, selectedAcademicYearId]);
 
   const filteredByClassAndJuz = useMemo(() => {
     return items.filter((item) => {
+      if (selectedAcademicYearId && selectedAcademicYearId !== "all" && item.academicYearId !== selectedAcademicYearId) return false;
+      if (selectedAcademicSemesterId && selectedAcademicSemesterId !== "all" && item.academicSemesterId !== selectedAcademicSemesterId) return false;
       if (filterKelas !== "all" && item.className !== filterKelas) return false;
       if (filterJuz !== "all" && !item.juz.includes(filterJuz)) return false;
       return true;
     });
-  }, [items, filterKelas, filterJuz]);
+  }, [items, filterKelas, filterJuz, selectedAcademicYearId, selectedAcademicSemesterId]);
 
   const filtered = useMemo(
     () => filteredByClassAndJuz.filter(

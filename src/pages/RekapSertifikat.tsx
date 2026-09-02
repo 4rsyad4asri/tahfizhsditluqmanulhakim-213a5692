@@ -1059,7 +1059,7 @@ const RekapSertifikat = () => {
                 const value = e.target.value;
                 setFilterAcademicYear(value);
                 setFilterAcademicSemester(value === "active" ? "active" : "all");
-                setShowArchive(value === "all");
+                setShowArchive(value !== "active");
               }}
               className="px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             >

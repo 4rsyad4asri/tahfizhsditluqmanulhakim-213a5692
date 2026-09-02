@@ -270,7 +270,7 @@ const RekapSertifikat = () => {
   const { toast } = useToast();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["rekap-sertifikat", showAll],
+    queryKey: ["rekap-sertifikat"],
     queryFn: async () => {
       const query = supabase
         .from("ujian")

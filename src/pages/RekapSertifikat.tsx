@@ -374,6 +374,8 @@ const RekapSertifikat = () => {
         const receivesCertificateNumber = isLulus || forceIncluded;
         const certificate = certificateMap.get(u.id);
         const layoutOverride = layoutOverrideMap.get(u.id) || null;
+        const academicYear = u.academic_year_id ? academicYearMap.get(u.academic_year_id) : null;
+        const academicSemester = u.academic_semester_id ? academicSemesterMap.get(u.academic_semester_id) : null;
 
         const sequenceNumber = receivesCertificateNumber ? lulusIndex++ : -1;
 

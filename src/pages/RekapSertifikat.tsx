@@ -248,7 +248,7 @@ const RekapSertifikat = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterKelas, filterJuz, filterPublish, filterAcademicYear, filterAcademicSemester, showAll]);
+  }, [filterKelas, filterJuz, filterPublish, filterAcademicYear, filterAcademicSemester, showArchive, showAll]);
 
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [isBulkDownloading, setIsBulkDownloading] = useState(false);

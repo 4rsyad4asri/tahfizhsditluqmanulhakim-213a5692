@@ -413,6 +413,11 @@ const RekapSertifikat = () => {
           hasLayoutOverride: Boolean(layoutOverride),
           coordinatorNameSnapshot: certificate?.coordinator_name_snapshot ?? null,
           principalNameSnapshot: certificate?.principal_name_snapshot ?? null,
+          academicYearId: u.academic_year_id ?? null,
+          academicSemesterId: u.academic_semester_id ?? null,
+          academicPeriod: academicYear && academicSemester
+            ? `${academicYear.name} · Semester ${academicSemester.semester_number} ${academicSemester.name}`
+            : academicYear?.name || "Data lama · Belum terikat semester",
         };
         return item;
       });

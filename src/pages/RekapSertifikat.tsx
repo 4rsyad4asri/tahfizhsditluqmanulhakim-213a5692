@@ -340,6 +340,8 @@ const RekapSertifikat = () => {
 
       const studentMap = new Map((students || []).map((s) => [s.id, s]));
       const classMap = new Map((classes || []).map((c) => [c.id, c]));
+      const academicYearMap = new Map((academicYears || []).map((year) => [year.id, year]));
+      const academicSemesterMap = new Map((academicSemesters || []).map((semester) => [semester.id, semester]));
       const certificateMap = new Map(certificates.map((certificate) => [
         certificate.ujian_id,
         certificate,

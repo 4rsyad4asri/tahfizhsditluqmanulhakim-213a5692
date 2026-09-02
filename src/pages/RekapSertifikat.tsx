@@ -437,6 +437,10 @@ const RekapSertifikat = () => {
         items,
         classes: uniqueClasses,
         certificatesAvailable,
+        academicYears: academicYears || [],
+        academicSemesters: academicSemesters || [],
+        activeAcademicYearId: academicYears?.find((year) => year.is_active)?.id || null,
+        activeAcademicSemesterId: academicSemesters?.find((semester) => semester.is_active)?.id || null,
       };
     },
   });

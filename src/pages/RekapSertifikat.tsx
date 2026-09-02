@@ -70,6 +70,9 @@ interface RekapItem {
   hasLayoutOverride: boolean;
   coordinatorNameSnapshot?: string | null;
   principalNameSnapshot?: string | null;
+  academicYearId: string | null;
+  academicSemesterId: string | null;
+  academicPeriod: string;
 }
 
 interface EditModalState {
@@ -232,6 +235,9 @@ const RekapSertifikat = () => {
   const [filterKelas, setFilterKelas] = useState<string>("all");
   const [filterJuz, setFilterJuz] = useState<string>("all");
   const [filterPublish, setFilterPublish] = useState<PublishStatus | "all">("all");
+  const [filterAcademicYear, setFilterAcademicYear] = useState<string>("active");
+  const [filterAcademicSemester, setFilterAcademicSemester] = useState<string>("active");
+  const [showArchive, setShowArchive] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [selectedBulkIds, setSelectedBulkIds] = useState<string[]>([]);
   const [bulkRangeStart, setBulkRangeStart] = useState("");
@@ -242,7 +248,7 @@ const RekapSertifikat = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterKelas, filterJuz, filterPublish, showAll]);
+  }, [filterKelas, filterJuz, filterPublish, filterAcademicYear, filterAcademicSemester, showArchive, showAll]);
 
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [isBulkDownloading, setIsBulkDownloading] = useState(false);
@@ -265,7 +271,7 @@ const RekapSertifikat = () => {
   const { toast } = useToast();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["rekap-sertifikat", showAll],
+    queryKey: ["rekap-sertifikat"],
     queryFn: async () => {
       const query = supabase
         .from("ujian")
@@ -274,11 +280,26 @@ const RekapSertifikat = () => {
         .order("tanggal", { ascending: true })
         .order("created_at", { ascending: true }); // Urutan asli tetap stabil pada tanggal yang sama
 
-      const { data: ujianData, error: ujianError } = await query;
+      const [{ data: ujianData, error: ujianError }, { data: academicYears, error: academicYearsError }, { data: academicSemesters, error: academicSemestersError }] = await Promise.all([
+        query,
+        supabase.from("academic_years").select("id, name, is_active").order("created_at", { ascending: false }),
+        supabase.from("academic_semesters").select("id, academic_year_id, semester_number, name, is_active").order("semester_number", { ascending: true }),
+      ]);
       if (ujianError) throw ujianError;
+      if (academicYearsError) throw academicYearsError;
+      if (academicSemestersError) throw academicSemestersError;
 
       const studentIds = [...new Set((ujianData || []).map((u) => u.student_id))];
-      if (studentIds.length === 0) return { items: [] as RekapItem[], classes: [] as string[] };
+      if (studentIds.length === 0) {
+        return {
+          items: [] as RekapItem[],
+          classes: [] as string[],
+          academicYears: academicYears || [],
+          academicSemesters: academicSemesters || [],
+          activeAcademicYearId: academicYears?.find((year) => year.is_active)?.id || null,
+          activeAcademicSemesterId: academicSemesters?.find((semester) => semester.is_active)?.id || null,
+        };
+      }
       const ujianIds = (ujianData || []).map((u) => u.id);
 
       const [{ data: students }, certificateResult, overrideResult] = await Promise.all([
@@ -319,6 +340,8 @@ const RekapSertifikat = () => {
 
       const studentMap = new Map((students || []).map((s) => [s.id, s]));
       const classMap = new Map((classes || []).map((c) => [c.id, c]));
+      const academicYearMap = new Map((academicYears || []).map((year) => [year.id, year]));
+      const academicSemesterMap = new Map((academicSemesters || []).map((semester) => [semester.id, semester]));
       const certificateMap = new Map(certificates.map((certificate) => [
         certificate.ujian_id,
         certificate,
@@ -351,6 +374,8 @@ const RekapSertifikat = () => {
         const receivesCertificateNumber = isLulus || forceIncluded;
         const certificate = certificateMap.get(u.id);
         const layoutOverride = layoutOverrideMap.get(u.id) || null;
+        const academicYear = u.academic_year_id ? academicYearMap.get(u.academic_year_id) : null;
+        const academicSemester = u.academic_semester_id ? academicSemesterMap.get(u.academic_semester_id) : null;
 
         const sequenceNumber = receivesCertificateNumber ? lulusIndex++ : -1;
 
@@ -392,6 +417,11 @@ const RekapSertifikat = () => {
           hasLayoutOverride: Boolean(layoutOverride),
           coordinatorNameSnapshot: certificate?.coordinator_name_snapshot ?? null,
           principalNameSnapshot: certificate?.principal_name_snapshot ?? null,
+          academicYearId: u.academic_year_id ?? null,
+          academicSemesterId: u.academic_semester_id ?? null,
+          academicPeriod: academicYear && academicSemester
+            ? `${academicYear.name} · Semester ${academicSemester.semester_number} ${academicSemester.name}`
+            : academicYear?.name || "Data lama · Belum terikat semester",
         };
         return item;
       });
@@ -407,6 +437,10 @@ const RekapSertifikat = () => {
         items,
         classes: uniqueClasses,
         certificatesAvailable,
+        academicYears: academicYears || [],
+        academicSemesters: academicSemesters || [],
+        activeAcademicYearId: academicYears?.find((year) => year.is_active)?.id || null,
+        activeAcademicSemesterId: academicSemesters?.find((semester) => semester.is_active)?.id || null,
       };
     },
   });
@@ -708,14 +742,28 @@ const RekapSertifikat = () => {
 
   const items = useMemo(() => data?.items || [], [data?.items]);
   const classOptions = data?.classes || [];
+  const selectedAcademicYearId = filterAcademicYear === "active"
+    ? data?.activeAcademicYearId
+    : filterAcademicYear;
+  const selectedAcademicSemesterId = filterAcademicSemester === "active"
+    ? data?.activeAcademicSemesterId
+    : filterAcademicSemester;
+  const academicYears = data?.academicYears || [];
+  const academicSemesters = data?.academicSemesters || [];
+  const semesterOptions = useMemo(() => {
+    if (!selectedAcademicYearId || selectedAcademicYearId === "all") return academicSemesters;
+    return academicSemesters.filter((semester) => semester.academic_year_id === selectedAcademicYearId);
+  }, [academicSemesters, selectedAcademicYearId]);
 
   const filteredByClassAndJuz = useMemo(() => {
     return items.filter((item) => {
+      if (selectedAcademicYearId && selectedAcademicYearId !== "all" && item.academicYearId !== selectedAcademicYearId) return false;
+      if (selectedAcademicSemesterId && selectedAcademicSemesterId !== "all" && item.academicSemesterId !== selectedAcademicSemesterId) return false;
       if (filterKelas !== "all" && item.className !== filterKelas) return false;
       if (filterJuz !== "all" && !item.juz.includes(filterJuz)) return false;
       return true;
     });
-  }, [items, filterKelas, filterJuz]);
+  }, [items, filterKelas, filterJuz, selectedAcademicYearId, selectedAcademicSemesterId]);
 
   const filtered = useMemo(
     () => filteredByClassAndJuz.filter(
@@ -943,6 +991,18 @@ const RekapSertifikat = () => {
             >
               <Download className="w-4 h-4" /> Export Excel
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                const nextShowArchive = !showArchive;
+                setShowArchive(nextShowArchive);
+                setFilterAcademicYear(nextShowArchive ? "all" : "active");
+                setFilterAcademicSemester(nextShowArchive ? "all" : "active");
+              }}
+              className="flex items-center gap-1.5 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            >
+              {showArchive ? "Kembali ke Periode Aktif" : "Lihat Arsip Lama"}
+            </button>
             {isAdmin && (
               <>
                 <select
@@ -988,6 +1048,45 @@ const RekapSertifikat = () => {
               <option value="all">Semua Kelas</option>
               {classOptions.map((c) => (
                 <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Tahun Ajaran</label>
+            <select
+              value={filterAcademicYear}
+              onChange={(e) => {
+                const value = e.target.value;
+                setFilterAcademicYear(value);
+                setFilterAcademicSemester(value === "active" ? "active" : "all");
+                setShowArchive(value !== "active");
+              }}
+              className="px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="active">Tahun Ajaran Aktif</option>
+              <option value="all">Semua Tahun Ajaran / Arsip</option>
+              {academicYears.map((year) => (
+                <option key={year.id} value={year.id}>{year.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Semester</label>
+            <select
+              value={filterAcademicSemester}
+              onChange={(e) => {
+                const value = e.target.value;
+                setFilterAcademicSemester(value);
+                setShowArchive(value !== "active");
+              }}
+              className="px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="active">Semester Aktif</option>
+              <option value="all">Semua Semester / Data Lama</option>
+              {semesterOptions.map((semester) => (
+                <option key={semester.id} value={semester.id}>
+                  Semester {semester.semester_number} - {semester.name}
+                </option>
               ))}
             </select>
           </div>

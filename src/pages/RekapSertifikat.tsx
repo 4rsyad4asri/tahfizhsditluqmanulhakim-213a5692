@@ -237,6 +237,7 @@ const RekapSertifikat = () => {
   const [filterPublish, setFilterPublish] = useState<PublishStatus | "all">("all");
   const [filterAcademicYear, setFilterAcademicYear] = useState<string>("active");
   const [filterAcademicSemester, setFilterAcademicSemester] = useState<string>("active");
+  const [showArchive, setShowArchive] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [selectedBulkIds, setSelectedBulkIds] = useState<string[]>([]);
   const [bulkRangeStart, setBulkRangeStart] = useState("");

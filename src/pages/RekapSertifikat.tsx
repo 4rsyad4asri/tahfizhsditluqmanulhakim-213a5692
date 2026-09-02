@@ -1040,6 +1040,45 @@ const RekapSertifikat = () => {
             </select>
           </div>
           <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Tahun Ajaran</label>
+            <select
+              value={filterAcademicYear}
+              onChange={(e) => {
+                const value = e.target.value;
+                setFilterAcademicYear(value);
+                setFilterAcademicSemester(value === "active" ? "active" : "all");
+                setShowArchive(value === "all");
+              }}
+              className="px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="active">Tahun Ajaran Aktif</option>
+              <option value="all">Semua Tahun Ajaran / Arsip</option>
+              {academicYears.map((year) => (
+                <option key={year.id} value={year.id}>{year.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Semester</label>
+            <select
+              value={filterAcademicSemester}
+              onChange={(e) => {
+                const value = e.target.value;
+                setFilterAcademicSemester(value);
+                setShowArchive(value === "all");
+              }}
+              className="px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="active">Semester Aktif</option>
+              <option value="all">Semua Semester / Data Lama</option>
+              {semesterOptions.map((semester) => (
+                <option key={semester.id} value={semester.id}>
+                  Semester {semester.semester_number} - {semester.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
             <select
               value={filterJuz}
               onChange={(e) => setFilterJuz(e.target.value)}

@@ -991,6 +991,18 @@ const RekapSertifikat = () => {
             >
               <Download className="w-4 h-4" /> Export Excel
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                const nextShowArchive = !showArchive;
+                setShowArchive(nextShowArchive);
+                setFilterAcademicYear(nextShowArchive ? "all" : "active");
+                setFilterAcademicSemester(nextShowArchive ? "all" : "active");
+              }}
+              className="flex items-center gap-1.5 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            >
+              {showArchive ? "Kembali ke Periode Aktif" : "Lihat Arsip Lama"}
+            </button>
             {isAdmin && (
               <>
                 <select

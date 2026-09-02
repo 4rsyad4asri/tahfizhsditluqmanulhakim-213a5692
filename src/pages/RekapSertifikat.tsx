@@ -70,6 +70,9 @@ interface RekapItem {
   hasLayoutOverride: boolean;
   coordinatorNameSnapshot?: string | null;
   principalNameSnapshot?: string | null;
+  academicYearId: string | null;
+  academicSemesterId: string | null;
+  academicPeriod: string;
 }
 
 interface EditModalState {

@@ -623,7 +623,9 @@ export default function RekapGlobal() {
       });
 
       const mergedBytes = await mergedPdf.save();
-      const blob = new Blob([mergedBytes], { type: "application/pdf" });
+      const pdfBuffer = new ArrayBuffer(mergedBytes.byteLength);
+      new Uint8Array(pdfBuffer).set(mergedBytes);
+      const blob = new Blob([pdfBuffer], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;

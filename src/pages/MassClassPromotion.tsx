@@ -225,7 +225,7 @@ export default function MassClassPromotion() {
     if (!studentRows.length || !fromYearId || !toYearId || fromYearId === toYearId) return [];
 
     return studentRows
-      .map((student) => {
+      .map((student): PreviewRow => {
       const duplicateKey = `${student.id}-${fromYearId}-${toYearId}`;
       const classRow = student.class_id ? classesById.get(student.class_id) || null : null;
       const defaultRow: PreviewRow = {

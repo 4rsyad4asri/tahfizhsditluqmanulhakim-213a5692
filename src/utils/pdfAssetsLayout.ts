@@ -334,7 +334,7 @@ const getLegacyGlobalSignatures = (value: unknown): LegacyRaportSignatureSetting
 };
 
 const toOrientationSafeSignature = (
-  asset: PdfAssetPosition,
+  asset: Partial<PdfAssetPosition>,
 ): Partial<PdfAssetPosition> => ({
   visible: asset.visible,
   width: asset.width,

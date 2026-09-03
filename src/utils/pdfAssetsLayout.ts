@@ -29,10 +29,14 @@ export interface RaportVisualLayout {
   text: PdfTextLayout;
 }
 
-type GlobalRaportOrientationAssets = Pick<
-  PdfAssetsLayout,
-  "leftLogo" | "rightLogo" | "examinerSignature" | "headmasterSignature" | "qrCode"
->;
+type GlobalRaportOrientationAssets = {
+  [K in
+    | "leftLogo"
+    | "rightLogo"
+    | "examinerSignature"
+    | "headmasterSignature"
+    | "qrCode"]: Partial<PdfAssetPosition>;
+};
 
 type LegacyRaportSignatureSettings = {
   examinerSignature?: Partial<PdfAssetPosition>;
@@ -40,8 +44,8 @@ type LegacyRaportSignatureSettings = {
 };
 
 export type GlobalRaportAssetsLayout = {
-  portrait?: GlobalRaportOrientationAssets;
-  landscape?: GlobalRaportOrientationAssets;
+  portrait?: Partial<GlobalRaportOrientationAssets>;
+  landscape?: Partial<GlobalRaportOrientationAssets>;
   updatedAt: string;
   updatedFromMode: RaportMode;
   updatedFromOrientation: Orientation;
@@ -198,11 +202,11 @@ const getStoredOrientationLayout = (
 
 const hasStoredSignatureSettings = (value: unknown) => {
   if (!value || typeof value !== "object") return false;
-  const assets = (value as Partial<RaportVisualLayout>).assets;
+  const assets = (value as Partial<RaportVisualLayout>).assets as unknown as Record<string, unknown> | undefined;
   if (!assets || typeof assets !== "object") return false;
 
   return ["examinerSignature", "headmasterSignature"].some((key) => {
-    const signature = (assets as Record<string, unknown>)[key];
+    const signature = assets[key];
     return signature && typeof signature === "object";
   });
 };
@@ -594,7 +598,7 @@ export const saveRaportVisualLayout = (
         .from("app_settings")
         .upsert({
           id: GLOBAL_RAPORT_SIGNATURE_SETTINGS_ID,
-          value: globalAssets,
+          value: globalAssets as unknown as Json,
           updated_by: userData.user?.id || null,
         }),
       examinerId && examinerAssets
@@ -602,7 +606,7 @@ export const saveRaportVisualLayout = (
           .from("app_settings")
           .upsert({
             id: getExaminerSignatureLayoutKey(examinerId),
-            value: examinerAssets,
+            value: examinerAssets as unknown as Json,
             updated_by: userData.user?.id || null,
           })
         : Promise.resolve({ error: null }),

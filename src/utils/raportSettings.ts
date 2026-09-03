@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import type { RaportHeader } from "@/utils/raportPdf";
 
 const RAPORT_SETTINGS_ID = "raport-identity";
@@ -40,7 +41,7 @@ export async function saveGlobalRaportHeader(header: RaportHeader) {
   const { data: userData } = await supabase.auth.getUser();
   const { error } = await supabase.from("app_settings").upsert({
     id: RAPORT_SETTINGS_ID,
-    value: normalizeRaportHeader(header),
+    value: normalizeRaportHeader(header) as unknown as Json,
     updated_by: userData.user?.id || null,
   });
 

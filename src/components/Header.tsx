@@ -6,6 +6,7 @@ import {
   Search,
   Settings,
   UserCircle,
+  Users,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -18,7 +19,7 @@ type HeaderProps = {
 
 export default function Header({ onMenuClick }: HeaderProps) {
   const navigate = useNavigate();
-  const { user, signOut } = useAuthContext();
+  const { user, signOut, isParent } = useAuthContext();
 
   const handleLogout = async () => {
     await signOut();
@@ -66,6 +67,17 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
           {user ? (
             <>
+              {isParent && (
+                <button
+                  type="button"
+                  onClick={() => navigate("/anak-saya")}
+                  className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
+                  title="Anak Saya"
+                >
+                  <Users className="h-4 w-4" />
+                  <span className="hidden sm:inline">Anak Saya</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => navigate("/cari-siswa")}

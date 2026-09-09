@@ -19,6 +19,7 @@ const RekapSertifikat = lazy(() => import("./pages/RekapSertifikat"));
 const RekapGlobal = lazy(() => import("./pages/RekapGlobal"));
 const SearchStudents = lazy(() => import("./pages/SearchStudents"));
 const AcademicYears = lazy(() => import("./pages/AcademicYears"));
+const AnakSaya = lazy(() => import("./pages/AnakSaya"));
 
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
@@ -30,8 +31,8 @@ const TahfizhVerification = lazy(() => import("./pages/TahfizhVerification"));
 const VerificationCenter = lazy(() => import("./pages/VerificationCenter"));
 
 function HomeEntry() {
-  const { user, loading } = useAuthContext();
-  if (!loading && user) return <Navigate to="/dashboard" replace />;
+  const { user, loading, isParent } = useAuthContext();
+  if (!loading && user) return <Navigate to={isParent ? "/anak-saya" : "/dashboard"} replace />;
   return <Landing />;
 }
 
@@ -106,14 +107,15 @@ function AppRoutes() {
           <Route path="/" element={<HomeEntry />} />
           <Route path="/landing" element={<HomeEntry />} />
           <Route element={<AppLayout />}>
-            <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            <Route path="/anak-saya" element={<ProtectedRoute requiredRole="parent"><AnakSaya /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute requiredRole="staff"><Index /></ProtectedRoute>} />
             <Route path="/kelas/:classId" element={<ClassStudents />} />
             <Route path="/siswa/:studentId" element={<StudentDetail />} />
             <Route path="/tahun-ajaran" element={<ProtectedRoute requiredRole="admin"><AcademicYears /></ProtectedRoute>} />
             <Route path="/naik-kelas-massal" element={<ProtectedRoute requiredRole="admin"><MassClassPromotion /></ProtectedRoute>} />
             <Route path="/kelola-siswa" element={<ProtectedRoute requiredRole="admin"><ManageStudents /></ProtectedRoute>} />
             <Route path="/kelola-user" element={<ProtectedRoute requiredRole="admin"><ManageUsers /></ProtectedRoute>} />
-            <Route path="/rekap-sertifikat" element={<ProtectedRoute><RekapSertifikat /></ProtectedRoute>} />
+            <Route path="/rekap-sertifikat" element={<ProtectedRoute requiredRole="staff"><RekapSertifikat /></ProtectedRoute>} />
             <Route path="/rekap-global" element={<RekapGlobal />} />
             <Route path="/cari-siswa" element={<SearchStudents />} />
             <Route path="/ganti-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />

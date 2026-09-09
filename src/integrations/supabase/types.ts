@@ -785,6 +785,13 @@ export type Database = {
         Returns: boolean
       }
       is_account_approved: { Args: { _uid: string }; Returns: boolean }
+      link_parent_student: {
+        Args: { _child_name: string; _identifier: string }
+        Returns: {
+          student_id: string
+          student_name: string
+        }[]
+      }
       process_mass_class_promotion: {
         Args: {
           _academic_year_from: string

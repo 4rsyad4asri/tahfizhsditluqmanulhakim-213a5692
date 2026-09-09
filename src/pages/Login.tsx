@@ -3,21 +3,37 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { BookOpen, LogIn, Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { lovable } from "@/integrations/lovable/index";
 
 export default function Login() {
-  const { signIn, user, loading } = useAuthContext();
+  const { signIn, user, loading, isParent } = useAuthContext();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   // Redirect if already logged in
   useEffect(() => {
     if (!loading && user) {
-      navigate("/", { replace: true });
+      navigate(isParent ? "/anak-saya" : "/", { replace: true });
     }
-  }, [loading, user, navigate]);
+  }, [loading, user, isParent, navigate]);
+
+  const handleGoogle = async () => {
+    setGoogleLoading(true);
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
+    if (result.error) {
+      setGoogleLoading(false);
+      toast.error("Gagal masuk dengan Google. Coba lagi.");
+      return;
+    }
+    if (result.redirected) return;
+    navigate("/anak-saya", { replace: true });
+  };
 
   if (!loading && user) {
     return null;

@@ -9,7 +9,7 @@ const SIDEBAR_STORAGE_KEY = "tahfizh-sidebar-collapsed";
 const DESKTOP_BREAKPOINT = 1024;
 
 export default function AppLayout() {
-  const { isAdmin } = useAuthContext();
+  const { isAdmin, isParent } = useAuthContext();
   const [isDesktop, setIsDesktop] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth >= DESKTOP_BREAKPOINT : true,
   );
@@ -52,6 +52,7 @@ export default function AppLayout() {
           mobileOpen={mobileOpen}
           onCloseMobile={() => setMobileOpen(false)}
           isAdmin={isAdmin}
+          isParent={isParent}
         />
         <div className={cn("min-w-0 flex-1 transition-all duration-150", !isDesktop && "w-full")}>
           <Outlet />

@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { X, Users } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { dashboardItem, navSections, type NavItem } from "@/components/app-layout/navigation";
@@ -9,6 +9,15 @@ type SidebarProps = {
   mobileOpen: boolean;
   onCloseMobile: () => void;
   isAdmin: boolean;
+  isParent?: boolean;
+};
+
+const parentItem: NavItem = {
+  label: "Anak Saya",
+  description: "Data dan perkembangan hafalan anak Anda.",
+  icon: Users,
+  path: "/anak-saya",
+  match: (pathname) => pathname === "/anak-saya" || pathname.startsWith("/siswa"),
 };
 
 const routePreloaders: Record<string, () => Promise<unknown>> = {
@@ -106,7 +115,7 @@ function SidebarMenuItem({
   );
 }
 
-export default function Sidebar({ collapsed, isDesktop, mobileOpen, onCloseMobile, isAdmin }: SidebarProps) {
+export default function Sidebar({ collapsed, isDesktop, mobileOpen, onCloseMobile, isAdmin, isParent }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -116,10 +125,13 @@ export default function Sidebar({ collapsed, isDesktop, mobileOpen, onCloseMobil
     return location.pathname === item.path;
   };
 
-  const filteredSections = navSections.map((section) => ({
-    ...section,
-    items: section.items.filter((item) => !item.adminOnly || isAdmin),
-  }));
+  const mainItem = isParent ? parentItem : dashboardItem;
+  const filteredSections = isParent
+    ? []
+    : navSections.map((section) => ({
+        ...section,
+        items: section.items.filter((item) => !item.adminOnly || isAdmin),
+      }));
 
   const desktopAside = (
     <aside
@@ -137,10 +149,10 @@ export default function Sidebar({ collapsed, isDesktop, mobileOpen, onCloseMobil
         </p>
       )}
       <SidebarMenuItem
-        item={dashboardItem}
-        active={isActive(dashboardItem)}
+        item={mainItem}
+        active={isActive(mainItem)}
         collapsed={collapsed}
-        onClick={() => navigate("/")}
+        onClick={() => navigate(isParent ? "/anak-saya" : "/")}
       />
     </div>
 
@@ -206,11 +218,11 @@ export default function Sidebar({ collapsed, isDesktop, mobileOpen, onCloseMobil
             <div>
               <p className="mb-3 px-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Utama</p>
               <SidebarMenuItem
-                item={dashboardItem}
-                active={isActive(dashboardItem)}
+                item={mainItem}
+                active={isActive(mainItem)}
                 collapsed={false}
                 onClick={() => {
-                  navigate("/");
+                  navigate(isParent ? "/anak-saya" : "/");
                   onCloseMobile();
                 }}
               />

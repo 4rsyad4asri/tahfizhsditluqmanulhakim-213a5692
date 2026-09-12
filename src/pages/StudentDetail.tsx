@@ -5,6 +5,7 @@ import { useMyAssignedClasses } from "@/hooks/useMyAssignedClasses";
 import { calculateNilaiSetoran } from "@/data/mockData";
 import type { Koreksi, TahfizhSurahEntry } from "@/data/mockData";
 import { useStudentDetail, useAddSetoran, useAddTahfizhUjian, useAddTahsinUjian, useUpdateCatatan, useUpdateUjian, useDeleteUjian, usePublishUjian } from "@/hooks/useStudentDetail";
+import { useParentChildren } from "@/hooks/useParentChildren";
 import { JUZ_SURAH_MAP, getSurahsForJuz, getSurahLabel } from "@/data/quranData";
 import { ArrowLeft, Plus, FileText, Award, BookOpen, PenLine, Loader2, Trash2, Info, Calendar, Clock, Download, Pencil } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -471,7 +472,8 @@ const StudentDetail = () => {
   const navigate = useNavigate();
   const { data, isLoading, error } = useStudentDetail(studentId);
   const { data: assignedClassIds } = useMyAssignedClasses();
-  const { isPenguji, user } = useAuthContext();
+  const { isPenguji, isParent, user } = useAuthContext();
+  const { data: parentChildren, isLoading: parentChildrenLoading } = useParentChildren();
   const addSetoran = useAddSetoran();
   
   const addTahfizhUjian = useAddTahfizhUjian();
@@ -534,9 +536,11 @@ const StudentDetail = () => {
   const assessorMap = data?.assessorMap || {};
 
   const isLoggedIn = !!user;
-  const hasAccess = !isPenguji || assignedClassIds === null || assignedClassIds === undefined || (classInfo?.id && assignedClassIds.includes(classInfo.id));
+  const canEdit = isLoggedIn && !isParent;
+  const parentOwnsStudent = !isParent || (parentChildren ?? []).some((child) => child.studentId === studentId);
+  const hasAccess = parentOwnsStudent && (!isPenguji || assignedClassIds === null || assignedClassIds === undefined || (classInfo?.id && assignedClassIds.includes(classInfo.id)));
 
-  if (isLoading) {
+  if (isLoading || (isParent && parentChildrenLoading)) {
     return (
       <div className="min-h-screen bg-background">
         <div className="flex items-center justify-center py-20">
@@ -652,7 +656,7 @@ const StudentDetail = () => {
 
           {/* UJIAN TAB */}
           <TabsContent value="ujian" className="space-y-6">
-            {isLoggedIn && (
+            {canEdit && (
               <div className="p-6 rounded-lg border border-border bg-card space-y-4">
                 <h3 className="font-semibold text-foreground flex items-center gap-2">
                   <Plus className="w-4 h-4" /> Tambah Ujian Baru
@@ -999,7 +1003,7 @@ const StudentDetail = () => {
                     </div>
 
                     <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
-                      {isLoggedIn && (
+                      {canEdit && (
                         <>
                           <button
                             onClick={() => setEditingUjian(displayUjian)}
@@ -1082,7 +1086,7 @@ const StudentDetail = () => {
 
           {/* SETORAN TAB */}
           <TabsContent value="setoran" className="space-y-6">
-            {isLoggedIn && (
+            {canEdit && (
               <div className="p-6 rounded-lg border border-border bg-card space-y-4">
                 <h3 className="font-semibold text-foreground flex items-center gap-2">
                   <Plus className="w-4 h-4" /> Tambah Setoran
@@ -1115,7 +1119,7 @@ const StudentDetail = () => {
           {/* CATATAN TAB */}
           <TabsContent value="catatan" className="space-y-4">
             <h3 className="font-semibold text-foreground">Catatan Penguji</h3>
-            {isLoggedIn ? (
+            {canEdit ? (
               <>
                 <textarea
                   value={catatan}
@@ -1133,7 +1137,7 @@ const StudentDetail = () => {
               </>
             ) : (
               <div className="bg-card rounded-lg border border-border p-4">
-                <p className="text-sm text-muted-foreground">{catatan || "Belum ada catatan"}</p>
+                <p className="text-sm text-muted-foreground">{(student as any)?.catatan_penguji || catatan || "Belum ada catatan"}</p>
               </div>
             )}
           </TabsContent>

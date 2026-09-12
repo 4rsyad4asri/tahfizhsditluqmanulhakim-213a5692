@@ -115,7 +115,7 @@ function SidebarMenuItem({
   );
 }
 
-export default function Sidebar({ collapsed, isDesktop, mobileOpen, onCloseMobile, isAdmin }: SidebarProps) {
+export default function Sidebar({ collapsed, isDesktop, mobileOpen, onCloseMobile, isAdmin, isParent }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -125,10 +125,13 @@ export default function Sidebar({ collapsed, isDesktop, mobileOpen, onCloseMobil
     return location.pathname === item.path;
   };
 
-  const filteredSections = navSections.map((section) => ({
-    ...section,
-    items: section.items.filter((item) => !item.adminOnly || isAdmin),
-  }));
+  const mainItem = isParent ? parentItem : dashboardItem;
+  const filteredSections = isParent
+    ? []
+    : navSections.map((section) => ({
+        ...section,
+        items: section.items.filter((item) => !item.adminOnly || isAdmin),
+      }));
 
   const desktopAside = (
     <aside

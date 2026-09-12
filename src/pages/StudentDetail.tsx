@@ -655,7 +655,7 @@ const StudentDetail = () => {
 
           {/* UJIAN TAB */}
           <TabsContent value="ujian" className="space-y-6">
-            {isLoggedIn && (
+            {canEdit && (
               <div className="p-6 rounded-lg border border-border bg-card space-y-4">
                 <h3 className="font-semibold text-foreground flex items-center gap-2">
                   <Plus className="w-4 h-4" /> Tambah Ujian Baru
@@ -1085,7 +1085,7 @@ const StudentDetail = () => {
 
           {/* SETORAN TAB */}
           <TabsContent value="setoran" className="space-y-6">
-            {isLoggedIn && (
+            {canEdit && (
               <div className="p-6 rounded-lg border border-border bg-card space-y-4">
                 <h3 className="font-semibold text-foreground flex items-center gap-2">
                   <Plus className="w-4 h-4" /> Tambah Setoran
@@ -1118,7 +1118,7 @@ const StudentDetail = () => {
           {/* CATATAN TAB */}
           <TabsContent value="catatan" className="space-y-4">
             <h3 className="font-semibold text-foreground">Catatan Penguji</h3>
-            {isLoggedIn ? (
+            {canEdit ? (
               <>
                 <textarea
                   value={catatan}
@@ -1136,7 +1136,7 @@ const StudentDetail = () => {
               </>
             ) : (
               <div className="bg-card rounded-lg border border-border p-4">
-                <p className="text-sm text-muted-foreground">{catatan || "Belum ada catatan"}</p>
+                <p className="text-sm text-muted-foreground">{(student as any)?.catatan_penguji || catatan || "Belum ada catatan"}</p>
               </div>
             )}
           </TabsContent>

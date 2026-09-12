@@ -471,7 +471,8 @@ const StudentDetail = () => {
   const navigate = useNavigate();
   const { data, isLoading, error } = useStudentDetail(studentId);
   const { data: assignedClassIds } = useMyAssignedClasses();
-  const { isPenguji, user } = useAuthContext();
+  const { isPenguji, isParent, user } = useAuthContext();
+  const { data: parentChildren, isLoading: parentChildrenLoading } = useParentChildren();
   const addSetoran = useAddSetoran();
   
   const addTahfizhUjian = useAddTahfizhUjian();
@@ -534,9 +535,11 @@ const StudentDetail = () => {
   const assessorMap = data?.assessorMap || {};
 
   const isLoggedIn = !!user;
-  const hasAccess = !isPenguji || assignedClassIds === null || assignedClassIds === undefined || (classInfo?.id && assignedClassIds.includes(classInfo.id));
+  const canEdit = isLoggedIn && !isParent;
+  const parentOwnsStudent = !isParent || (parentChildren ?? []).some((child) => child.studentId === studentId);
+  const hasAccess = parentOwnsStudent && (!isPenguji || assignedClassIds === null || assignedClassIds === undefined || (classInfo?.id && assignedClassIds.includes(classInfo.id)));
 
-  if (isLoading) {
+  if (isLoading || (isParent && parentChildrenLoading)) {
     return (
       <div className="min-h-screen bg-background">
         <div className="flex items-center justify-center py-20">

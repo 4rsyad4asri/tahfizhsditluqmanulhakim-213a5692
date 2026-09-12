@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { X, Users } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { dashboardItem, navSections, type NavItem } from "@/components/app-layout/navigation";
@@ -9,6 +9,15 @@ type SidebarProps = {
   mobileOpen: boolean;
   onCloseMobile: () => void;
   isAdmin: boolean;
+  isParent?: boolean;
+};
+
+const parentItem: NavItem = {
+  label: "Anak Saya",
+  description: "Data dan perkembangan hafalan anak Anda.",
+  icon: Users,
+  path: "/anak-saya",
+  match: (pathname) => pathname === "/anak-saya" || pathname.startsWith("/siswa"),
 };
 
 const routePreloaders: Record<string, () => Promise<unknown>> = {

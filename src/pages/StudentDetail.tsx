@@ -5,6 +5,7 @@ import { useMyAssignedClasses } from "@/hooks/useMyAssignedClasses";
 import { calculateNilaiSetoran } from "@/data/mockData";
 import type { Koreksi, TahfizhSurahEntry } from "@/data/mockData";
 import { useStudentDetail, useAddSetoran, useAddTahfizhUjian, useAddTahsinUjian, useUpdateCatatan, useUpdateUjian, useDeleteUjian, usePublishUjian } from "@/hooks/useStudentDetail";
+import { useParentChildren } from "@/hooks/useParentChildren";
 import { JUZ_SURAH_MAP, getSurahsForJuz, getSurahLabel } from "@/data/quranData";
 import { ArrowLeft, Plus, FileText, Award, BookOpen, PenLine, Loader2, Trash2, Info, Calendar, Clock, Download, Pencil } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -1002,7 +1003,7 @@ const StudentDetail = () => {
                     </div>
 
                     <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
-                      {isLoggedIn && (
+                      {canEdit && (
                         <>
                           <button
                             onClick={() => setEditingUjian(displayUjian)}

@@ -149,10 +149,10 @@ export default function Sidebar({ collapsed, isDesktop, mobileOpen, onCloseMobil
         </p>
       )}
       <SidebarMenuItem
-        item={dashboardItem}
-        active={isActive(dashboardItem)}
+        item={mainItem}
+        active={isActive(mainItem)}
         collapsed={collapsed}
-        onClick={() => navigate("/")}
+        onClick={() => navigate(isParent ? "/anak-saya" : "/")}
       />
     </div>
 
@@ -218,11 +218,11 @@ export default function Sidebar({ collapsed, isDesktop, mobileOpen, onCloseMobil
             <div>
               <p className="mb-3 px-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Utama</p>
               <SidebarMenuItem
-                item={dashboardItem}
-                active={isActive(dashboardItem)}
+                item={mainItem}
+                active={isActive(mainItem)}
                 collapsed={false}
                 onClick={() => {
-                  navigate("/");
+                  navigate(isParent ? "/anak-saya" : "/");
                   onCloseMobile();
                 }}
               />

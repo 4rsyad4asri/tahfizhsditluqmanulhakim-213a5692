@@ -487,6 +487,7 @@ const StudentDetail = () => {
   const publishUjian = usePublishUjian();
   const [editingUjian, setEditingUjian] = useState<any | null>(null);
   const [raportUjian, setRaportUjian] = useState<any | null>(null);
+  const [certificateUjian, setCertificateUjian] = useState<any | null>(null);
 
   const [showSetoranForm, setShowSetoranForm] = useState(false);
   const [showUjianForm, setShowUjianForm] = useState(false);

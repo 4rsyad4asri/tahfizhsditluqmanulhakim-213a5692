@@ -1206,6 +1206,40 @@ const StudentDetail = () => {
           assessorName={raportUjian.assessed_by ? assessorMap[raportUjian.assessed_by] : undefined}
         />
       )}
+      <CertificatePreviewDialog
+        open={!!certificateUjian}
+        onOpenChange={(o) => { if (!o) setCertificateUjian(null); }}
+        coordinatorUserId={certificateUjian?.assessed_by}
+        lockLayout
+        ujianId={certificateUjian?.id}
+        studentId={studentId}
+        layoutMode="global"
+        data={
+          certificateUjian
+            ? ({
+                studentName: formattedStudentName,
+                className: formatClassName(classInfo),
+                juz: certificateUjian.juzList || "-",
+                nilaiAkhir: Number(certificateUjian.nilai_akhir) || 0,
+                predikat: certificateUjian.predikat || "-",
+                tanggal: certificateUjian.tanggal,
+                nomorSertifikat: certificateUjian.nomor_sertifikat || "-",
+                documentNumber: buildReportDocumentNumber(
+                  "Tahfizh",
+                  certificateUjian.id,
+                  certificateUjian.published_at,
+                  certificateUjian.tanggal,
+                ),
+                verificationToken: certificateUjian.verification_token,
+                verificationUrl: buildVerificationUrl(
+                  "sertifikat-tahfizh",
+                  certificateUjian.verification_token,
+                ),
+              } as CertificateData)
+            : null
+        }
+      />
+
     </div>
   );
 };

@@ -23,7 +23,10 @@ import { getStandardExamGrading } from "@/data/grading";
 import EditUjianDialog from "@/components/EditUjianDialog";
 import RaportPreviewDialog from "@/components/RaportPreviewDialog";
 import { handleSmartFormKey } from "@/utils/smartFormNav";
-import { usesLegacyTahfizhScoring } from "@/utils/verificationUrl";
+import { usesLegacyTahfizhScoring, buildVerificationUrl } from "@/utils/verificationUrl";
+import CertificatePreviewDialog from "@/components/CertificatePreviewDialog";
+import { buildReportDocumentNumber } from "@/utils/documentNumber";
+import type { CertificateData } from "@/utils/generateCertificatePDF";
 import { formatClassName } from "@/utils/className";
 import { formatStudentName } from "@/utils/formatName";
 import {

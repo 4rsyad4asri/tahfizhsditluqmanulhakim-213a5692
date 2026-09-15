@@ -1059,6 +1059,22 @@ const StudentDetail = () => {
                       >
                         <FileText className="w-3 h-3" /> Lihat Raport
                       </button>
+                      {displayUjian.mode === "Tahfizh" && ujianStatus === "Lulus" && (
+                        <button
+                          onClick={() =>
+                            setCertificateUjian({
+                              ...displayUjian,
+                              juzList: Array.from(
+                                new Set(tahfizhEntries.map((entry: any) => entry.juz).filter(Boolean)),
+                              ).join(", "),
+                              predikat: nilaiAspek.predikat || displayUjian.grade || "-",
+                            })
+                          }
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-amber-500/10 text-amber-700 text-xs font-medium hover:bg-amber-500/20 transition-colors"
+                        >
+                          <Award className="w-3 h-3" /> Lihat Sertifikat
+                        </button>
+                      )}
                       {displayUjian.mode === "Tahsin Dasar" && (
                         <button
                           onClick={() => {

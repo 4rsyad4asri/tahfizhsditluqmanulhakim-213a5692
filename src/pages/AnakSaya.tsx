@@ -31,13 +31,12 @@ export default function AnakSaya() {
 
   const handleLink = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !identifier.trim()) {
-      toast.error("Nama anak dan NIS/NISN wajib diisi");
+    if (!identifier.trim()) {
+      toast.error("NIS atau NISN wajib diisi");
       return;
     }
     setSaving(true);
-    const { data, error } = await (supabase as any).rpc("link_parent_student", {
-      _child_name: name.trim(),
+    const { data, error } = await (supabase as any).rpc("link_parent_by_identifier", {
       _identifier: identifier.trim(),
     });
     setSaving(false);
@@ -46,7 +45,8 @@ export default function AnakSaya() {
       toast.error(error.message || "Data anak tidak ditemukan");
       return;
     }
-    const linked = Array.isArray(data) ? data[0] : data;
+    const row = Array.isArray(data) ? data[0] : data;
+    const linked = row ? { student_id: row.linked_student_id, student_name: row.linked_student_name } : null;
     toast.success(`Berhasil terhubung dengan ${linked?.student_name ?? "anak Anda"}`);
     setName("");
     setIdentifier("");
@@ -88,7 +88,7 @@ export default function AnakSaya() {
         </div>
         <h1 className="text-xl font-bold text-foreground">Data Anak Saya</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Hubungkan akun Anda dengan data anak menggunakan nama dan NIS/NISN.
+          Hubungkan akun Anda dengan data anak cukup menggunakan NIS atau NISN.
         </p>
       </div>
 
@@ -130,15 +130,6 @@ export default function AnakSaya() {
       {(emptyState || showForm) ? (
         <form onSubmit={handleLink} className="space-y-3 rounded-xl border border-border bg-card p-5 shadow-sm">
           <h2 className="text-sm font-semibold text-foreground">Tambah Anak</h2>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">Nama Anak *</label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Nama lengkap sesuai data sekolah"
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">NIS atau NISN *</label>
             <input

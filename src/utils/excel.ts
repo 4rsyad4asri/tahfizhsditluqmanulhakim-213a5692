@@ -10,6 +10,7 @@ function loadExcelJS(): Promise<ExcelJSModule> {
 
 
 export async function exportJsonToExcel(rows: Record<string, any>[], sheetName: string, fileName: string) {
+  const ExcelJS = await loadExcelJS();
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet(sheetName);
   if (rows.length === 0) {

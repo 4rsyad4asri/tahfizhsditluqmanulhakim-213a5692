@@ -29,6 +29,9 @@ const routePreloaders: Record<string, () => Promise<unknown>> = {
   "/rekap-sertifikat": () => import("@/pages/RekapSertifikat"),
   "/profile": () => import("@/pages/Profile"),
   "/kelola-user": () => import("@/pages/ManageUsers"),
+  "/naik-kelas-massal": () => import("@/pages/MassClassPromotion"),
+  "/cari-siswa": () => import("@/pages/SearchStudents"),
+  "/anak-saya": () => import("@/pages/AnakSaya"),
 };
 const preloadedRoutes = new Set<string>();
 

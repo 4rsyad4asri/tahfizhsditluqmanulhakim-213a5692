@@ -8,7 +8,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { AuthProvider, useAuthContext } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "@/components/AppLayout";
-import MassClassPromotion from "./pages/MassClassPromotion";
+const MassClassPromotion = lazy(() => import("./pages/MassClassPromotion"));
 const Index = lazy(() => import("./pages/Index"));
 const Landing = lazy(() => import("./pages/Landing"));
 const ClassStudents = lazy(() => import("./pages/ClassStudents"));

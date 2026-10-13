@@ -32,6 +32,7 @@ export async function exportJsonToExcel(rows: Record<string, any>[], sheetName: 
 
 export async function readExcelFile(file: File): Promise<Record<string, any>[]> {
   const buf = await file.arrayBuffer();
+  const ExcelJS = await loadExcelJS();
   const wb = new ExcelJS.Workbook();
   // try xlsx then csv
   try {

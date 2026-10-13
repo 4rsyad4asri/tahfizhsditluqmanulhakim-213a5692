@@ -1,4 +1,13 @@
-import ExcelJS from "exceljs";
+// ExcelJS dimuat secara dinamis (lazy) agar bundle awal aplikasi tetap ringan.
+type ExcelJSModule = typeof import("exceljs");
+let excelJSPromise: Promise<ExcelJSModule> | null = null;
+function loadExcelJS(): Promise<ExcelJSModule> {
+  if (!excelJSPromise) {
+    excelJSPromise = import("exceljs").then((mod) => mod.default ?? (mod as any));
+  }
+  return excelJSPromise;
+}
+
 
 export async function exportJsonToExcel(rows: Record<string, any>[], sheetName: string, fileName: string) {
   const wb = new ExcelJS.Workbook();

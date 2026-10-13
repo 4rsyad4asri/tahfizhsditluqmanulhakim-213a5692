@@ -1,6 +1,16 @@
-import ExcelJS from "exceljs";
+// ExcelJS dimuat secara dinamis (lazy) agar bundle awal aplikasi tetap ringan.
+type ExcelJSModule = typeof import("exceljs");
+let excelJSPromise: Promise<ExcelJSModule> | null = null;
+function loadExcelJS(): Promise<ExcelJSModule> {
+  if (!excelJSPromise) {
+    excelJSPromise = import("exceljs").then((mod) => mod.default ?? (mod as any));
+  }
+  return excelJSPromise;
+}
+
 
 export async function exportJsonToExcel(rows: Record<string, any>[], sheetName: string, fileName: string) {
+  const ExcelJS = await loadExcelJS();
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet(sheetName);
   if (rows.length === 0) {
@@ -22,6 +32,7 @@ export async function exportJsonToExcel(rows: Record<string, any>[], sheetName: 
 
 export async function readExcelFile(file: File): Promise<Record<string, any>[]> {
   const buf = await file.arrayBuffer();
+  const ExcelJS = await loadExcelJS();
   const wb = new ExcelJS.Workbook();
   // try xlsx then csv
   try {

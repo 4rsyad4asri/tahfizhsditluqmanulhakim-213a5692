@@ -27,7 +27,6 @@ export default function ClassExamStats({ classId }: Props) {
         .from("students")
         .select("id")
         .eq("class_id", classId)
-        .eq("student_status", "aktif")
         .eq("student_status", "aktif");
 
       if (!students || students.length === 0) return null;

@@ -31,6 +31,7 @@ export function useClassStudents(grade: number, section: string) {
         .from("students")
         .select("*")
         .eq("class_id", classData.id)
+        .eq("student_status", "aktif")
         .order("name");
 
       if (studentError) throw studentError;

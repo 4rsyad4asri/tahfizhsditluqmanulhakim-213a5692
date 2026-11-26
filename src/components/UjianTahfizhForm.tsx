@@ -29,6 +29,7 @@ import {
   type TahfizhSurahAssessment,
 } from "@/data/tahfizhSystem";
 import { getSurahsForJuz, getSurahLabel } from "@/data/quranData";
+import { MobileErrorCounter } from "@/components/MobileErrorCounter";
 
 interface UjianTahfizhFormProps {
   mode: TahfizhExamMode;
@@ -436,7 +437,7 @@ export default function UjianTahfizhForm({
   };
 
   return (
-    <div className="w-full min-w-0 space-y-5 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
+    <div className="w-full min-w-0 space-y-5 rounded-2xl border border-border bg-card p-4 max-sm:p-3 shadow-sm sm:p-5 max-sm:space-y-4">
       <button
         type="button"
         onClick={onCancel}
@@ -508,7 +509,7 @@ export default function UjianTahfizhForm({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border bg-background p-4">
+      <div className="rounded-2xl border border-border bg-background p-4 max-sm:p-3">
           <p className="text-xs text-muted-foreground">Preview Hasil</p>
           <p className="mt-1 text-4xl font-bold text-foreground">{examResult.nilaiAkhir}</p>
           <p className="text-sm font-semibold text-primary">{examResult.predikat} - Grade {examResult.grade}</p>
@@ -530,13 +531,19 @@ export default function UjianTahfizhForm({
         onSelect={(juz) => (isCertificate ? setActiveJuz(juz) : openRegularJuz(juz))}
       />
 
-      <div className="rounded-2xl border border-border bg-muted/20 p-4">
+      <div className="rounded-2xl border border-border bg-muted/20 p-4 max-sm:p-3">
         <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h5 className="text-sm font-semibold text-foreground">Rumus Penalti dan Batas Maksimal Kesalahan</h5>
-            <p className="text-xs text-muted-foreground">
+              <p className="hidden text-xs text-muted-foreground sm:block">
               Kelancaran otomatis: 0 kesalahan = 100, 1-2 = 90, 3-5 = 80, 6-8 = 70, 9+ = 60. Batas maksimal hanya untuk Lahn Jali dan Salah Sambung.
             </p>
+              <details className="text-xs text-muted-foreground sm:hidden">
+                <summary className="cursor-pointer font-medium text-foreground">Aturan kelancaran dan batas kesalahan</summary>
+                <p className="mt-1">
+                  Kelancaran otomatis: 0 kesalahan = 100, 1-2 = 90, 3-5 = 80, 6-8 = 70, 9+ = 60. Batas maksimal hanya untuk Lahn Jali dan Salah Sambung.
+                </p>
+              </details>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {(["lahnJali", "lahnKhofi", "waqaf", "salahSambung"] as const).map((key) => (
@@ -932,7 +939,7 @@ function TahfizhAssessmentInput({
   };
 
   return (
-    <div className="w-full min-w-0 rounded-2xl border border-border bg-background p-3 shadow-sm sm:p-4">
+    <div className="w-full min-w-0 rounded-2xl border border-border bg-background p-3 max-sm:p-2 shadow-sm sm:p-4">
       <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-foreground">No {index + 1}</p>
@@ -1067,7 +1074,7 @@ function TahfizhAssessmentInput({
         </Field>
       </div>
 
-      <div className="mt-3 grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 max-sm:grid-cols-2 max-sm:gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <Field label="Kelancaran">
           <select
             value={assessment.kelancaran}
@@ -1119,15 +1126,14 @@ function NumberField({
   onChange: (value: number) => void;
 }) {
   return (
-    <Field label={label}>
-      <input
-        type="number"
-        min={0}
+    <div className="block min-w-0 text-xs font-medium text-muted-foreground">
+      <span className="mb-1 block">{label}</span>
+      <MobileErrorCounter
+        label={label}
         value={value}
         disabled={disabled}
-        onChange={(event) => onChange(Math.max(0, toSafeNumber(event.target.value, value)))}
-        className="field-input min-w-0"
+        onChange={onChange}
       />
-    </Field>
+    </div>
   );
 }

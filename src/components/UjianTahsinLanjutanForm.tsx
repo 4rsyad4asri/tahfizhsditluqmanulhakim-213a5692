@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ArrowLeft, Plus, Trash2, Info, Settings2, Calendar, Clock } from "lucide-react";
+import { MobileErrorCounter } from "@/components/MobileErrorCounter";
 import {
   Tooltip,
   TooltipContent,
@@ -113,7 +114,7 @@ export default function UjianTahsinLanjutanForm({
   };
 
   return (
-    <div className="bg-card rounded-lg border border-border p-5 shadow-card animate-scale-in space-y-4">
+    <div className="bg-card rounded-lg border border-border p-5 max-sm:p-3 shadow-card animate-scale-in space-y-4 max-sm:space-y-3">
       <button
         type="button"
         onClick={onCancel}
@@ -151,7 +152,7 @@ export default function UjianTahsinLanjutanForm({
         </div>
       </div>
 
-      <div className="p-4 rounded-lg border border-border bg-muted/40 space-y-3">
+      <div className="p-4 max-sm:p-3 rounded-lg border border-border bg-muted/40 space-y-3">
         <div className="flex items-center justify-between">
           <h5 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
             Rumus & Bobot Penilaian
@@ -165,7 +166,7 @@ export default function UjianTahsinLanjutanForm({
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 max-sm:grid-cols-2 gap-3">
           <div className="p-3 rounded-md bg-destructive/5 border border-destructive/20">
             <p className="text-xs font-semibold text-foreground mb-1">
               Lahn Jali
@@ -290,7 +291,7 @@ export default function UjianTahsinLanjutanForm({
           </div>
         )}
 
-        <div className="p-3 rounded-md bg-accent/50 border border-border space-y-1">
+        <div className="hidden sm:block p-3 rounded-md bg-accent/50 border border-border space-y-1">
           <p className="text-xs font-semibold text-foreground">
             Rumus Nilai Per Surat (Tahsin Lanjutan):
           </p>
@@ -304,13 +305,28 @@ export default function UjianTahsinLanjutanForm({
             Ibtida)
           </p>
         </div>
+        <details className="sm:hidden rounded-md bg-accent/50 border border-border p-3">
+          <summary className="cursor-pointer text-xs font-semibold text-foreground">
+            Lihat rumus nilai per surat
+          </summary>
+          <div className="mt-2 space-y-1">
+            <p className="text-xs text-muted-foreground font-mono bg-background/80 px-2 py-1 rounded">
+              Koreksi = Kelancaran - (LJ x {config.penalti_lahn_jali}) - (LK x {" "}
+              {config.penalti_lahn_khofi}) - (Waqaf x {penaltiWaqaf})
+            </p>
+            <p className="text-xs font-semibold text-primary font-mono bg-background/80 px-2 py-1 rounded">
+              Nilai akhir = Kelancaran - ({config.penalti_lahn_jali} x LJ) - ({" "}
+              {config.penalti_lahn_khofi} x LK) - ({penaltiWaqaf} x Waqaf & Ibtida)
+            </p>
+          </div>
+        </details>
       </div>
 
       <div className="space-y-4">
         {entries.map((entry, index) => (
           <div
             key={index}
-            className="p-4 rounded-lg border border-border bg-muted/30 space-y-3"
+            className="p-4 max-sm:p-3 rounded-lg border border-border bg-muted/30 space-y-3"
           >
             <div className="flex items-center justify-between">
               <h5 className="text-sm font-semibold text-foreground">
@@ -356,7 +372,7 @@ export default function UjianTahsinLanjutanForm({
               </div>
             </div>
 
-            <div className="p-3 rounded-md bg-primary/10 border-2 border-primary/30">
+            <div className="p-3 max-sm:p-2 rounded-md bg-primary/10 border-2 border-primary/30">
               <h6 className="text-xs font-semibold text-foreground mb-2">
                 1. Kelancaran (Prioritas Utama)
               </h6>
@@ -365,7 +381,7 @@ export default function UjianTahsinLanjutanForm({
                 onChange={(e) =>
                   updateEntry(index, "kelancaran", parseInt(e.target.value))
                 }
-                className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full min-h-11 px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 {KELANCARAN_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -378,66 +394,54 @@ export default function UjianTahsinLanjutanForm({
               </p>
             </div>
 
-            <div className="p-3 rounded-md bg-destructive/5 border border-destructive/20">
+            <div className="p-3 max-sm:p-2 rounded-md bg-destructive/5 border border-destructive/20">
               <h6 className="text-xs font-semibold text-foreground mb-2">
                 2. Lahn Jali (-{config.penalti_lahn_jali}/kesalahan)
               </h6>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {[
                   { key: "salah_huruf", label: "Salah Huruf" },
                   { key: "salah_harakat", label: "Salah Harakat" },
                   { key: "salah_tasydid", label: "Salah Tasydid" },
                 ].map((f) => (
-                  <div key={f.key}>
-                    <label className="block text-[10px] text-muted-foreground mb-1">
+                  <div key={f.key} className="min-w-0 last:col-span-2 sm:last:col-span-1">
+                    <span className="mb-1 block min-h-7 text-[11px] leading-tight text-muted-foreground sm:min-h-0">
                       {f.label}
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={50}
+                    </span>
+                    <MobileErrorCounter
+                      label={`${f.label} baris ${index + 1}`}
                       value={(entry as any)[f.key] ?? 0}
-                      onChange={(e) =>
-                        updateEntry(
-                          index,
-                          f.key as keyof TahsinLanjutanEntry,
-                          parseInt(e.target.value) || 0
-                        )
+                      max={50}
+                      onChange={(value) =>
+                        updateEntry(index, f.key as keyof TahsinLanjutanEntry, value)
                       }
-                      className="w-full px-2 py-1.5 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="p-3 rounded-md bg-warning/5 border border-warning/20">
+            <div className="p-3 max-sm:p-2 rounded-md bg-warning/5 border border-warning/20">
               <h6 className="text-xs font-semibold text-foreground mb-2">
                 3. Lahn Khofi (-{config.penalti_lahn_khofi}/kesalahan)
               </h6>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {[
                   { key: "kesalahan_mad", label: "Mad" },
                   { key: "kesalahan_qalqalah", label: "Qalqalah" },
                   { key: "kesalahan_tajwid", label: "Tajwid" },
                 ].map((f) => (
-                  <div key={f.key}>
-                    <label className="block text-[10px] text-muted-foreground mb-1">
+                  <div key={f.key} className="min-w-0 last:col-span-2 sm:last:col-span-1">
+                    <span className="mb-1 block min-h-7 text-[11px] leading-tight text-muted-foreground sm:min-h-0">
                       {f.label}
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={50}
+                    </span>
+                    <MobileErrorCounter
+                      label={`${f.label} baris ${index + 1}`}
                       value={(entry as any)[f.key] ?? 0}
-                      onChange={(e) =>
-                        updateEntry(
-                          index,
-                          f.key as keyof TahsinLanjutanEntry,
-                          parseInt(e.target.value) || 0
-                        )
+                      max={50}
+                      onChange={(value) =>
+                        updateEntry(index, f.key as keyof TahsinLanjutanEntry, value)
                       }
-                      className="w-full px-2 py-1.5 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                   </div>
                 ))}
@@ -448,23 +452,15 @@ export default function UjianTahsinLanjutanForm({
               <h6 className="text-xs font-semibold text-foreground mb-2">
                 4. Waqaf & Ibtida (-{penaltiWaqaf}/kesalahan)
               </h6>
-              <div>
-                <label className="block text-[10px] text-muted-foreground mb-1">
+              <div className="min-w-0">
+                <span className="mb-1 block text-[11px] text-muted-foreground">
                   Jumlah Kesalahan
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  max={50}
+                </span>
+                <MobileErrorCounter
+                  label={`Kesalahan Waqaf dan Ibtida baris ${index + 1}`}
                   value={entry.waqaf_ibtida}
-                  onChange={(e) =>
-                    updateEntry(
-                      index,
-                      "waqaf_ibtida",
-                      Math.max(0, parseInt(e.target.value) || 0)
-                    )
-                  }
-                  className="w-full px-2 py-1.5 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  max={50}
+                  onChange={(value) => updateEntry(index, "waqaf_ibtida", value)}
                 />
               </div>
             </div>

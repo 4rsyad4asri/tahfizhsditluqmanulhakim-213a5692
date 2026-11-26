@@ -11,6 +11,7 @@ Panduan ini berlaku untuk semua AI agent yang bekerja di repo web Tahfizh SDIT L
 - Untuk perubahan UI laporan, PDF, preview, export, dan public verification, cari helper bersama lebih dulu agar hasilnya konsisten di semua permukaan.
 - Untuk perubahan dashboard/rekap, pertahankan filter dan data existing. Jika membuat kartu statistik atau chart interaktif, pastikan kliknya memfilter tabel detail yang sama.
 - Untuk perubahan data siswa dari spreadsheet, cek nama dan level lebih dulu, buat artefak review sebelum write, dan jangan auto-merge konflik nama yang sama.
+- Gunakan kontrol input responsif bersama untuk pola angka yang berulang agar perilaku sentuh dan aksesibilitas konsisten di semua form ujian.
 
 ## Batas Aman Database
 

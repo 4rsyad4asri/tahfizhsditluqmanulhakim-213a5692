@@ -1132,6 +1132,7 @@ function NumberField({
         label={label}
         value={value}
         disabled={disabled}
+        parseValue={(rawValue) => Math.max(0, toSafeNumber(rawValue, value))}
         onChange={onChange}
       />
     </div>

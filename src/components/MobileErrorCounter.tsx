@@ -7,6 +7,7 @@ interface MobileErrorCounterProps {
   disabled?: boolean;
   min?: number;
   max?: number;
+  parseValue?: (rawValue: string) => number;
   onChange: (value: number) => void;
 }
 
@@ -16,11 +17,18 @@ export function MobileErrorCounter({
   disabled = false,
   min = 0,
   max,
+  parseValue,
   onChange,
 }: MobileErrorCounterProps) {
   const updateValue = (nextValue: number) => {
-    const boundedValue = Math.max(min, max === undefined ? nextValue : Math.min(max, nextValue));
-    onChange(boundedValue);
+    onChange(Math.max(min, nextValue));
+  };
+
+  const handleInputChange = (rawValue: string) => {
+    const parsedValue = parseValue
+      ? parseValue(rawValue)
+      : Number.parseInt(rawValue, 10) || 0;
+    updateValue(parsedValue);
   };
 
   return (
@@ -33,7 +41,7 @@ export function MobileErrorCounter({
         value={value}
         disabled={disabled}
         aria-label={label}
-        onChange={(event) => updateValue(Number.parseInt(event.target.value, 10) || 0)}
+        onChange={(event) => handleInputChange(event.target.value)}
         className="field-input hidden min-w-0 sm:block"
       />
       <div className="flex items-center gap-1.5 sm:hidden">
@@ -58,7 +66,7 @@ export function MobileErrorCounter({
           value={value}
           disabled={disabled}
           aria-label={`${label}, jumlah kesalahan`}
-          onChange={(event) => updateValue(Number.parseInt(event.target.value, 10) || 0)}
+          onChange={(event) => handleInputChange(event.target.value)}
           className="field-input h-11 min-w-0 flex-1 px-2 text-center text-base tabular-nums"
         />
         <Button

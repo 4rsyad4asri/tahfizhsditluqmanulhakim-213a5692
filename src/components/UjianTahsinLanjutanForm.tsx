@@ -381,7 +381,7 @@ export default function UjianTahsinLanjutanForm({
                 onChange={(e) =>
                   updateEntry(index, "kelancaran", parseInt(e.target.value))
                 }
-                className="w-full min-h-11 px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full max-sm:min-h-11 px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 {KELANCARAN_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
